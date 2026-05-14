@@ -44,25 +44,33 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegisterUseCase = void 0;
 const common_1 = require("@nestjs/common");
-const user_service_1 = require("../../../user/application/user.service");
-const mail_service_interface_1 = require("../../../../common/domain/mail.service.interface");
+const auth_user_repository_port_1 = require("../ports/auth-user-repository.port");
+const auth_mail_service_port_1 = require("../ports/auth-mail-service.port");
+const user_status_enum_1 = require("../../../../common/enums/user-status.enum");
 const bcrypt = __importStar(require("bcrypt"));
 let RegisterUseCase = class RegisterUseCase {
-    userService;
+    userRepository;
     mailService;
-    constructor(userService, mailService) {
-        this.userService = userService;
+    constructor(userRepository, mailService) {
+        this.userRepository = userRepository;
         this.mailService = mailService;
     }
     async execute(dto) {
-        const isExisted = await this.userService.isExistedUser(dto.email);
+        const isExisted = await this.userRepository.existsByEmail(dto.email);
         if (isExisted) {
             throw new common_1.ConflictException('EMAIL_ALREADY_EXISTS');
         }
         const salt = await bcrypt.genSalt();
         const hashPassword = await bcrypt.hash(dto.password, salt);
         const verifyCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const newUser = await this.userService.createNewUser(dto.email, hashPassword, dto.fullName, verifyCode);
+        const newUser = await this.userRepository.save({
+            email: dto.email,
+            password: hashPassword,
+            fullName: dto.fullName,
+            verifyCode,
+            role: dto.role,
+            status: user_status_enum_1.UserStatus.PENDING,
+        });
         await this.mailService.sendEmail({
             to: dto.email,
             subject: 'Xác thực tài khoản của bạn',
@@ -70,17 +78,14 @@ let RegisterUseCase = class RegisterUseCase {
             html: `<b>Mã xác thực của bạn là: ${verifyCode}</b>`,
         });
         return {
-            message: 'Tạo User thành công. Vui lòng check email để xác thực tài khoản',
-            data: {
-                email: newUser.email,
-            },
+            email: newUser.email,
         };
     }
 };
 exports.RegisterUseCase = RegisterUseCase;
 exports.RegisterUseCase = RegisterUseCase = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [user_service_1.UserService,
-        mail_service_interface_1.IMailService])
+    __metadata("design:paramtypes", [auth_user_repository_port_1.IAuthUserRepositoryPort,
+        auth_mail_service_port_1.IAuthMailServicePort])
 ], RegisterUseCase);
 //# sourceMappingURL=register.use-case.js.map

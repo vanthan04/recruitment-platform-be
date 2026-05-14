@@ -46,57 +46,86 @@ exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
-const user_service_1 = require("../../user/application/user.service");
+const user_repository_1 = require("../../user/domain/repositories/user.repository");
 const register_use_case_1 = require("./use-cases/register.use-case");
+const login_use_case_1 = require("./use-cases/login.use-case");
+const verify_email_use_case_1 = require("./use-cases/verify-email.use-case");
+const forgot_password_use_case_1 = require("./use-cases/forgot-password.use-case");
+const reset_password_use_case_1 = require("./use-cases/reset-password.use-case");
+const change_password_use_case_1 = require("./use-cases/change-password.use-case");
 const bcrypt = __importStar(require("bcrypt"));
 let AuthService = class AuthService {
-    userService;
+    userRepository;
     jwtService;
     configService;
     registerUseCase;
-    constructor(userService, jwtService, configService, registerUseCase) {
-        this.userService = userService;
+    loginUseCase;
+    verifyEmailUseCase;
+    forgotPasswordUseCase;
+    resetPasswordUseCase;
+    changePasswordUseCase;
+    constructor(userRepository, jwtService, configService, registerUseCase, loginUseCase, verifyEmailUseCase, forgotPasswordUseCase, resetPasswordUseCase, changePasswordUseCase) {
+        this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.configService = configService;
         this.registerUseCase = registerUseCase;
+        this.loginUseCase = loginUseCase;
+        this.verifyEmailUseCase = verifyEmailUseCase;
+        this.forgotPasswordUseCase = forgotPasswordUseCase;
+        this.resetPasswordUseCase = resetPasswordUseCase;
+        this.changePasswordUseCase = changePasswordUseCase;
     }
     async register(dto) {
         return this.registerUseCase.execute(dto);
     }
     async login(dto) {
-        const user = await this.userService.findByEmail(dto.email);
-        if (!user) {
-            throw new common_1.UnauthorizedException('INVALID_CREDENTIALS');
-        }
-        const isMatch = await bcrypt.compare(dto.password, user.password);
-        if (!isMatch) {
-            throw new common_1.UnauthorizedException('INVALID_CREDENTIALS');
-        }
+        const user = await this.loginUseCase.execute(dto);
         const tokens = await this.getTokens(user.id, user.email, user.role);
         await this.updateRefreshToken(user.id, tokens.refresh_token);
         return tokens;
+    }
+    async verifyEmail(dto) {
+        return this.verifyEmailUseCase.execute(dto);
+    }
+    async forgotPassword(dto) {
+        return this.forgotPasswordUseCase.execute(dto);
+    }
+    async resetPassword(dto) {
+        return this.resetPasswordUseCase.execute(dto);
+    }
+    async changePassword(userId, dto) {
+        return this.changePasswordUseCase.execute(userId, dto);
     }
     async logout(userId) {
-        return this.userService.updateRefreshToken(userId, null);
+        return this.userRepository.updateRefreshToken(userId, null);
     }
-    async refreshTokens(userId, refreshToken) {
-        const user = await this.userService.findById(userId);
-        if (!user || !user.refreshToken) {
-            throw new common_1.ForbiddenException('Access Denied');
+    async refreshTokens(refreshToken) {
+        try {
+            const payload = await this.jwtService.verifyAsync(refreshToken, {
+                secret: this.configService.get('JWT_REFRESH_SECRET'),
+            });
+            const userId = payload.sub;
+            const user = await this.userRepository.findById(userId);
+            if (!user || !user.refreshToken) {
+                throw new common_1.ForbiddenException('Access Denied');
+            }
+            const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
+            if (!refreshTokenMatches) {
+                throw new common_1.ForbiddenException('Access Denied');
+            }
+            const tokens = await this.getTokens(user.id, user.email, user.role);
+            await this.updateRefreshToken(user.id, tokens.refresh_token);
+            return tokens;
         }
-        const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
-        if (!refreshTokenMatches) {
-            throw new common_1.ForbiddenException('Access Denied');
+        catch (e) {
+            throw new common_1.ForbiddenException('Invalid Refresh Token');
         }
-        const tokens = await this.getTokens(user.id, user.email, user.role);
-        await this.updateRefreshToken(user.id, tokens.refresh_token);
-        return tokens;
     }
     async updateRefreshToken(userId, refreshToken) {
         const hashedRefreshToken = refreshToken
             ? await bcrypt.hash(refreshToken, 10)
             : null;
-        await this.userService.updateRefreshToken(userId, hashedRefreshToken);
+        await this.userRepository.updateRefreshToken(userId, hashedRefreshToken);
     }
     async getTokens(userId, email, role) {
         const [accessToken, refreshToken] = await Promise.all([
@@ -123,15 +152,20 @@ let AuthService = class AuthService {
         };
     }
     async validateUser(payload) {
-        return this.userService.findById(payload.sub);
+        return this.userRepository.findById(payload.sub);
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [user_service_1.UserService,
+    __metadata("design:paramtypes", [user_repository_1.IUserRepository,
         jwt_1.JwtService,
         config_1.ConfigService,
-        register_use_case_1.RegisterUseCase])
+        register_use_case_1.RegisterUseCase,
+        login_use_case_1.LoginUseCase,
+        verify_email_use_case_1.VerifyEmailUseCase,
+        forgot_password_use_case_1.ForgotPasswordUseCase,
+        reset_password_use_case_1.ResetPasswordUseCase,
+        change_password_use_case_1.ChangePasswordUseCase])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

@@ -1,14 +1,11 @@
-import { UserService } from '../../../user/application/user.service';
-import { RegisterRequestDto } from '../../presentation/dto/register-request.dto';
-import { IMailService } from '../../../../common/domain/mail.service.interface';
+import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
+import { IAuthUserRepositoryPort } from '../ports/auth-user-repository.port';
+import { IAuthMailServicePort } from '../ports/auth-mail-service.port';
 export declare class RegisterUseCase {
-    private readonly userService;
+    private readonly userRepository;
     private readonly mailService;
-    constructor(userService: UserService, mailService: IMailService);
+    constructor(userRepository: IAuthUserRepositoryPort, mailService: IAuthMailServicePort);
     execute(dto: RegisterRequestDto): Promise<{
-        message: string;
-        data: {
-            email: string;
-        };
+        email: string;
     }>;
 }

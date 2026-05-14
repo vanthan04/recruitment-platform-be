@@ -12,11 +12,20 @@ const jwt_1 = require("@nestjs/jwt");
 const passport_1 = require("@nestjs/passport");
 const config_1 = require("@nestjs/config");
 const auth_service_1 = require("./application/auth.service");
-const auth_controller_1 = require("./presentation/auth.controller");
+const auth_controller_1 = require("./presentation/controllers/auth.controller");
 const user_module_1 = require("../user/user.module");
-const jwt_strategy_1 = require("./strategies/jwt.strategy");
+const mail_module_1 = require("../mail/mail.module");
+const jwt_strategy_1 = require("./presentation/security/strategies/jwt.strategy");
 const register_use_case_1 = require("./application/use-cases/register.use-case");
-const mail_module_1 = require("../../common/mail/mail.module");
+const login_use_case_1 = require("./application/use-cases/login.use-case");
+const verify_email_use_case_1 = require("./application/use-cases/verify-email.use-case");
+const forgot_password_use_case_1 = require("./application/use-cases/forgot-password.use-case");
+const reset_password_use_case_1 = require("./application/use-cases/reset-password.use-case");
+const change_password_use_case_1 = require("./application/use-cases/change-password.use-case");
+const auth_user_repository_port_1 = require("./application/ports/auth-user-repository.port");
+const auth_mail_service_port_1 = require("./application/ports/auth-mail-service.port");
+const user_repository_adapter_1 = require("./infrastructure/adapters/user-repository.adapter");
+const mail_service_adapter_1 = require("./infrastructure/adapters/mail-service.adapter");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -24,8 +33,8 @@ exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
             user_module_1.UserModule,
-            passport_1.PassportModule,
             mail_module_1.MailModule,
+            passport_1.PassportModule,
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
                 useFactory: async (config) => ({
@@ -36,7 +45,24 @@ exports.AuthModule = AuthModule = __decorate([
             }),
         ],
         controllers: [auth_controller_1.AuthController],
-        providers: [auth_service_1.AuthService, jwt_strategy_1.JwtStrategy, register_use_case_1.RegisterUseCase],
+        providers: [
+            auth_service_1.AuthService,
+            jwt_strategy_1.JwtStrategy,
+            register_use_case_1.RegisterUseCase,
+            login_use_case_1.LoginUseCase,
+            verify_email_use_case_1.VerifyEmailUseCase,
+            forgot_password_use_case_1.ForgotPasswordUseCase,
+            reset_password_use_case_1.ResetPasswordUseCase,
+            change_password_use_case_1.ChangePasswordUseCase,
+            {
+                provide: auth_user_repository_port_1.IAuthUserRepositoryPort,
+                useClass: user_repository_adapter_1.AuthUserAdapter,
+            },
+            {
+                provide: auth_mail_service_port_1.IAuthMailServicePort,
+                useClass: mail_service_adapter_1.AuthMailAdapter,
+            },
+        ],
         exports: [auth_service_1.AuthService],
     })
 ], AuthModule);

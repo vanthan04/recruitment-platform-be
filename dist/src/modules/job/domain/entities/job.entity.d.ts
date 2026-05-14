@@ -1,0 +1,41 @@
+import { BaseEntity } from '@/common/domain/base.entity';
+import { JobStatus } from '@/modules/job/domain/value-objects/job-status.vo';
+import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
+export declare class Job extends BaseEntity {
+    title: string;
+    description: string;
+    company: string;
+    location: string;
+    jobType: JobType;
+    status: JobStatus;
+    salary: SalaryRange;
+    requirements: string | null;
+    benefits: string | null;
+    expiresAt: Date | null;
+    deletedAt: Date | null;
+    postedById: string;
+    constructor(partial: Partial<Job>);
+    open(): void;
+    close(): void;
+    reopen(): void;
+    softDelete(): void;
+    ensureOwner(userId: string): void;
+    get isExpired(): boolean;
+    get isOpen(): boolean;
+    get isDeleted(): boolean;
+    belongsTo(userId: string): boolean;
+    updateDetails(data: {
+        title?: string;
+        description?: string;
+        company?: string;
+        location?: string;
+        jobType?: JobType;
+        requirements?: string;
+        benefits?: string;
+        salaryMin?: number;
+        salaryMax?: number;
+        currency?: string;
+        expiresAt?: Date;
+    }): void;
+}

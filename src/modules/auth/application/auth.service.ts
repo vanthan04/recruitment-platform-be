@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UserService } from '@/modules/user/application/user.service';
+import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
 import { RegisterUseCase } from '@/modules/auth/application/use-cases/register.use-case';
@@ -15,11 +15,10 @@ import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-passw
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
 import * as bcrypt from 'bcrypt';
-
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userService: UserService,
+    private readonly userRepository: IUserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly registerUseCase: RegisterUseCase,
@@ -60,7 +59,7 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    return this.userService.updateRefreshToken(userId, null);
+    return this.userRepository.updateRefreshToken(userId, null);
   }
 
   async refreshTokens(refreshToken: string) {
@@ -70,7 +69,7 @@ export class AuthService {
       });
       const userId = payload.sub;
 
-      const user = await this.userService.findById(userId);
+      const user = await this.userRepository.findById(userId);
       if (!user || !user.refreshToken) {
         throw new ForbiddenException('Access Denied');
       }
@@ -97,7 +96,7 @@ export class AuthService {
       ? await bcrypt.hash(refreshToken, 10) 
       : null;
     
-    await this.userService.updateRefreshToken(userId, hashedRefreshToken);
+    await this.userRepository.updateRefreshToken(userId, hashedRefreshToken);
   }
 
   async getTokens(userId: string, email: string, role: string) {
@@ -133,6 +132,6 @@ export class AuthService {
   }
 
   async validateUser(payload: any) {
-    return this.userService.findById(payload.sub);
+    return this.userRepository.findById(payload.sub);
   }
 }

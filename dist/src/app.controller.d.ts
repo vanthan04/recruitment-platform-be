@@ -1,6 +1,6 @@
-import { AppService } from './app.service';
+import { MailService } from '@/modules/mail/mail.service';
 export declare class AppController {
-    private readonly appService;
-    constructor(appService: AppService);
-    getHello(): string;
+    private readonly mailService;
+    constructor(mailService: MailService);
+    check(): import("./common/dtos/response.dto").ResponseDto<null>;
 }

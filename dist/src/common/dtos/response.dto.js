@@ -4,6 +4,7 @@ exports.ResponseDto = void 0;
 class ResponseDto {
     success;
     message;
+    code;
     data;
     metadata;
     timestamp;

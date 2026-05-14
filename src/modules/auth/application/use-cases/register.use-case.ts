@@ -29,7 +29,7 @@ export class RegisterUseCase {
       password: hashPassword,
       fullName: dto.fullName,
       verifyCode,
-      role: UserRole.USER,
+      role: dto.role,
       status: UserStatus.PENDING,
     });
 

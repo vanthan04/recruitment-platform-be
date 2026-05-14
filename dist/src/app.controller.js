@@ -8,28 +8,34 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppController = void 0;
 const common_1 = require("@nestjs/common");
-const app_service_1 = require("./app.service");
+const swagger_1 = require("@nestjs/swagger");
+const api_response_1 = require("./common/dtos/api-response");
+const mail_service_1 = require("@/modules/mail/mail.service");
 let AppController = class AppController {
-    appService;
-    constructor(appService) {
-        this.appService = appService;
+    mailService;
+    constructor(mailService) {
+        this.mailService = mailService;
     }
-    getHello() {
-        return this.appService.getHello();
+    check() {
+        return api_response_1.ApiResponse.ok(null, 'Service is up and running in development mode');
     }
 };
 exports.AppController = AppController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Health check endpoint' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Service is up and running' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", String)
-], AppController.prototype, "getHello", null);
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "check", null);
 exports.AppController = AppController = __decorate([
-    (0, common_1.Controller)(),
-    __metadata("design:paramtypes", [app_service_1.AppService])
+    (0, swagger_1.ApiTags)('app'),
+    (0, common_1.Controller)('healthcheck'),
+    __metadata("design:paramtypes", [typeof (_a = typeof mail_service_1.MailService !== "undefined" && mail_service_1.MailService) === "function" ? _a : Object])
 ], AppController);
 //# sourceMappingURL=app.controller.js.map

@@ -12,8 +12,8 @@ async function bootstrap() {
 
   // Swagger Configuration
   const config = new DocumentBuilder()
-    .setTitle('E-Commerce API')
-    .setDescription('The E-Commerce Backend API documentation')
+    .setTitle('Job Portal API')
+    .setDescription('The TopCV Clone Job Portal Backend API documentation')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

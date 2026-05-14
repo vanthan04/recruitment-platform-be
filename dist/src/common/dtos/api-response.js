@@ -5,6 +5,7 @@ const response_dto_1 = require("./response.dto");
 class ApiResponse {
     _success = true;
     _message = '';
+    _code;
     _data;
     _metadata;
     success(ok) {
@@ -15,10 +16,15 @@ class ApiResponse {
         this._message = msg;
         return this;
     }
+    code(val) {
+        this._code = val;
+        return this;
+    }
     data(payload) {
         const next = new ApiResponse();
         next._success = this._success;
         next._message = this._message;
+        next._code = this._code;
         next._metadata = this._metadata;
         next._data = payload;
         return next;
@@ -31,22 +37,25 @@ class ApiResponse {
         return new response_dto_1.ResponseDto({
             success: this._success,
             message: this._message,
+            code: this._code,
             data: this._data,
             metadata: this._metadata,
         });
     }
-    static ok(data, message = '', metadata) {
+    static ok(data, message = '', metadata, code) {
         return new ApiResponse()
             .success(true)
             .message(message)
+            .code(code || 'SUCCESS')
             .metadata(metadata)
             .data(data)
             .build();
     }
-    static fail(message, data, metadata) {
+    static fail(message, code = 'ERROR', data, metadata) {
         return new ApiResponse()
             .success(false)
             .message(message)
+            .code(code)
             .metadata(metadata)
             .data(data)
             .build();

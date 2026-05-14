@@ -1,12 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse as SwaggerResponse, ApiTags } from '@nestjs/swagger';
 import { ApiResponse } from '@/common/dtos/api-response';
-import { MailService } from '@/modules/mail/mail.service';
+import { IMailService } from '@/modules/mail/domain/ports/mail.service.port';
 
 @ApiTags('app')
 @Controller('healthcheck')
 export class AppController {
-  constructor(private readonly mailService: MailService) { }
+  constructor(private readonly mailService: IMailService) { }
 
   @Get()
   @ApiOperation({ summary: 'Health check endpoint' })
