@@ -1,4 +1,0 @@
-export declare enum NotificationType {
-    NEW_APPLICATION = "NEW_APPLICATION",
-    APPLICATION_STATUS_CHANGED = "APPLICATION_STATUS_CHANGED"
-}
