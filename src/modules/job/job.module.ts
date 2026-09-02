@@ -1,23 +1,28 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { JobController } from '@/modules/job/presentation/controllers/job.controller';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { JobInfraRepository } from '@/modules/job/infrastructure/repositories/job.infra-repository';
 import { JobPrismaRepository } from '@/modules/job/infrastructure/persistence/prisma/job-prisma.repository';
 import { UserModule } from '@/modules/user/user.module';
 import { CategoryModule } from '@/modules/category/category.module';
+import { IUserLookupPort } from '@/modules/job/application/ports/user-lookup.port';
+import { UserLookupAdapter } from '@/modules/job/infrastructure/adapters/user-lookup.adapter';
+import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
+import { CategoryLookupAdapter } from '@/modules/job/infrastructure/adapters/category-lookup.adapter';
 
-// Use Cases
-import { CreateJobUseCase } from '@/modules/job/application/use-cases/create-job.use-case';
-import { UpdateJobUseCase } from '@/modules/job/application/use-cases/update-job.use-case';
-import { ListJobsUseCase } from '@/modules/job/application/use-cases/list-jobs.use-case';
-import { GetJobUseCase } from '@/modules/job/application/use-cases/get-job.use-case';
-import { DeleteJobUseCase } from '@/modules/job/application/use-cases/delete-job.use-case';
-import { CloseJobUseCase } from '@/modules/job/application/use-cases/close-job.use-case';
-import { ReopenJobUseCase } from '@/modules/job/application/use-cases/reopen-job.use-case';
+import { CreateJobHandler } from '@/modules/job/application/commands/create-job.command';
+import { UpdateJobHandler } from '@/modules/job/application/commands/update-job.command';
+import { DeleteJobHandler } from '@/modules/job/application/commands/delete-job.command';
+import { CloseJobHandler } from '@/modules/job/application/commands/close-job.command';
+import { ReopenJobHandler } from '@/modules/job/application/commands/reopen-job.command';
+import { CloseExpiredJobsHandler } from '@/modules/job/application/commands/close-expired-jobs.command';
+import { GetJobHandler } from '@/modules/job/application/queries/get-job.query';
+import { ListJobsHandler } from '@/modules/job/application/queries/list-jobs.query';
 import { CloseExpiredJobsCron } from '@/modules/job/application/jobs/close-expired-jobs.cron';
 
 @Module({
-  imports: [UserModule, CategoryModule],
+  imports: [CqrsModule, UserModule, CategoryModule],
   controllers: [JobController],
   providers: [
     JobPrismaRepository,
@@ -25,13 +30,22 @@ import { CloseExpiredJobsCron } from '@/modules/job/application/jobs/close-expir
       provide: IJobRepository,
       useClass: JobInfraRepository,
     },
-    CreateJobUseCase,
-    UpdateJobUseCase,
-    ListJobsUseCase,
-    GetJobUseCase,
-    DeleteJobUseCase,
-    CloseJobUseCase,
-    ReopenJobUseCase,
+    {
+      provide: IUserLookupPort,
+      useClass: UserLookupAdapter,
+    },
+    {
+      provide: ICategoryLookupPort,
+      useClass: CategoryLookupAdapter,
+    },
+    CreateJobHandler,
+    UpdateJobHandler,
+    DeleteJobHandler,
+    CloseJobHandler,
+    ReopenJobHandler,
+    CloseExpiredJobsHandler,
+    GetJobHandler,
+    ListJobsHandler,
     CloseExpiredJobsCron,
   ],
   exports: [IJobRepository],
