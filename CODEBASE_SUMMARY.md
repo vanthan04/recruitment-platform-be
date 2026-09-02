@@ -1,10 +1,10 @@
-# TopCV Clone Backend — Codebase Summary
+# Recruitment Platform Backend — Codebase Summary
 
 > Ghi lại để dùng lại khi cần nhớ nhanh kiến trúc & luồng nghiệp vụ của dự án.
 
 ## 1. Tổng quan
 
-- **Loại dự án:** Backend API cho một job portal (clone TopCV) — ứng viên (candidate) tìm và ứng tuyển việc làm, nhà tuyển dụng (recruiter) đăng tin và quản lý ứng viên, admin quản trị người dùng.
+- **Loại dự án:** Backend API cho một job portal — ứng viên (candidate) tìm và ứng tuyển việc làm, nhà tuyển dụng (recruiter) đăng tin và quản lý ứng viên, admin quản trị người dùng.
 - **Framework:** NestJS 11 (Express platform), TypeScript.
 - **ORM/DB:** Prisma 7 + PostgreSQL.
 - **Auth:** JWT (access + refresh token) qua `@nestjs/jwt` + `passport-jwt`.
@@ -100,6 +100,14 @@ Phát event `JobAppliedEvent` khi nộp đơn.
 
 ### `mail` — [mail.module.ts](src/modules/mail/mail.module.ts)
 Port `IMailServicePort` + implementation `NodemailerMailProvider` — gửi email xác thực, quên mật khẩu... dùng chung qua `auth`'s `AuthMailAdapter`.
+
+### `chat` — [chat.module.ts](src/modules/chat/chat.module.ts)
+Native recruitment chat — xem [CHAT_INTEGRATION_PLAN.md](CHAT_INTEGRATION_PLAN.md) cho thiết kế đầy đủ, [API_GUIDE.md](API_GUIDE.md#411-chat-conversations-messages--websocket) cho API/WebSocket.
+- Domain: `Conversation` (1-1 với `JobApplication`, `applicationId` unique), `ConversationMember`, `Message` (idempotent qua `clientMessageId`), `MessageAttachment`.
+- [ConversationController](src/modules/chat/presentation/controllers/conversation.controller.ts) (`/conversations`), [MessageController](src/modules/chat/presentation/controllers/message.controller.ts) (`/messages`).
+- [ChatGateway](src/modules/chat/infrastructure/gateways/chat.gateway.ts): Socket.IO namespace `/ws`, xác thực bằng cookie `access_token` (không phải Bearer) vì browser mở socket trực tiếp tới backend, không qua Next.js server. `CreateMessageHandler` (dùng chung bởi REST và WS) phát `MESSAGE_SENT_EVENT` sau khi lưu — gateway lắng nghe event này để broadcast `message:new`, đảm bảo tin nhắn gửi qua đường nào cũng phát tới người nhận như nhau.
+- [ChatEventsListener](src/modules/chat/infrastructure/listeners/chat-events.listener.ts): giống `ApplicationEventsListener` — tạo `NotificationType.NEW_MESSAGE` khi người nhận offline (tra qua [ChatPresenceService](src/modules/chat/infrastructure/services/chat-presence.service.ts), in-memory single-instance).
+- Cross-module reads qua port riêng (`IChatJobLookupPort`/`IChatApplicationLookupPort`/`IChatUserLookupPort`) — theo đúng pattern các module khác, không JOIN thẳng bảng của module khác.
 
 ### `prisma` — [prisma.module.ts](src/modules/prisma/prisma.module.ts)
 `PrismaModule.forRoot({...})` global, cung cấp `PrismaService` (wrap `PrismaClient`, cấu hình log query/info/warn/error).

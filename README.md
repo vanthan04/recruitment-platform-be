@@ -1,4 +1,4 @@
-# Job Portal Backend (TopCV Clone)
+# Job Portal Backend (Recruitment Platform)
 
 A job portal backend (candidates apply for jobs, recruiters post and manage them) built with **NestJS**, **Prisma**, and **PostgreSQL**, following **Domain-Driven Design (DDD)** and **Clean Architecture** — each module is split into `domain / application / infrastructure / presentation` layers, with framework-agnostic business logic living in domain entities.
 

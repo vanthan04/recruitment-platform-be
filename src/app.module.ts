@@ -16,6 +16,7 @@ import { JobApplicationModule } from '@/modules/application/job-application.modu
 import { BookmarkModule } from '@/modules/bookmark/bookmark.module';
 import { NotificationModule } from '@/modules/notification/notification.module';
 import { JobAlertModule } from '@/modules/job-alert/job-alert.module';
+import { ChatModule } from '@/modules/chat/chat.module';
 import { envValidationSchema } from '@/common/config/env.validation';
 import appConfig from '@/common/config/app.config';
 
@@ -44,6 +45,7 @@ import appConfig from '@/common/config/app.config';
     BookmarkModule,
     NotificationModule,
     JobAlertModule,
+    ChatModule,
   ],
   controllers: [],
   providers: [

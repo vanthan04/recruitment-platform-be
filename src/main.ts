@@ -3,6 +3,7 @@ import { AppModule } from '@/app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
+import { ChatIoAdapter } from '@/common/adapters/socket-io.adapter';
 import helmet from 'helmet';
 
 async function bootstrap() {
@@ -21,10 +22,13 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Realtime chat — same CORS/credentials rule as the HTTP server above.
+  app.useWebSocketAdapter(new ChatIoAdapter(app));
+
   // Swagger Configuration
   const config = new DocumentBuilder()
     .setTitle('Job Portal API')
-    .setDescription('The TopCV Clone Job Portal Backend API documentation')
+    .setDescription('The Recruitment Platform Job Portal Backend API documentation')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

@@ -1,8 +1,8 @@
 # API Guide cho Frontend
 
-Tài liệu này mô tả cách gọi API backend TopCV Clone: base URL, format response chuẩn, luồng auth, và chi tiết từng endpoint theo resource. Swagger UI (`/api/v1/docs`) cho schema tự động sinh; tài liệu này bổ sung phần Swagger không thể hiện rõ: role nào được gọi endpoint nào, response thật sự trả về gì, và vài điểm bất nhất cần lưu ý khi tích hợp.
+Tài liệu này mô tả cách gọi API backend Recruitment Platform: base URL, format response chuẩn, luồng auth, và chi tiết từng endpoint theo resource. Swagger UI (`/api/v1/docs`) cho schema tự động sinh; tài liệu này bổ sung phần Swagger không thể hiện rõ: role nào được gọi endpoint nào, response thật sự trả về gì, và vài điểm bất nhất cần lưu ý khi tích hợp.
 
-> Xem thêm: [README.md](README.md) (tổng quan dự án), [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) (kiến trúc).
+> Xem thêm: [README.md](README.md) (tổng quan dự án), [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) (kiến trúc), [API_TYPES.md](API_TYPES.md) (type TypeScript đầy đủ cho response của từng endpoint — copy thẳng vào FE).
 
 ---
 
@@ -266,6 +266,27 @@ Lưu điều kiện tìm việc để nhận mail digest khi có job mới phù 
 
 Dùng endpoint này để lấy `avatarUrl` trước khi gọi `PATCH /users/profile`, hoặc `logoUrl` trước khi tạo/sửa company.
 
+### 4.11. Chat (`/conversations`, `/messages`) + WebSocket
+
+Conversation luôn gắn với 1 `JobApplication` đã `ACCEPTED` — recruiter là người khởi tạo.
+
+| Method & Path | Auth | Ghi chú |
+|---|---|---|
+| `POST /conversations` | `RECRUITER` | `{ applicationId }` — application phải `ACCEPTED`, recruiter phải là chủ job. Idempotent (gọi lại nhiều lần trả về cùng 1 conversation) |
+| `GET /conversations?page&limit` | 🔒 | Hội thoại của chính mình, sắp theo `lastMessageAt` desc. Mỗi item kèm `otherParticipant`, `lastMessage`, `unreadCount`, `jobTitle`, `applicationStatus` |
+| `GET /conversations/:id` | 🔒 | Chỉ thành viên (403 nếu không phải) |
+| `GET /conversations/:id/messages?cursor&limit` | 🔒 | **Cursor-based** (khác mọi list khác trong hệ thống) — không truyền `cursor` để lấy trang mới nhất, `metadata.nextCursor` dùng cho lần gọi tiếp theo (tin cũ hơn) |
+| `POST /conversations/:id/messages` | 🔒 | `{ content, messageType?, clientMessageId, attachments? }` — `clientMessageId` (UUID, do client tự sinh) là khoá idempotency, gửi lại cùng giá trị sẽ không tạo tin nhắn trùng |
+| `PATCH /messages/:id` | 🔒 | `{ content }` — chỉ người gửi, chỉ tin `TEXT` chưa xoá |
+| `DELETE /messages/:id` | 🔒 | Soft-delete, chỉ người gửi |
+| `POST /conversations/:id/read` | 🔒 | Đánh dấu đã đọc đến thời điểm hiện tại |
+
+File đính kèm: upload qua `POST /files/upload` (folder `chat-attachments`) trước, rồi gửi `{fileName, fileUrl, mimeType, fileSize}` trong mảng `attachments` của `POST .../messages` — tối đa 5 tệp/tin nhắn.
+
+**WebSocket** (namespace `/ws`, cùng origin backend): xác thực bằng cookie `access_token` (không phải Bearer header) — client cần mở socket với `withCredentials: true` **trực tiếp tới origin backend**, không qua Next.js server. Event chính: `conversation:subscribe`/`unsubscribe`, `message:send` → `message:ack`/`message:new`/`message:error`, `message:read`, `typing:start`/`typing:stop`, `user:online`/`user:offline`. Gửi tin nhắn nên ưu tiên qua socket (`message:send`); REST `POST .../messages` chỉ là fallback khi socket mất kết nối — cả 2 đường đều phát `message:new` tới người nhận (kể cả khi họ gửi qua đường REST) nên không lo bỏ lỡ tin nhắn.
+
+`NotificationType.NEW_MESSAGE` được tạo khi người nhận **không** đang có kết nối WebSocket nào (offline) — đang online thì chỉ nhận qua socket, không tạo notification trùng.
+
 ---
 
 ## 5. Enums tham khảo nhanh
@@ -281,7 +302,10 @@ Dùng endpoint này để lấy `avatarUrl` trước khi gọi `PATCH /users/pro
 | `JobLevel` | `INTERN`, `FRESHER`, `JUNIOR`, `MIDDLE`, `SENIOR`, `MANAGER` |
 | `ApplicationStatus` | `PENDING`, `ACCEPTED`, `REJECTED`, `WITHDRAWN` |
 | `CompanySize` | `SIZE_1_10`, `SIZE_11_50`, `SIZE_51_200`, `SIZE_201_500`, `SIZE_500_PLUS` |
-| `NotificationType` | `NEW_APPLICATION`, `APPLICATION_STATUS_CHANGED` |
+| `NotificationType` | `NEW_APPLICATION`, `APPLICATION_STATUS_CHANGED`, `NEW_MESSAGE` |
+| `ConversationStatus` | `ACTIVE`, `ARCHIVED` |
+| `MessageType` | `TEXT`, `IMAGE`, `FILE`, `SYSTEM` (chỉ server tạo, không nhận từ client) |
+| `ChatParticipantRole` | `CANDIDATE`, `RECRUITER` |
 
 ---
 

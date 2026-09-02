@@ -1,4 +1,4 @@
-# TopCV Clone — Roadmap phần còn thiếu (chỉ tính năng/code)
+# Recruitment Platform — Roadmap phần còn thiếu (chỉ tính năng/code)
 
 > Infra/DevOps (Docker, CI/CD, deploy, seed automation) làm sau, không nằm trong roadmap này.
 > Xem kiến trúc & module hiện có tại [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md).

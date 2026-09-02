@@ -74,6 +74,24 @@ enum JobLevel {
 enum NotificationType {
   NEW_APPLICATION
   APPLICATION_STATUS_CHANGED
+  NEW_MESSAGE
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum ChatParticipantRole {
+  CANDIDATE
+  RECRUITER
 }
 
 // ─────────────────────────────────────────────
@@ -102,6 +120,10 @@ model User {
   notifications    Notification[]
   savedSearches    SavedSearch[]
   refreshTokens    RefreshToken[]
+  conversationsAsCandidate  Conversation[]       @relation("ConversationCandidate")
+  conversationsAsRecruiter  Conversation[]       @relation("ConversationRecruiter")
+  conversationMemberships   ConversationMember[]
+  sentMessages              Message[]
 
   @@map("users")
 }
@@ -273,6 +295,7 @@ model Job {
   categoryId   String?
   applications JobApplication[]
   bookmarks    Bookmark[]
+  conversations Conversation[]
 
   @@index([postedById])
   @@index([companyId])
@@ -298,6 +321,7 @@ model JobApplication {
   jobId  String
   cv     Cv     @relation(fields: [cvId], references: [id], onDelete: Cascade)
   cvId   String
+  conversation Conversation?
 
   @@unique([userId, jobId]) // One application per user per job
   @@index([jobId])
@@ -381,4 +405,82 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────
+// Chat Module
+// ─────────────────────────────────────────────
+
+model Conversation {
+  id            String             @id @default(uuid())
+  status        ConversationStatus @default(ACTIVE)
+  lastMessageAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  job           Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId         String
+  application   JobApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId String          @unique
+  candidate     User            @relation("ConversationCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+  candidateId   String
+  recruiter     User            @relation("ConversationRecruiter", fields: [recruiterId], references: [id], onDelete: Cascade)
+  recruiterId   String
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@index([candidateId])
+  @@index([recruiterId])
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id             String              @id @default(uuid())
+  conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  role           ChatParticipantRole
+  joinedAt       DateTime            @default(now())
+  lastReadAt     DateTime?
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id              String       @id @default(uuid())
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId  String
+  sender          User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId        String
+  content         String
+  messageType     MessageType  @default(TEXT)
+  clientMessageId String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  attachments MessageAttachment[]
+
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+model MessageAttachment {
+  id        String   @id @default(uuid())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String
+  fileName  String
+  fileUrl   String
+  mimeType  String
+  fileSize  Int
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+  @@map("message_attachments")
 }

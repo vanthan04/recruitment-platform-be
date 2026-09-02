@@ -1,3 +1,9 @@
+export interface ApplicationCandidateSummaryDto {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+}
+
 export class ApplicationResponseDto {
   id: string;
   status: string;
@@ -10,4 +16,6 @@ export class ApplicationResponseDto {
   // Optional relations for richness
   job?: any;
   cv?: any;
+  /** Populated by ListApplicationsByJobHandler (recruiter view) — not set on candidate-scoped queries. */
+  candidate?: ApplicationCandidateSummaryDto;
 }
