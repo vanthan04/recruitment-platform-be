@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { UserController } from '@/modules/user/presentation/controllers/user.controller';
 import { UserAdminController } from '@/modules/user/presentation/controllers/user-admin.controller';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
@@ -7,14 +8,13 @@ import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
 import { IUserFileStoragePort } from './application/ports/user-file-storage.port';
 import { UserFileStorageAdapter } from './infrastructure/adapters/user-file-storage.adapter';
 
-// Use Cases
-import { GetMyProfileUseCase } from './application/use-cases/get-my-profile.use-case';
-import { UpdateProfileUseCase } from './application/use-cases/update-profile.use-case';
-import { AdminListUsersUseCase } from './application/use-cases/admin-list-users.use-case';
-import { AdminUpdateUserStatusUseCase } from './application/use-cases/admin-update-user-status.use-case';
+import { GetMyProfileHandler } from './application/queries/get-my-profile.query';
+import { UpdateProfileHandler } from './application/commands/update-profile.command';
+import { AdminListUsersHandler } from './application/queries/admin-list-users.query';
+import { AdminUpdateUserStatusHandler } from './application/commands/admin-update-user-status.command';
 
 @Module({
-  imports: [FileUploadModule],
+  imports: [CqrsModule, FileUploadModule],
   controllers: [UserController, UserAdminController],
   providers: [
     UserPrismaRepository,
@@ -26,11 +26,10 @@ import { AdminUpdateUserStatusUseCase } from './application/use-cases/admin-upda
       provide: IUserFileStoragePort,
       useClass: UserFileStorageAdapter,
     },
-    // Registering Use Cases as providers
-    GetMyProfileUseCase,
-    UpdateProfileUseCase,
-    AdminListUsersUseCase,
-    AdminUpdateUserStatusUseCase,
+    GetMyProfileHandler,
+    UpdateProfileHandler,
+    AdminListUsersHandler,
+    AdminUpdateUserStatusHandler,
   ],
   exports: [IUserRepository],
 })

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@/common/enums/user-role.enum';
@@ -8,11 +9,19 @@ export interface AdminUpdateUserInput {
   role?: UserRole;
 }
 
+export class AdminUpdateUserStatusCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly input: AdminUpdateUserInput,
+  ) {}
+}
+
 @Injectable()
-export class AdminUpdateUserStatusUseCase {
+@CommandHandler(AdminUpdateUserStatusCommand)
+export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdateUserStatusCommand> {
   constructor(private readonly userRepository: IUserRepository) {}
 
-  async execute(userId: string, input: AdminUpdateUserInput) {
+  async execute({ userId, input }: AdminUpdateUserStatusCommand) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('Người dùng không tồn tại');

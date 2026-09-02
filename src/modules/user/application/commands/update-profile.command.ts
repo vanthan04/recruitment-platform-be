@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { Gender } from '@/common/enums/gender.enum';
 
@@ -10,11 +11,19 @@ export interface UpdateProfileInput {
   avatarUrl?: string;
 }
 
+export class UpdateProfileCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly input: UpdateProfileInput,
+  ) {}
+}
+
 @Injectable()
-export class UpdateProfileUseCase {
+@CommandHandler(UpdateProfileCommand)
+export class UpdateProfileHandler implements ICommandHandler<UpdateProfileCommand> {
   constructor(private readonly userRepository: IUserRepository) {}
 
-  async execute(userId: string, input: UpdateProfileInput) {
+  async execute({ userId, input }: UpdateProfileCommand) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('Người dùng không tồn tại');
