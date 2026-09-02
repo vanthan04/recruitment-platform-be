@@ -4,9 +4,6 @@ import { UserController } from '@/modules/user/presentation/controllers/user.con
 import { UserAdminController } from '@/modules/user/presentation/controllers/user-admin.controller';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { UserPrismaRepository } from '@/modules/user/infrastructure/persistence/prisma/user-prisma.repository';
-import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
-import { IUserFileStoragePort } from './application/ports/user-file-storage.port';
-import { UserFileStorageAdapter } from './infrastructure/adapters/user-file-storage.adapter';
 
 import { GetMyProfileHandler } from './application/queries/get-my-profile.query';
 import { UpdateProfileHandler } from './application/commands/update-profile.command';
@@ -14,17 +11,13 @@ import { AdminListUsersHandler } from './application/queries/admin-list-users.qu
 import { AdminUpdateUserStatusHandler } from './application/commands/admin-update-user-status.command';
 
 @Module({
-  imports: [CqrsModule, FileUploadModule],
+  imports: [CqrsModule],
   controllers: [UserController, UserAdminController],
   providers: [
     UserPrismaRepository,
     {
       provide: IUserRepository,
       useClass: UserPrismaRepository,
-    },
-    {
-      provide: IUserFileStoragePort,
-      useClass: UserFileStorageAdapter,
     },
     GetMyProfileHandler,
     UpdateProfileHandler,
