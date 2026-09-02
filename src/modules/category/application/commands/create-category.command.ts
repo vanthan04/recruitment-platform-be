@@ -1,21 +1,23 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICategoryRepository } from '@/modules/category/domain/repositories/category.repository';
 import { Category } from '@/modules/category/domain/entities/category.entity';
 import { CategoryResponseMapper } from '@/modules/category/application/mappers/category-response.mapper';
 import { CategoryResponseDto } from '@/modules/category/application/dto/category-response.dto';
 
-export interface CreateCategoryInput {
-  name: string;
+export class CreateCategoryCommand {
+  constructor(public readonly name: string) {}
 }
 
 @Injectable()
-export class CreateCategoryUseCase {
+@CommandHandler(CreateCategoryCommand)
+export class CreateCategoryHandler implements ICommandHandler<CreateCategoryCommand, CategoryResponseDto> {
   constructor(private readonly categoryRepository: ICategoryRepository) {}
 
-  async execute(input: CreateCategoryInput): Promise<CategoryResponseDto> {
-    const slug = await this.generateUniqueSlug(input.name);
+  async execute({ name }: CreateCategoryCommand): Promise<CategoryResponseDto> {
+    const slug = await this.generateUniqueSlug(name);
 
-    const category = new Category({ name: input.name, slug });
+    const category = new Category({ name, slug });
     const saved = await this.categoryRepository.save(category);
 
     return CategoryResponseMapper.toDto(saved);
