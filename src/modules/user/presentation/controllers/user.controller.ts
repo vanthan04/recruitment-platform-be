@@ -22,13 +22,13 @@ export class UserController {
   @ApiOperation({ summary: 'Lấy thông tin profile cá nhân' })
   async getMe(@GetMe('id') userId: string) {
     const result = await this.queryBus.execute(new GetMyProfileQuery(userId));
-    return ApiResponse.ok(result);
+    return ApiResponse.ok(result, 'Lấy thông tin profile thành công');
   }
 
   @Patch('profile')
   @ApiOperation({ summary: 'Cập nhật thông tin profile cá nhân' })
   async updateProfile(@GetMe('id') userId: string, @Body() dto: UpdateProfileDto) {
     const result = await this.commandBus.execute(new UpdateProfileCommand(userId, dto as any));
-    return ApiResponse.ok(result, 'Cập nhật profile thành công');
+    return ApiResponse.ok(null, result.message);
   }
 }

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
-import { normalizePagination, getPaginationInfo } from '@/common/utils/pagination.util';
-import { ApiResponse } from '@/common/dtos/api-response';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 export class AdminListUsersQuery {
   constructor(
@@ -11,12 +10,21 @@ export class AdminListUsersQuery {
   ) {}
 }
 
+export interface AdminListUsersResult {
+  users: Record<string, any>[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 @Injectable()
 @QueryHandler(AdminListUsersQuery)
-export class AdminListUsersHandler implements IQueryHandler<AdminListUsersQuery> {
+export class AdminListUsersHandler
+  implements IQueryHandler<AdminListUsersQuery, AdminListUsersResult>
+{
   constructor(private readonly userRepository: IUserRepository) {}
 
-  async execute({ page, limit }: AdminListUsersQuery) {
+  async execute({ page, limit }: AdminListUsersQuery): Promise<AdminListUsersResult> {
     const normalized = normalizePagination({ page, limit });
 
     const { users, total } = await this.userRepository.findAllPaginated(
@@ -25,16 +33,10 @@ export class AdminListUsersHandler implements IQueryHandler<AdminListUsersQuery>
     );
 
     const data = users.map((user) => {
-      const { password, ...safeUser } = user as any;
+      const { password, verifyCode, ...safeUser } = user as any;
       return safeUser;
     });
 
-    const paginationInfo = getPaginationInfo({
-      page: normalized.page,
-      limit: normalized.limit,
-      total,
-    });
-
-    return ApiResponse.ok(data, 'Lấy danh sách người dùng thành công', paginationInfo);
+    return { users: data, total, page: normalized.page, limit: normalized.limit };
   }
 }
