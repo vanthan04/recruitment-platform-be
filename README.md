@@ -17,6 +17,7 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 - **File upload** — generic image/document upload to S3-compatible storage, with size and MIME-type validation.
 - **Admin** — list/paginate users, update user status or role.
 - **Chat** — realtime conversations between candidate and recruiter over WebSocket (Socket.IO), scoped to a job/application (`applicationId`/`jobId`); message send/edit/soft-delete, cursor-paginated history, read receipts, typing indicators, online presence, cookie-based WS auth, rate-limited send.
+- **Interview scheduling** — recruiter schedules/reschedules/cancels an interview for a job application (in-person `location` and/or online `meetingLink`, at least one required); candidate is emailed on every change.
 
 ## Tech Stack
 
@@ -74,6 +75,7 @@ src/
 │   ├── file-upload/       # Generic S3 file upload
 │   ├── mail/             # Mail provider (Nodemailer)
 │   ├── chat/             # Realtime conversations/messages (Socket.IO gateway, presence)
+│   ├── interview/         # Interview scheduling (schedule/reschedule/cancel, email candidate)
 │   └── prisma/           # Shared PrismaService
 └── main.ts          # Entry point (global prefix, CORS, validation pipe, exception filter)
 ```
@@ -130,7 +132,7 @@ The e2e suite runs against whatever `DATABASE_URL` you have configured and overr
 
 All routes are prefixed with `/api/v1`. Resource roots:
 
-`auth`, `users`, `admin/users`, `companies`, `categories`, `jobs`, `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`, `conversations`, `messages`
+`auth`, `users`, `admin/users`, `companies`, `categories`, `jobs`, `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`, `conversations`, `messages`, `interviews`
 
 Full request/response shapes are in Swagger at `/api/v1/docs`. Chat also has a WebSocket namespace (`/ws`) — see [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for the event list.
 

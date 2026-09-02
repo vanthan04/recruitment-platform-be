@@ -115,19 +115,17 @@ Thứ tự phase là thứ tự nên làm (phase sau có thể phụ thuộc pha
 
 ---
 
-## P10 — Interview Scheduling (đề xuất, **chưa code**)
+## P10 — Interview Scheduling ✅ (đã implement + test)
 
-**Vì sao khả thi:** hạ tầng mail (`IMailService` port + `NodemailerMailProvider`, [mail module](src/modules/mail/)) và pattern use-case CQRS (theo [UpdateApplicationStatusHandler](src/modules/application/application/commands/update-application-status.command.ts)) đã có sẵn để mô phỏng theo — không cần dựng infra mới, chỉ cần thêm 1 module theo đúng khuôn hiện có.
+Recruiter đặt/dời/huỷ lịch phỏng vấn cho 1 `JobApplication`; candidate được gửi email ở cả 3 hành động (lần đầu tiên có luồng "đổi trạng thái application → gửi email" trong hệ thống — trước đây `notification` module chỉ tạo thông báo in-app, chưa từng gọi mail).
 
-**Thiết kế đề xuất (chưa implement):**
-- Schema mới: model `InterviewSchedule` — `id, jobApplicationId (FK JobApplication), scheduledAt, location/meetingLink, note, status (SCHEDULED/RESCHEDULED/CANCELLED), createdBy, createdAt/updatedAt`.
-- Use-case (CQRS, giống pattern `update-application-status.command.ts`):
-  - `ScheduleInterviewCommand` — recruiter tạo lịch, owner check giống hiện tại (`job.postedById !== recruiterId` → `UnauthorizedDomainException`), not-found → `EntityNotFoundException`.
-  - `RescheduleInterviewCommand`, `CancelInterviewCommand`.
-- Endpoint mới (role RECRUITER), ví dụ `POST /job-applications/:id/interview`, `PATCH /interviews/:id`, `DELETE /interviews/:id`.
-- **Email tới candidate**: gọi `IMailService.sendEmail(...)` sau khi tạo/sửa lịch — đây sẽ là **lần đầu tiên** có luồng "đổi trạng thái application → gửi email", vì hiện tại `notification` module khi nhận event `application.status_changed` chỉ tạo thông báo in-app, chưa từng gọi mail. Nội dung email build inline HTML (chưa có template engine, giống cách [register.command.ts](src/modules/auth/application/commands/register.command.ts)/[forgot-password.command.ts](src/modules/auth/application/commands/forgot-password.command.ts) đang làm).
-- Có thể phát thêm event `interview.scheduled` để `notification` module tạo luôn in-app notification song song với email, tái dùng pattern `ApplicationEventsListener` hiện có.
-- Không bắt buộc nhưng nên cân nhắc: đính kèm file `.ics` (cần thêm dependency `ics`/`ical-generator`, hiện chưa có trong `package.json`).
+- Schema: model [`InterviewSchedule`](prisma/schema.prisma) — `id, jobApplicationId (FK JobApplication), scheduledAt, location?, meetingLink?, note?, status (SCHEDULED/RESCHEDULED/CANCELLED), createdById (recruiter), createdAt/updatedAt`. Bắt buộc có ít nhất 1 trong 2 field `location`/`meetingLink` (validate ở domain entity) — `location` cho phỏng vấn trực tiếp, `meetingLink` cho online (recruiter tự dán link Meet/Zoom thủ công, hệ thống không tự sinh link).
+- Module mới [`src/modules/interview/`](src/modules/interview/) theo đúng khuôn domain/application/infrastructure/presentation, với 3 port cục bộ (`IInterviewJobLookupPort`, `IInterviewApplicationLookupPort`, `IInterviewUserLookupPort`) bọc `JobModule`/`JobApplicationModule`/`UserModule` — cùng pattern `IJobLookupPort` của module `application`.
+- Commands: `ScheduleInterviewCommand`, `RescheduleInterviewCommand`, `CancelInterviewCommand` (CQRS, owner check `job.postedById !== recruiterId` → `UnauthorizedDomainException`, giống [UpdateApplicationStatusHandler](src/modules/application/application/commands/update-application-status.command.ts)). Query: `ListInterviewsByApplicationQuery` (candidate chủ đơn hoặc recruiter chủ job mới xem được).
+- Endpoint (role RECRUITER, trừ list): `POST /interviews`, `PATCH /interviews/:id`, `PATCH /interviews/:id/cancel`, `GET /interviews/application/:applicationId` (CANDIDATE + RECRUITER).
+- Email: gọi thẳng `IMailService.sendEmail(...)` trong command handler (đồng bộ, không qua event — khớp pattern duy nhất đang có ở [register.command.ts](src/modules/auth/application/commands/register.command.ts)), nội dung build động theo field nào có (`location`/`meetingLink`/`note`).
+- Test: [`interview-schedule.entity.spec.ts`](src/modules/interview/domain/entities/interview-schedule.entity.spec.ts).
+- **Chưa làm** (out of scope lần này, có thể làm sau riêng): không thêm in-app notification (`NotificationType` enum) cho interview; không đính kèm file `.ics`.
 
 ---
 

@@ -43,6 +43,7 @@ modules/<name>/
 | `Job` | thuộc 1 User (recruiter, `postedById`); status DRAFT/OPEN/CLOSED; jobType; salary range; soft-delete |
 | `JobApplication` | liên kết User + Job + Cv; status PENDING/ACCEPTED/REJECTED; unique theo (userId, jobId) |
 | `Bookmark` | User bookmark Job; unique theo (userId, jobId) |
+| `InterviewSchedule` | thuộc 1 `JobApplication`; `scheduledAt`, `location`/`meetingLink` (bắt buộc ≥1), `note`; status SCHEDULED/RESCHEDULED/CANCELLED; `createdById` (recruiter) |
 
 ## 4. Danh sách module & API chính
 
@@ -108,6 +109,14 @@ Native recruitment chat — xem [API_GUIDE.md](API_GUIDE.md#411-chat-conversatio
 - [ChatGateway](src/modules/chat/infrastructure/gateways/chat.gateway.ts): Socket.IO namespace `/ws`, xác thực bằng cookie `access_token` (không phải Bearer) vì browser mở socket trực tiếp tới backend, không qua Next.js server. `CreateMessageHandler` (dùng chung bởi REST và WS) phát `MESSAGE_SENT_EVENT` sau khi lưu — gateway lắng nghe event này để broadcast `message:new`, đảm bảo tin nhắn gửi qua đường nào cũng phát tới người nhận như nhau.
 - [ChatEventsListener](src/modules/chat/infrastructure/listeners/chat-events.listener.ts): giống `ApplicationEventsListener` — tạo `NotificationType.NEW_MESSAGE` khi người nhận offline (tra qua [ChatPresenceService](src/modules/chat/infrastructure/services/chat-presence.service.ts), in-memory single-instance).
 - Cross-module reads qua port riêng (`IChatJobLookupPort`/`IChatApplicationLookupPort`/`IChatUserLookupPort`) — theo đúng pattern các module khác, không JOIN thẳng bảng của module khác.
+
+### `interview` — [interview.module.ts](src/modules/interview/interview.module.ts)
+**P10 (2026-09-02):** recruiter đặt/dời/huỷ lịch phỏng vấn cho 1 `JobApplication`; candidate được gửi email ở cả 3 hành động.
+- [InterviewController](src/modules/interview/presentation/controllers/interview.controller.ts): `POST /interviews`, `PATCH /interviews/:id` (dời lịch), `PATCH /interviews/:id/cancel`, `GET /interviews/application/:applicationId` (candidate chủ đơn hoặc recruiter chủ job).
+- Domain [InterviewSchedule](src/modules/interview/domain/entities/interview-schedule.entity.ts): bắt buộc có ít nhất 1 trong 2 field `location`/`meetingLink` (validate ngay ở entity); `reschedule()` yêu cầu thời gian mới phải ở tương lai và interview chưa `CANCELLED`.
+- Owner check giống `application` module: `job.postedById !== recruiterId` → `UnauthorizedDomainException`. Cross-module reads qua port riêng (`IInterviewJobLookupPort`/`IInterviewApplicationLookupPort`/`IInterviewUserLookupPort`), cùng pattern `IChatJobLookupPort` của module `chat`.
+- Email gửi trực tiếp, đồng bộ trong command handler qua `IMailService` (module `mail`) — không qua event, vì đây là pattern email duy nhất đang tồn tại trong hệ thống (giống `register.command.ts`). Nội dung build động: có `meetingLink` thì hiện link online, có `location` thì hiện địa điểm trực tiếp, có cả hai thì hiện cả hai. Recruiter tự dán link Meet/Zoom thủ công — hệ thống không tích hợp API tạo lịch/link tự động.
+- Không có in-app notification cho interview (chưa đụng `NotificationType` enum) và không đính kèm `.ics` — để ngoài scope, có thể làm sau.
 
 ### `prisma` — [prisma.module.ts](src/modules/prisma/prisma.module.ts)
 `PrismaModule.forRoot({...})` global, cung cấp `PrismaService` (wrap `PrismaClient`, cấu hình log query/info/warn/error).
