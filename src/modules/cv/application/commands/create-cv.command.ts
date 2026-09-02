@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
 import { CvStatus } from '@/modules/cv/domain/value-objects/cv-status.vo';
@@ -34,11 +35,19 @@ export interface CreateCvInput {
   }[];
 }
 
+export class CreateCvCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly input: CreateCvInput,
+  ) {}
+}
+
 @Injectable()
-export class CreateCvUseCase {
+@CommandHandler(CreateCvCommand)
+export class CreateCvHandler implements ICommandHandler<CreateCvCommand, CvResponseDto> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
-  async execute(userId: string, input: CreateCvInput): Promise<CvResponseDto> {
+  async execute({ userId, input }: CreateCvCommand): Promise<CvResponseDto> {
     const cv = new Cv({
       title: input.title,
       summary: input.summary ?? null,
@@ -46,7 +55,6 @@ export class CreateCvUseCase {
       userId,
     });
 
-    // Add experiences via aggregate methods
     if (input.experiences) {
       for (const exp of input.experiences) {
         cv.addExperience(

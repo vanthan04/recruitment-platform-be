@@ -1,14 +1,25 @@
 import { Injectable } from '@nestjs/common';
+import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import PDFDocument from 'pdfkit';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
 import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 
+export interface ExportCvPdfResult {
+  buffer: Buffer;
+  fileName: string;
+}
+
+export class ExportCvPdfQuery {
+  constructor(public readonly cvId: string) {}
+}
+
 @Injectable()
-export class ExportCvPdfUseCase {
+@QueryHandler(ExportCvPdfQuery)
+export class ExportCvPdfHandler implements IQueryHandler<ExportCvPdfQuery, ExportCvPdfResult> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
-  async execute(cvId: string): Promise<{ buffer: Buffer; fileName: string }> {
+  async execute({ cvId }: ExportCvPdfQuery): Promise<ExportCvPdfResult> {
     const cv = await this.cvRepository.findByIdWithRelations(cvId);
     if (!cv) {
       throw new EntityNotFoundException('CV', cvId);
@@ -68,7 +79,9 @@ export class ExportCvPdfUseCase {
       if (cv.skills.length > 0) {
         doc.fontSize(16).text('Skills');
         doc.moveDown(0.5);
-        doc.fontSize(11).text(cv.skills.map((s) => (s.level ? `${s.name} (${s.level})` : s.name)).join(', '));
+        doc
+          .fontSize(11)
+          .text(cv.skills.map((s) => (s.level ? `${s.name} (${s.level})` : s.name)).join(', '));
       }
 
       doc.end();

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
@@ -36,24 +37,27 @@ export interface UpdateCvInput {
   }[];
 }
 
+export class UpdateCvCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly cvId: string,
+    public readonly input: UpdateCvInput,
+  ) {}
+}
+
 @Injectable()
-export class UpdateCvUseCase {
+@CommandHandler(UpdateCvCommand)
+export class UpdateCvHandler implements ICommandHandler<UpdateCvCommand, CvResponseDto> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
-  async execute(
-    userId: string,
-    cvId: string,
-    input: UpdateCvInput,
-  ): Promise<CvResponseDto> {
+  async execute({ userId, cvId, input }: UpdateCvCommand): Promise<CvResponseDto> {
     const cv = await this.cvRepository.findByIdWithRelations(cvId);
     if (!cv) {
       throw new EntityNotFoundException('CV', cvId);
     }
 
-    // Domain guard: ensure ownership
     cv.ensureOwner(userId);
 
-    // Update basic fields via domain methods
     if (input.title !== undefined) {
       cv.updateTitle(input.title);
     }
@@ -61,7 +65,6 @@ export class UpdateCvUseCase {
       cv.updateSummary(input.summary);
     }
 
-    // Replace collections if provided (full replace strategy)
     if (input.experiences !== undefined) {
       cv.experiences = input.experiences.map(
         (exp) =>

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
-import { FileUploadService } from '@/modules/file-upload/application/file-upload.service';
+import { IFileUploadPort } from '@/modules/cv/application/ports/file-upload.port';
 import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
 import { CvResponseDto } from '@/modules/cv/application/dto/cv-response.dto';
@@ -11,14 +12,25 @@ const ALLOWED_CV_FILE_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
+export class UploadCvFileCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly cvId: string,
+    public readonly file: Express.Multer.File,
+  ) {}
+}
+
 @Injectable()
-export class UploadCvFileUseCase {
+@CommandHandler(UploadCvFileCommand)
+export class UploadCvFileHandler
+  implements ICommandHandler<UploadCvFileCommand, CvResponseDto>
+{
   constructor(
     private readonly cvRepository: ICvRepository,
-    private readonly fileUploadService: FileUploadService,
+    private readonly fileUploadPort: IFileUploadPort,
   ) {}
 
-  async execute(userId: string, cvId: string, file: Express.Multer.File): Promise<CvResponseDto> {
+  async execute({ userId, cvId, file }: UploadCvFileCommand): Promise<CvResponseDto> {
     const cv = await this.cvRepository.findByIdWithRelations(cvId);
     if (!cv) {
       throw new EntityNotFoundException('CV', cvId);
@@ -26,7 +38,7 @@ export class UploadCvFileUseCase {
 
     cv.ensureOwner(userId);
 
-    const { url } = await this.fileUploadService.uploadFile(file, 'cvs', ALLOWED_CV_FILE_TYPES);
+    const { url } = await this.fileUploadPort.uploadFile(file, 'cvs', ALLOWED_CV_FILE_TYPES);
     cv.attachFile(url);
 
     const updated = await this.cvRepository.update(cv);
