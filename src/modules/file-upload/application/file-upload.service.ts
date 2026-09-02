@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { UploadFileUseCase } from './use-cases/upload-file.use-case';
+import { CommandBus } from '@nestjs/cqrs';
+import { UploadFileCommand } from './commands/upload-file.command';
 
 @Injectable()
 export class FileUploadService {
-  constructor(private readonly uploadFileUseCase: UploadFileUseCase) {}
+  constructor(private readonly commandBus: CommandBus) {}
 
   async uploadFile(file: Express.Multer.File, folder?: string, allowedMimeTypes?: string[]) {
-    return this.uploadFileUseCase.execute(file, folder, allowedMimeTypes);
+    return this.commandBus.execute(new UploadFileCommand(file, folder, allowedMimeTypes));
   }
 }

@@ -1,20 +1,21 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CqrsModule } from '@nestjs/cqrs';
+import { ConfigModule } from '@nestjs/config';
 import { IFileStorageProvider } from './domain/providers/file-storage.provider.interface';
 import { S3StorageProvider } from './infrastructure/storage/s3-storage.provider';
-import { UploadFileUseCase } from './application/use-cases/upload-file.use-case';
+import { UploadFileHandler } from './application/commands/upload-file.command';
 import { FileUploadService } from './application/file-upload.service';
 import { FileUploadController } from './presentation/controllers/file-upload.controller';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [CqrsModule, ConfigModule],
   controllers: [FileUploadController],
   providers: [
     {
       provide: IFileStorageProvider,
       useClass: S3StorageProvider,
     },
-    UploadFileUseCase,
+    UploadFileHandler,
     FileUploadService,
   ],
   exports: [FileUploadService],
