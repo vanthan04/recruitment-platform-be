@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
@@ -15,15 +16,22 @@ export interface UpdateCompanyInput {
   address?: string;
 }
 
+export class UpdateCompanyCommand {
+  constructor(
+    public readonly ownerId: string,
+    public readonly companyId: string,
+    public readonly input: UpdateCompanyInput,
+  ) {}
+}
+
 @Injectable()
-export class UpdateCompanyUseCase {
+@CommandHandler(UpdateCompanyCommand)
+export class UpdateCompanyHandler
+  implements ICommandHandler<UpdateCompanyCommand, CompanyResponseDto>
+{
   constructor(private readonly companyRepository: ICompanyRepository) {}
 
-  async execute(
-    ownerId: string,
-    companyId: string,
-    input: UpdateCompanyInput,
-  ): Promise<CompanyResponseDto> {
+  async execute({ ownerId, companyId, input }: UpdateCompanyCommand): Promise<CompanyResponseDto> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) {
       throw new EntityNotFoundException('Company', companyId);
