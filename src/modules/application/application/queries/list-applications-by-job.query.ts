@@ -1,19 +1,33 @@
 import { Injectable } from '@nestjs/common';
+import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
-import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
+import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
 import { EntityNotFoundException, UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
 
+export class ListApplicationsByJobQuery {
+  constructor(
+    public readonly recruiterId: string,
+    public readonly jobId: string,
+  ) {}
+}
+
 @Injectable()
-export class ListApplicationsByJobUseCase {
+@QueryHandler(ListApplicationsByJobQuery)
+export class ListApplicationsByJobHandler
+  implements IQueryHandler<ListApplicationsByJobQuery, ApplicationResponseDto[]>
+{
   constructor(
     private readonly applicationRepository: IJobApplicationRepository,
-    private readonly jobRepository: IJobRepository,
+    private readonly jobLookupPort: IJobLookupPort,
   ) {}
 
-  async execute(recruiterId: string, jobId: string): Promise<ApplicationResponseDto[]> {
-    const job = await this.jobRepository.findById(jobId);
+  async execute({
+    recruiterId,
+    jobId,
+  }: ListApplicationsByJobQuery): Promise<ApplicationResponseDto[]> {
+    const job = await this.jobLookupPort.findById(jobId);
     if (!job) throw new EntityNotFoundException('Job', jobId);
 
     if (job.postedById !== recruiterId) {
