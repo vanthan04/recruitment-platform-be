@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
-import { ICategoryRepository } from '@/modules/category/domain/repositories/category.repository';
+import { ICategoryLookupPort } from '@/modules/job-alert/application/ports/category-lookup.port';
 import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.entity';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
 import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
@@ -14,15 +15,25 @@ export interface CreateSavedSearchInput {
   jobType?: string;
 }
 
+export class CreateSavedSearchCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly input: CreateSavedSearchInput,
+  ) {}
+}
+
 @Injectable()
-export class CreateSavedSearchUseCase {
+@CommandHandler(CreateSavedSearchCommand)
+export class CreateSavedSearchHandler
+  implements ICommandHandler<CreateSavedSearchCommand, SavedSearchResponseDto>
+{
   constructor(
     private readonly savedSearchRepository: ISavedSearchRepository,
-    private readonly categoryRepository: ICategoryRepository,
+    private readonly categoryLookupPort: ICategoryLookupPort,
   ) {}
 
-  async execute(userId: string, input: CreateSavedSearchInput): Promise<SavedSearchResponseDto> {
-    if (input.categoryId && !(await this.categoryRepository.findById(input.categoryId))) {
+  async execute({ userId, input }: CreateSavedSearchCommand): Promise<SavedSearchResponseDto> {
+    if (input.categoryId && !(await this.categoryLookupPort.exists(input.categoryId))) {
       throw new EntityNotFoundException('Category', input.categoryId);
     }
 

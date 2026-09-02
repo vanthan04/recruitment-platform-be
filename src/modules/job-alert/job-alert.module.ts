@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { SavedSearchController } from '@/modules/job-alert/presentation/controllers/saved-search.controller';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { SavedSearchInfraRepository } from '@/modules/job-alert/infrastructure/repositories/saved-search.infra-repository';
@@ -7,14 +8,21 @@ import { CategoryModule } from '@/modules/category/category.module';
 import { JobModule } from '@/modules/job/job.module';
 import { UserModule } from '@/modules/user/user.module';
 import { MailModule } from '@/modules/mail/mail.module';
+import { ICategoryLookupPort } from '@/modules/job-alert/application/ports/category-lookup.port';
+import { CategoryLookupAdapter } from '@/modules/job-alert/infrastructure/adapters/category-lookup.adapter';
+import { IJobSearchPort } from '@/modules/job-alert/application/ports/job-search.port';
+import { JobSearchAdapter } from '@/modules/job-alert/infrastructure/adapters/job-search.adapter';
+import { IUserLookupPort } from '@/modules/job-alert/application/ports/user-lookup.port';
+import { UserLookupAdapter } from '@/modules/job-alert/infrastructure/adapters/user-lookup.adapter';
 
-import { CreateSavedSearchUseCase } from '@/modules/job-alert/application/use-cases/create-saved-search.use-case';
-import { ListMySavedSearchesUseCase } from '@/modules/job-alert/application/use-cases/list-my-saved-searches.use-case';
-import { DeleteSavedSearchUseCase } from '@/modules/job-alert/application/use-cases/delete-saved-search.use-case';
+import { CreateSavedSearchHandler } from '@/modules/job-alert/application/commands/create-saved-search.command';
+import { DeleteSavedSearchHandler } from '@/modules/job-alert/application/commands/delete-saved-search.command';
+import { SendJobAlertDigestsHandler } from '@/modules/job-alert/application/commands/send-job-alert-digests.command';
+import { ListMySavedSearchesHandler } from '@/modules/job-alert/application/queries/list-my-saved-searches.query';
 import { JobAlertDigestCron } from '@/modules/job-alert/application/jobs/job-alert-digest.cron';
 
 @Module({
-  imports: [CategoryModule, JobModule, UserModule, MailModule],
+  imports: [CqrsModule, CategoryModule, JobModule, UserModule, MailModule],
   controllers: [SavedSearchController],
   providers: [
     SavedSearchPrismaRepository,
@@ -22,9 +30,22 @@ import { JobAlertDigestCron } from '@/modules/job-alert/application/jobs/job-ale
       provide: ISavedSearchRepository,
       useClass: SavedSearchInfraRepository,
     },
-    CreateSavedSearchUseCase,
-    ListMySavedSearchesUseCase,
-    DeleteSavedSearchUseCase,
+    {
+      provide: ICategoryLookupPort,
+      useClass: CategoryLookupAdapter,
+    },
+    {
+      provide: IJobSearchPort,
+      useClass: JobSearchAdapter,
+    },
+    {
+      provide: IUserLookupPort,
+      useClass: UserLookupAdapter,
+    },
+    CreateSavedSearchHandler,
+    DeleteSavedSearchHandler,
+    SendJobAlertDigestsHandler,
+    ListMySavedSearchesHandler,
     JobAlertDigestCron,
   ],
 })
