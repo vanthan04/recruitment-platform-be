@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * In-memory, single-instance presence tracking (userId -> connected socket
- * ids). Sufficient for this app's current single-process deployment — see
- * CHAT_INTEGRATION_PLAN.md §6 for the documented Redis upgrade path if this
- * ever runs across multiple instances.
+ * ids). Sufficient for this app's current single-process deployment — if it
+ * ever runs across multiple instances, this state (and Socket.IO's own room
+ * broadcasting) would need to move to a shared store, e.g. via
+ * @socket.io/redis-adapter.
  */
 @Injectable()
 export class ChatPresenceService {

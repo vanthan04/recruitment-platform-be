@@ -103,6 +103,48 @@ Thứ tự phase là thứ tự nên làm (phase sau có thể phụ thuộc pha
 
 ---
 
+## P9 — Chat (Realtime) ✅ (đã implement, retroactive — không có trong roadmap gốc)
+
+**Ghi chú:** phase này được thêm sau khi rà soát code — module đã code xong nhưng chưa từng được liệt kê ở đây. Thêm vào để roadmap khớp thực tế, không phải việc cần làm.
+
+- Model `Conversation`/`Message`/`ConversationMember`/`MessageAttachment`, gắn `applicationId`/`jobId` để biết conversation thuộc application/job nào.
+- `ChatGateway` (namespace `/ws`) qua `ChatIoAdapter` ([socket-io.adapter.ts](src/common/adapters/socket-io.adapter.ts)) — auth bằng cookie, rate-limit gửi tin.
+- REST: `POST/GET /conversations`, `GET /conversations/:id`, `GET /conversations/:id/messages` (cursor-paginated), `POST /conversations/:id/messages`, `POST /conversations/:id/read`, `PATCH/DELETE /messages/:id`.
+- WS events: `conversation:subscribe/unsubscribe`, `message:send/ack/new/error/read`, `typing:start/stop`, `user:online/offline`.
+- `ChatPresenceService` + `ChatEventsListener`, ports `IChatJobLookupPort`/`IChatApplicationLookupPort`/`IChatUserLookupPort` để tách phụ thuộc sang module `job`/`application`/`user`.
+
+---
+
+## P10 — Interview Scheduling (đề xuất, **chưa code**)
+
+**Vì sao khả thi:** hạ tầng mail (`IMailService` port + `NodemailerMailProvider`, [mail module](src/modules/mail/)) và pattern use-case CQRS (theo [UpdateApplicationStatusHandler](src/modules/application/application/commands/update-application-status.command.ts)) đã có sẵn để mô phỏng theo — không cần dựng infra mới, chỉ cần thêm 1 module theo đúng khuôn hiện có.
+
+**Thiết kế đề xuất (chưa implement):**
+- Schema mới: model `InterviewSchedule` — `id, jobApplicationId (FK JobApplication), scheduledAt, location/meetingLink, note, status (SCHEDULED/RESCHEDULED/CANCELLED), createdBy, createdAt/updatedAt`.
+- Use-case (CQRS, giống pattern `update-application-status.command.ts`):
+  - `ScheduleInterviewCommand` — recruiter tạo lịch, owner check giống hiện tại (`job.postedById !== recruiterId` → `UnauthorizedDomainException`), not-found → `EntityNotFoundException`.
+  - `RescheduleInterviewCommand`, `CancelInterviewCommand`.
+- Endpoint mới (role RECRUITER), ví dụ `POST /job-applications/:id/interview`, `PATCH /interviews/:id`, `DELETE /interviews/:id`.
+- **Email tới candidate**: gọi `IMailService.sendEmail(...)` sau khi tạo/sửa lịch — đây sẽ là **lần đầu tiên** có luồng "đổi trạng thái application → gửi email", vì hiện tại `notification` module khi nhận event `application.status_changed` chỉ tạo thông báo in-app, chưa từng gọi mail. Nội dung email build inline HTML (chưa có template engine, giống cách [register.command.ts](src/modules/auth/application/commands/register.command.ts)/[forgot-password.command.ts](src/modules/auth/application/commands/forgot-password.command.ts) đang làm).
+- Có thể phát thêm event `interview.scheduled` để `notification` module tạo luôn in-app notification song song với email, tái dùng pattern `ApplicationEventsListener` hiện có.
+- Không bắt buộc nhưng nên cân nhắc: đính kèm file `.ics` (cần thêm dependency `ics`/`ical-generator`, hiện chưa có trong `package.json`).
+
+---
+
+## Tech debt backlog (chưa xử lý)
+
+Ghi nhận để theo dõi, chưa sửa code lần này. Ưu tiên theo Impact/Risk/Effort (effort thấp = dễ làm trước):
+
+1. **Test coverage thấp (~4-5% file coverage)** — 9 module hoàn toàn không có `.spec.ts`: `bookmark`, `category`, `company`, `file-upload`, `job-alert`, `mail`, `notification`, `prisma`, `user`. Impact/Risk cao, effort trung bình — nên ưu tiên thêm spec cho use-case quan trọng (auth, application, job) trước khi phủ hết.
+2. **Không có CI/CD, Dockerfile, docker-compose** (ghi chú ở đầu file này là "làm sau" — liệt kê lại đây để không bị quên). Impact/Risk cao khi deploy, effort thấp-trung bình.
+3. **Exception xử lý không nhất quán** — `auth`, `user`, `file-upload` ném raw NestJS exception (`NotFoundException`, `UnauthorizedException`...) thay vì `DomainException` con như `job`/`cv`/`application`/`company` đang dùng. Impact trung bình, effort thấp.
+4. **6 file bypass `ConfigService`**, đọc thẳng `process.env`: [socket-io.adapter.ts](src/common/adapters/socket-io.adapter.ts), [jwt.strategy.ts](src/common/strategies/jwt.strategy.ts), `main.ts` (2 chỗ), [ws-auth.util.ts](src/modules/chat/infrastructure/gateways/ws-auth.util.ts), [prisma.service.ts](src/modules/prisma/prisma.service.ts) — bỏ qua schema Joi đã validate ở `env.validation.ts`. Impact thấp-trung bình, effort thấp.
+5. **Trùng logic pagination/ownership-check** — chỉ 1 module dùng `pagination.util.ts` dùng chung, các module khác (`job`, `company`, `chat`, `notification`, `user`) tự viết `skip`/`take` riêng; ownership check (`x.userId !== userId`) lặp lại ở 7+ chỗ thay vì 1 helper `ensureOwner` dùng chung. Impact thấp, effort trung bình (refactor rải rác nhiều file).
+6. **Dependency version bất thường, cần xác nhận chủ đích**: `@prisma/*` ghim `^7.x`, `joi ^18`, `nodemailer ^8` — cao bất thường so với bản ổn định phổ biến (Prisma v5/v6, Joi v17, nodemailer v6). Nên xác nhận không phải version canary/gõ nhầm trước khi deploy production.
+7. **Dependency chết** — `@nestjs-modules/mailer` và `@aws-sdk/client-ses` có trong `package.json` nhưng không được import ở đâu trong `src/` (mail hiện chỉ dùng `nodemailer` thuần). Cân nhắc gỡ nếu không có kế hoạch dùng.
+
+---
+
 ## Việc nhỏ (dọn dẹp, làm xen kẽ lúc nào tiện)
 - Xoá import thừa `SwaggerResponse` trong [auth.controller.ts](src/modules/auth/presentation/controllers/auth.controller.ts) (import nhưng không dùng).
 - Thống nhất ngôn ngữ message trả về (hiện `auth`/`user` tiếng Việt, `cv`/`job`/`bookmark`/`application` tiếng Anh) — chọn 1 chuẩn, không bắt buộc dùng thư viện i18n ngay.
