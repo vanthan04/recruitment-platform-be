@@ -9,7 +9,7 @@ import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-passw
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
 import { ApiResponse } from '@/common/dtos/api-response';
-import { JwtAuthGuard } from '@/modules/auth/presentation/security/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('auth')

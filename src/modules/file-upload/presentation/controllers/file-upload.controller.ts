@@ -10,7 +10,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { FileUploadService } from '../../application/file-upload.service';
 import { ApiResponse } from '@/common/dtos/api-response';
-import { JwtAuthGuard } from '@/modules/auth/presentation/security/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 

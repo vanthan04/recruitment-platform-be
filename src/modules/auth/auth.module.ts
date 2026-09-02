@@ -7,7 +7,7 @@ import { AuthService } from '@/modules/auth/application/auth.service';
 import { AuthController } from '@/modules/auth/presentation/controllers/auth.controller';
 import { UserModule } from '@/modules/user/user.module';
 import { MailModule } from '@/modules/mail/mail.module';
-import { JwtStrategy } from '@/modules/auth/presentation/security/strategies/jwt.strategy';
+import { JwtStrategy } from '@/common/strategies/jwt.strategy';
 
 // Handlers
 import { RegisterHandler } from '@/modules/auth/application/commands/register.command';

@@ -1,7 +1,7 @@
 import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/modules/auth/presentation/security/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { GetMe } from '@/common/decorators/get-me.decorator';
 import { GetMyProfileQuery } from '@/modules/user/application/queries/get-my-profile.query';
 import { UpdateProfileCommand } from '@/modules/user/application/commands/update-profile.command';
