@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
@@ -25,6 +25,7 @@ import { ThrottlerStorage } from '@nestjs/throttler';
  */
 @Injectable()
 export class DynamoThrottlerStorage implements ThrottlerStorage {
+  private readonly logger = new Logger(DynamoThrottlerStorage.name);
   private readonly client: DynamoDBDocumentClient;
   private readonly tableName: string;
 
@@ -51,30 +52,46 @@ export class DynamoThrottlerStorage implements ThrottlerStorage {
     const windowStart = Math.floor(now / ttl) * ttl;
     const windowEnd = windowStart + ttl;
     const bucketKey = `${throttlerName}#${key}#${windowStart}`;
-
-    const result = await this.client.send(
-      new UpdateCommand({
-        TableName: this.tableName,
-        Key: { pk: bucketKey },
-        UpdateExpression:
-          'ADD hits :incr SET expiresAt = if_not_exists(expiresAt, :exp)',
-        ExpressionAttributeValues: {
-          ':incr': 1,
-          ':exp': Math.ceil(windowEnd / 1000),
-        },
-        ReturnValues: 'UPDATED_NEW',
-      }),
-    );
-
-    const totalHits = (result.Attributes?.hits as number) ?? 1;
     const timeToExpire = Math.max(0, Math.ceil((windowEnd - now) / 1000));
-    const isBlocked = totalHits > limit;
 
-    return {
-      totalHits,
-      timeToExpire,
-      isBlocked,
-      timeToBlockExpire: isBlocked ? timeToExpire : 0,
-    };
+    try {
+      const result = await this.client.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: bucketKey },
+          UpdateExpression:
+            'ADD hits :incr SET expiresAt = if_not_exists(expiresAt, :exp)',
+          ExpressionAttributeValues: {
+            ':incr': 1,
+            ':exp': Math.ceil(windowEnd / 1000),
+          },
+          ReturnValues: 'UPDATED_NEW',
+        }),
+      );
+
+      const totalHits = (result.Attributes?.hits as number) ?? 1;
+      const isBlocked = totalHits > limit;
+
+      return {
+        totalHits,
+        timeToExpire,
+        isBlocked,
+        timeToBlockExpire: isBlocked ? timeToExpire : 0,
+      };
+    } catch (error) {
+      // Fail open: a DynamoDB blip must not take the whole API down with it —
+      // rate limiting is a protective layer, not core business logic. Every
+      // guarded route would otherwise 500 for as long as the table is
+      // unreachable.
+      this.logger.error(
+        `Rate-limit storage unavailable, allowing request through: ${(error as Error).message}`,
+      );
+      return {
+        totalHits: 0,
+        timeToExpire,
+        isBlocked: false,
+        timeToBlockExpire: 0,
+      };
+    }
   }
 }

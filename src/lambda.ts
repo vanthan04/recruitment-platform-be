@@ -1,7 +1,13 @@
 import 'source-map-support/register';
 import type { RequestListener } from 'http';
 import serverlessExpress from '@codegenie/serverless-express';
-import type { APIGatewayProxyEvent, APIGatewayProxyResult, Handler } from 'aws-lambda';
+import type {
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult,
+  Callback,
+  Context,
+  Handler,
+} from 'aws-lambda';
 import { createHttpApp } from '@/bootstrap';
 
 /**
@@ -18,10 +24,16 @@ async function bootstrap(): Promise<ApiHandler> {
   const app = await createHttpApp();
   await app.init();
   const expressInstance = app.getHttpAdapter().getInstance() as RequestListener;
-  return serverlessExpress<APIGatewayProxyEvent, APIGatewayProxyResult>({ app: expressInstance });
+  return serverlessExpress<APIGatewayProxyEvent, APIGatewayProxyResult>({
+    app: expressInstance,
+  });
 }
 
-export const handler: ApiHandler = async (event, context, callback) => {
+export const handler = async (
+  event: APIGatewayProxyEvent,
+  context: Context,
+  callback: Callback<APIGatewayProxyResult>,
+): Promise<APIGatewayProxyResult | void> => {
   cachedHandler ??= await bootstrap();
   return cachedHandler(event, context, callback);
 };
