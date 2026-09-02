@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
@@ -7,6 +7,7 @@ import * as path from 'path';
 
 @Injectable()
 export class S3StorageProvider implements IFileStorageProvider {
+  private readonly logger = new Logger(S3StorageProvider.name);
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
   private readonly region: string;
@@ -63,7 +64,7 @@ export class S3StorageProvider implements IFileStorageProvider {
         await this.s3Client.send(command);
       }
     } catch (error) {
-      console.error('Không thể xóa file trên S3:', error.message);
+      this.logger.error(`Không thể xóa file trên S3: ${error.message}`);
     }
   }
 }

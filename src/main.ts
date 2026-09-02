@@ -1,11 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@/app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Standard HTTP security headers (X-Frame-Options, X-Content-Type-Options, HSTS, etc.)
+  app.use(helmet());
 
   // Set Global Prefix (Mapped from context-path: /api/v1)
   app.setGlobalPrefix('api/v1');
@@ -39,6 +43,6 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+  Logger.log(`Application is running on: http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();
