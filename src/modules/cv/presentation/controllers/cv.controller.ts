@@ -24,10 +24,10 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { CreateCvCommand } from '@/modules/cv/application/commands/create-cv.command';
@@ -46,7 +46,7 @@ const MAX_CV_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 @ApiTags('cvs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('cvs')
 export class CvController {
   constructor(
@@ -55,7 +55,7 @@ export class CvController {
   ) {}
 
   @Post()
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.CV_CREATE)
   @ApiOperation({ summary: 'Create a new CV' })
   async create(@GetMe('id') userId: string, @Body() dto: CreateCvDto) {
     const result = await this.commandBus.execute(
@@ -79,7 +79,7 @@ export class CvController {
   }
 
   @Get()
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.CV_READ_OWN)
   @ApiOperation({ summary: 'List all my CVs' })
   async listMyCvs(@GetMe('id') userId: string) {
     const result = await this.queryBus.execute(new ListMyCvsQuery(userId));
@@ -94,7 +94,7 @@ export class CvController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.CV_UPDATE_OWN)
   @ApiOperation({ summary: 'Update CV' })
   async update(
     @GetMe('id') userId: string,
@@ -122,7 +122,7 @@ export class CvController {
   }
 
   @Patch(':id/publish')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.CV_UPDATE_OWN)
   @ApiOperation({ summary: 'Publish CV' })
   async publish(@GetMe('id') userId: string, @Param('id') cvId: string) {
     const result = await this.commandBus.execute(
@@ -132,7 +132,7 @@ export class CvController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.CV_DELETE_OWN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete CV (soft delete)' })
   async delete(@GetMe('id') userId: string, @Param('id') cvId: string) {
@@ -140,7 +140,7 @@ export class CvController {
   }
 
   @Post(':id/upload')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.CV_UPDATE_OWN)
   @ApiOperation({ summary: 'Upload a ready-made CV file (PDF/DOC/DOCX)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

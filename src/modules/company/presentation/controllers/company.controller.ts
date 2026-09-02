@@ -14,10 +14,10 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { CreateCompanyCommand } from '@/modules/company/application/commands/create-company.command';
@@ -40,8 +40,8 @@ export class CompanyController {
 
   @Post()
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.COMPANY_CREATE)
   @ApiOperation({
     summary: 'Create my company (Recruiter only, 1 per recruiter)',
   })
@@ -86,8 +86,8 @@ export class CompanyController {
 
   @Patch(':id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.COMPANY_UPDATE)
   @ApiOperation({ summary: 'Update company (Owner only)' })
   async update(
     @GetMe('id') recruiterId: string,
@@ -102,8 +102,8 @@ export class CompanyController {
 
   @Delete(':id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.COMPANY_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete company (Owner only, soft delete)' })
   async delete(

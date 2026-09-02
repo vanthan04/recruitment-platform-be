@@ -98,12 +98,20 @@ export class UserPrismaRepository
       return UserMapper.toDomain(updated)!;
     }
 
+    const role = (data.role as any) || UserRole.CANDIDATE;
     const created = await this.prismaService.user.create({
       data: {
         email: data.email!,
         password: data.password!,
         verifyCode: data.verifyCode,
-        role: (data.role as any) || UserRole.CANDIDATE,
+        // `role` stays the operational field the rest of the app reads/writes;
+        // roleRef/roleId is the RBAC join, connected by the role's unique name
+        // so callers here don't need to know its id. A DB trigger additionally
+        // keeps roleId in sync whenever `role` is updated later (see the
+        // add_rbac_system migration), so this connect only has to be correct
+        // at creation time.
+        role,
+        roleRef: { connect: { name: role } },
         status: (data.status as any) || UserStatus.PENDING,
         profile: {
           create: {

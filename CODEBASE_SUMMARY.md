@@ -52,7 +52,7 @@ modules/<name>/
 ### `auth` — [auth.module.ts](src/modules/auth/auth.module.ts)
 Controller: [AuthController](src/modules/auth/presentation/controllers/auth.controller.ts) — `POST /auth/register|login|verify|forgot-password|reset-password|change-password|logout|refresh`.
 - `AuthService` là facade gọi các use-case (Register, Login, VerifyEmail, ForgotPassword, ResetPassword, ChangePassword) + tự quản lý access/refresh token (access 15m, refresh 7d, refresh token hash bằng bcrypt trước khi lưu DB).
-- `JwtStrategy` verify Bearer token, `JwtAuthGuard`/`RolesGuard` bảo vệ route theo role (`@Roles(...)`, đọc từ `@GetMe()` decorator lấy user từ request).
+- `JwtStrategy` verify Bearer token, `JwtAuthGuard`/`PermissionGuard` bảo vệ route theo permission DB-driven (`@RequirePermissions(...)`, đọc từ `@GetMe()` decorator lấy user từ request). Authorization là RBAC: `User → Role → RolePermission → Permission` (module [permission](src/modules/permission/permission.module.ts)) — `PermissionGuard` tra `role_permissions` trong DB (có cache TTL 30s, invalidate khi admin đổi quyền qua `PUT /admin/roles/:id/permissions`), không hard-code role→permission trong code.
 
 ### `user` — [user.module.ts](src/modules/user/user.module.ts)
 - [UserController](src/modules/user/presentation/controllers/user.controller.ts): `GET /users/me`, `PATCH /users/profile` (tự quản lý profile cá nhân).
@@ -122,7 +122,10 @@ Native recruitment chat — xem [API_GUIDE.md](API_GUIDE.md#411-chat-conversatio
 `PrismaModule.forRoot({...})` global, cung cấp `PrismaService` (wrap `PrismaClient`, cấu hình log query/info/warn/error).
 
 ### `common/`
-Chứa building block dùng chung: `BaseEntity`, `BasePrismaRepository`, `ApiResponse`/`ResponseDto`, `PageOptionsDto`/`PageMetaDto` (pagination), enums (`UserRole`, `UserStatus`, `Gender`), decorators (`@GetMe`, `@Roles`), guards (`RolesGuard`), domain exceptions (`domain.exception.ts`), `GlobalExceptionFilter`, `env.validation.ts` (Joi schema cho biến môi trường), `app.config.ts`.
+Chứa building block dùng chung: `BaseEntity`, `BasePrismaRepository`, `ApiResponse`/`ResponseDto`, `PageOptionsDto`/`PageMetaDto` (pagination), enums (`UserRole`, `UserStatus`, `Gender`, `Permission` — permission identifiers dùng bởi `@RequirePermissions`, DB vẫn là nguồn sự thật cho role→permission), decorators (`@GetMe`, `@RequirePermissions`), guards (`JwtAuthGuard`, `PermissionGuard`), domain exceptions (`domain.exception.ts`), `GlobalExceptionFilter`, `env.validation.ts` (Joi schema cho biến môi trường), `app.config.ts`.
+
+### `permission` — [permission.module.ts](src/modules/permission/permission.module.ts)
+RBAC database-driven: `roles` / `permissions` / `role_permissions` tables (Prisma models `Role`/`Permission`/`RolePermission`), `users.roleId` FK (giữ song song với `users.role` enum cũ, sync tự động bằng DB trigger — xem migration `add_rbac_system`). `PermissionsService` tra permission theo role (1 query join, cache TTL ngắn). Admin API: `GET /admin/roles`, `GET /admin/roles/:id`, `GET /admin/permissions`, `GET /admin/roles/:id/permissions`, `PUT /admin/roles/:id/permissions` (yêu cầu permission `role:permission:manage`) — đổi quyền của 1 role không cần deploy lại code. Seed idempotent: `prisma/seed.ts` (`npm run db:seed`).
 
 ## 5. Luồng nghiệp vụ chính (happy path)
 

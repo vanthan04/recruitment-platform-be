@@ -12,10 +12,10 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { CreateSavedSearchCommand } from '@/modules/job-alert/application/commands/create-saved-search.command';
@@ -25,7 +25,7 @@ import { CreateSavedSearchDto } from '@/modules/job-alert/presentation/dtos/crea
 
 @ApiTags('saved-searches')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('saved-searches')
 export class SavedSearchController {
   constructor(
@@ -34,7 +34,7 @@ export class SavedSearchController {
   ) {}
 
   @Post()
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.SAVED_SEARCH_CREATE)
   @ApiOperation({
     summary:
       'Save a search to get emailed when matching jobs are posted (Candidate only)',
@@ -47,7 +47,7 @@ export class SavedSearchController {
   }
 
   @Get()
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.SAVED_SEARCH_READ)
   @ApiOperation({ summary: 'List my saved searches (Candidate only)' })
   async list(@GetMe('id') userId: string) {
     const result = await this.queryBus.execute(
@@ -57,7 +57,7 @@ export class SavedSearchController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.SAVED_SEARCH_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a saved search (owner only)' })
   async delete(

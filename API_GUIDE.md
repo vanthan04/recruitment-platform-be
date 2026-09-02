@@ -68,7 +68,7 @@ thì về mặt kỹ thuật **không sai** (mọi entry đều fallback về c�
 | 400 | `VALIDATION_ERROR` | Body/query sai validation (`class-validator`) — `message` là chuỗi các lỗi nối bằng dấu phẩy |
 | 400 | `BUSINESS_RULE_VIOLATION` | Vi phạm business rule (vd. publish CV khi chưa có kinh nghiệm, apply job đã đóng) |
 | 401 | `HTTP_ERROR` | Chưa đăng nhập / token sai hoặc hết hạn / sai mật khẩu |
-| 403 | `UNAUTHORIZED_ACTION` hoặc `HTTP_ERROR` | Không phải chủ sở hữu resource, hoặc sai role (`RolesGuard`) |
+| 403 | `UNAUTHORIZED_ACTION` hoặc `HTTP_ERROR` | Không phải chủ sở hữu resource, hoặc role của user không có permission cần thiết (`PermissionGuard`, DB-driven qua `role_permissions`) |
 | 404 | `ENTITY_NOT_FOUND` hoặc `HTTP_ERROR` | Không tìm thấy resource |
 | 409 | `DUPLICATE_ENTITY` hoặc `HTTP_ERROR` | Trùng dữ liệu (email đã tồn tại, đã apply job này rồi...) |
 | 413 | `HTTP_ERROR` | File upload vượt giới hạn kích thước |

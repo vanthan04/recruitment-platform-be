@@ -10,10 +10,10 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { ApplyJobCommand } from '@/modules/application/application/commands/apply-job.command';
@@ -28,7 +28,7 @@ import { UpdateApplicationStatusDto } from '@/modules/application/presentation/d
 
 @ApiTags('job-applications')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('job-applications')
 export class JobApplicationController {
   constructor(
@@ -37,7 +37,7 @@ export class JobApplicationController {
   ) {}
 
   @Post()
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.APPLICATION_CREATE)
   @ApiOperation({ summary: 'Apply for a job (Candidate only)' })
   async apply(@GetMe('id') userId: string, @Body() dto: ApplyJobDto) {
     const result = await this.commandBus.execute(
@@ -47,7 +47,7 @@ export class JobApplicationController {
   }
 
   @Get('my-applications')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.APPLICATION_READ_OWN)
   @ApiOperation({ summary: 'List my applications (Candidate only)' })
   async listMyApplications(@GetMe('id') userId: string) {
     const result = await this.queryBus.execute(
@@ -57,7 +57,7 @@ export class JobApplicationController {
   }
 
   @Get('job/:jobId')
-  @Roles(UserRole.RECRUITER)
+  @RequirePermissions(Permission.APPLICATION_READ)
   @ApiOperation({
     summary: 'List applications for a specific job (Recruiter owner only)',
   })
@@ -72,7 +72,7 @@ export class JobApplicationController {
   }
 
   @Get('job/:jobId/stats')
-  @Roles(UserRole.RECRUITER)
+  @RequirePermissions(Permission.APPLICATION_READ)
   @ApiOperation({
     summary:
       'Get application stats + view count for a job (Recruiter owner only)',
@@ -88,7 +88,7 @@ export class JobApplicationController {
   }
 
   @Patch(':id/withdraw')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.APPLICATION_WITHDRAW_OWN)
   @ApiOperation({
     summary: 'Withdraw a pending application (Candidate owner only)',
   })
@@ -100,7 +100,7 @@ export class JobApplicationController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.RECRUITER)
+  @RequirePermissions(Permission.APPLICATION_UPDATE)
   @ApiOperation({ summary: 'Update application status (Recruiter owner only)' })
   async updateStatus(
     @GetMe('id') recruiterId: string,

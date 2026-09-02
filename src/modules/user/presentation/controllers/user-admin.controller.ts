@@ -15,9 +15,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 import { AdminListUsersQuery } from '@/modules/user/application/queries/admin-list-users.query';
 import { AdminUpdateUserStatusCommand } from '@/modules/user/application/commands/admin-update-user-status.command';
@@ -25,8 +25,7 @@ import { AdminUpdateUserStatusDto } from '../dtos/admin-update-user-status.dto';
 
 @ApiTags('admin/users')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('admin/users')
 export class UserAdminController {
   constructor(
@@ -35,6 +34,7 @@ export class UserAdminController {
   ) {}
 
   @Get()
+  @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'Lấy danh sách người dùng (Admin)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -53,6 +53,7 @@ export class UserAdminController {
   }
 
   @Patch(':id')
+  @RequirePermissions(Permission.USER_UPDATE)
   @ApiOperation({
     summary: 'Cập nhật trạng thái hoặc quyền hạn người dùng (Admin)',
   })

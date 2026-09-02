@@ -10,10 +10,10 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { ScheduleInterviewCommand } from '@/modules/interview/application/commands/schedule-interview.command';
@@ -26,7 +26,7 @@ import { RescheduleInterviewDto } from '@/modules/interview/presentation/dtos/re
 
 @ApiTags('interviews')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('interviews')
 export class InterviewController {
   constructor(
@@ -35,7 +35,7 @@ export class InterviewController {
   ) {}
 
   @Post()
-  @Roles(UserRole.RECRUITER)
+  @RequirePermissions(Permission.INTERVIEW_CREATE)
   @ApiOperation({
     summary:
       'Schedule an interview for a job application (Recruiter owner only)',
@@ -51,7 +51,7 @@ export class InterviewController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.RECRUITER)
+  @RequirePermissions(Permission.INTERVIEW_UPDATE)
   @ApiOperation({ summary: 'Reschedule an interview (Recruiter owner only)' })
   async reschedule(
     @GetMe('id') recruiterId: string,
@@ -65,7 +65,7 @@ export class InterviewController {
   }
 
   @Patch(':id/cancel')
-  @Roles(UserRole.RECRUITER)
+  @RequirePermissions(Permission.INTERVIEW_UPDATE)
   @ApiOperation({ summary: 'Cancel an interview (Recruiter owner only)' })
   async cancel(@GetMe('id') recruiterId: string, @Param('id') id: string) {
     const result = await this.commandBus.execute(
@@ -75,7 +75,7 @@ export class InterviewController {
   }
 
   @Get('application/:applicationId')
-  @Roles(UserRole.CANDIDATE, UserRole.RECRUITER)
+  @RequirePermissions(Permission.INTERVIEW_READ)
   @ApiOperation({
     summary:
       'List interviews for a job application (candidate or recruiter owner)',

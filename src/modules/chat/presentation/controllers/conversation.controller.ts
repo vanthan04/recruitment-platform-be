@@ -13,10 +13,10 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { CreateConversationCommand } from '@/modules/chat/application/commands/create-conversation.command';
@@ -33,7 +33,7 @@ import { ListConversationsDto } from '@/modules/chat/presentation/dtos/list-conv
 
 @ApiTags('conversations')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('conversations')
 export class ConversationController {
   constructor(
@@ -42,7 +42,7 @@ export class ConversationController {
   ) {}
 
   @Post()
-  @Roles(UserRole.RECRUITER)
+  @RequirePermissions(Permission.CONVERSATION_CREATE)
   @ApiOperation({
     summary:
       'Start (or resume) the conversation for an accepted application (Recruiter only)',

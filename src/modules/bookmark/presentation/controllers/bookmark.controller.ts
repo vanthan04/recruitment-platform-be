@@ -2,10 +2,10 @@ import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { ToggleBookmarkCommand } from '@/modules/bookmark/application/commands/toggle-bookmark.command';
@@ -13,7 +13,7 @@ import { ListBookmarksQuery } from '@/modules/bookmark/application/queries/list-
 
 @ApiTags('bookmarks')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('bookmarks')
 export class BookmarkController {
   constructor(
@@ -22,7 +22,7 @@ export class BookmarkController {
   ) {}
 
   @Post('toggle/:jobId')
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.BOOKMARK_MANAGE)
   @ApiOperation({ summary: 'Toggle bookmark for a job (Candidate only)' })
   async toggle(@GetMe('id') userId: string, @Param('jobId') jobId: string) {
     const result = await this.commandBus.execute(
@@ -35,7 +35,7 @@ export class BookmarkController {
   }
 
   @Get()
-  @Roles(UserRole.CANDIDATE)
+  @RequirePermissions(Permission.BOOKMARK_READ)
   @ApiOperation({ summary: 'List my bookmarked jobs (Candidate only)' })
   async list(@GetMe('id') userId: string) {
     const result = await this.queryBus.execute(new ListBookmarksQuery(userId));
