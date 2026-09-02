@@ -4,9 +4,12 @@ import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
 import {
-  BusinessRuleViolationException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  JobAlreadyOpenException,
+  JobAlreadyClosedException,
+  JobNotClosedException,
+  JobAlreadyDeletedException,
+  JobOwnershipException,
+} from '@/modules/job/domain/exceptions/job.exceptions';
 
 /**
  * Lightweight read-only snapshot of the owning Company, attached when the
@@ -67,30 +70,28 @@ export class Job extends BaseEntity {
 
   open(): void {
     if (this.status === JobStatus.OPEN) {
-      throw new BusinessRuleViolationException('Job is already open');
+      throw new JobAlreadyOpenException();
     }
     this.status = JobStatus.OPEN;
   }
 
   close(): void {
     if (this.status === JobStatus.CLOSED) {
-      throw new BusinessRuleViolationException('Job is already closed');
+      throw new JobAlreadyClosedException();
     }
     this.status = JobStatus.CLOSED;
   }
 
   reopen(): void {
     if (this.status !== JobStatus.CLOSED) {
-      throw new BusinessRuleViolationException(
-        'Only closed jobs can be reopened',
-      );
+      throw new JobNotClosedException();
     }
     this.status = JobStatus.OPEN;
   }
 
   softDelete(): void {
     if (this.deletedAt) {
-      throw new BusinessRuleViolationException('Job is already deleted');
+      throw new JobAlreadyDeletedException();
     }
     this.deletedAt = new Date();
     this.status = JobStatus.CLOSED;
@@ -98,9 +99,7 @@ export class Job extends BaseEntity {
 
   ensureOwner(userId: string): void {
     if (this.postedById !== userId) {
-      throw new UnauthorizedDomainException(
-        'You are not the owner of this job posting',
-      );
+      throw new JobOwnershipException();
     }
   }
 

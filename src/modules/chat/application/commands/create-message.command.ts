@@ -14,9 +14,11 @@ import {
   MessageSentEvent,
 } from '@/modules/chat/infrastructure/events/message-sent.event';
 import {
-  EntityNotFoundException,
-  BusinessRuleViolationException,
-} from '@/common/exceptions/domain.exception';
+  ConversationNotFoundException,
+  SystemMessageNotAllowedException,
+  TooManyAttachmentsException,
+  EmptyMessageException,
+} from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 export interface CreateMessageAttachmentInput {
   fileName: string;
@@ -63,8 +65,7 @@ export class CreateMessageHandler implements ICommandHandler<
 
     const conversation =
       await this.conversationRepository.findById(conversationId);
-    if (!conversation)
-      throw new EntityNotFoundException('Conversation', conversationId);
+    if (!conversation) throw new ConversationNotFoundException(conversationId);
     conversation.ensureMember(senderId);
 
     // Idempotency — a REST retry, a WS reconnect-resend, or a double-click all
@@ -78,19 +79,13 @@ export class CreateMessageHandler implements ICommandHandler<
     }
 
     if (messageType === MessageType.SYSTEM) {
-      throw new BusinessRuleViolationException(
-        'System messages cannot be sent by a user',
-      );
+      throw new SystemMessageNotAllowedException();
     }
     if (attachments.length > MAX_ATTACHMENTS_PER_MESSAGE) {
-      throw new BusinessRuleViolationException(
-        `A message can have at most ${MAX_ATTACHMENTS_PER_MESSAGE} attachments`,
-      );
+      throw new TooManyAttachmentsException(MAX_ATTACHMENTS_PER_MESSAGE);
     }
     if (!content.trim() && attachments.length === 0) {
-      throw new BusinessRuleViolationException(
-        'Message must have content or at least one attachment',
-      );
+      throw new EmptyMessageException();
     }
 
     const message = new Message({

@@ -10,9 +10,9 @@ import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo'
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
 import {
-  BusinessRuleViolationException,
-  EntityNotFoundException,
-} from '@/common/exceptions/domain.exception';
+  CompanyProfileRequiredException,
+  JobCategoryNotFoundException,
+} from '@/modules/job/domain/exceptions/job.exceptions';
 
 export interface CreateJobInput {
   title: string;
@@ -54,16 +54,14 @@ export class CreateJobHandler implements ICommandHandler<
   }: CreateJobCommand): Promise<JobResponseDto> {
     const companyId = await this.userLookup.getRecruiterCompanyId(recruiterId);
     if (!companyId) {
-      throw new BusinessRuleViolationException(
-        'You must create a company profile before posting a job',
-      );
+      throw new CompanyProfileRequiredException();
     }
 
     if (
       input.categoryId &&
       !(await this.categoryLookup.exists(input.categoryId))
     ) {
-      throw new EntityNotFoundException('Category', input.categoryId);
+      throw new JobCategoryNotFoundException(input.categoryId);
     }
 
     const job = new Job({

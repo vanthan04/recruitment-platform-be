@@ -1,5 +1,9 @@
 import { Job } from '@/modules/job/domain/entities/job.entity';
-import { BusinessRuleViolationException } from '@/common/exceptions/domain.exception';
+import {
+  JobNotAcceptingApplicationsException,
+  JobExpiredException,
+  JobRemovedException,
+} from '@/modules/job/domain/exceptions/job.exceptions';
 
 /**
  * Job Domain Service.
@@ -12,19 +16,15 @@ export class JobDomainService {
    */
   static validateAcceptingApplications(job: Job): void {
     if (!job.isOpen) {
-      throw new BusinessRuleViolationException(
-        'This job is not currently accepting applications',
-      );
+      throw new JobNotAcceptingApplicationsException();
     }
 
     if (job.isExpired) {
-      throw new BusinessRuleViolationException('This job posting has expired');
+      throw new JobExpiredException();
     }
 
     if (job.isDeleted) {
-      throw new BusinessRuleViolationException(
-        'This job posting has been removed',
-      );
+      throw new JobRemovedException();
     }
   }
 }

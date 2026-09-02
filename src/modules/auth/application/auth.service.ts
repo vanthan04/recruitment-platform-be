@@ -5,7 +5,10 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import * as crypto from 'crypto';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
-import { UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
+import {
+  InvalidRefreshTokenException,
+  RefreshTokenAccessDeniedException,
+} from '@/modules/auth/domain/exceptions/auth.exceptions';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
 import { RegisterCommand } from '@/modules/auth/application/commands/register.command';
@@ -81,7 +84,7 @@ export class AuthService {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new UnauthorizedDomainException('Invalid Refresh Token');
+      throw new InvalidRefreshTokenException();
     }
 
     const userId = payload.sub;
@@ -89,12 +92,12 @@ export class AuthService {
 
     const stored = await this.refreshTokenRepository.findValidByHash(tokenHash);
     if (!stored || stored.userId !== userId) {
-      throw new UnauthorizedDomainException('Access Denied');
+      throw new RefreshTokenAccessDeniedException();
     }
 
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new UnauthorizedDomainException('Access Denied');
+      throw new RefreshTokenAccessDeniedException();
     }
 
     // Rotate: the old refresh token is single-use — revoke it before issuing a new pair.

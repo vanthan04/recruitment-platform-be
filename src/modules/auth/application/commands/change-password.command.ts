@@ -1,8 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import {
+  UserNotFoundException,
+  InvalidOldPasswordException,
+} from '@/modules/auth/domain/exceptions/auth.exceptions';
 import * as bcrypt from 'bcrypt';
 
 export class ChangePasswordCommand {
@@ -26,12 +29,12 @@ export class ChangePasswordHandler implements ICommandHandler<
   }: ChangePasswordCommand): Promise<{ message: string }> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new EntityNotFoundException('User', userId);
+      throw new UserNotFoundException(userId);
     }
 
     const isMatch = await bcrypt.compare(dto.oldPassword, user.password!);
     if (!isMatch) {
-      throw new UnauthorizedException('Mật khẩu cũ không chính xác');
+      throw new InvalidOldPasswordException();
     }
 
     const salt = await bcrypt.genSalt();

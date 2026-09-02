@@ -7,7 +7,7 @@ import { IChatApplicationLookupPort } from '@/modules/chat/application/ports/app
 import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-lookup.port';
 import { ConversationResponseMapper } from '@/modules/chat/application/mappers/conversation-response.mapper';
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 export class GetConversationQuery {
   constructor(
@@ -36,8 +36,7 @@ export class GetConversationHandler implements IQueryHandler<
   }: GetConversationQuery): Promise<ConversationResponseDto> {
     const conversation =
       await this.conversationRepository.findById(conversationId);
-    if (!conversation)
-      throw new EntityNotFoundException('Conversation', conversationId);
+    if (!conversation) throw new ConversationNotFoundException(conversationId);
     conversation.ensureMember(userId);
 
     const otherId = conversation.otherParticipantId(userId);

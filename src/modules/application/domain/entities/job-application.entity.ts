@@ -1,6 +1,6 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { ApplicationStatus } from '@/modules/application/domain/value-objects/application-status.vo';
-import { BusinessRuleViolationException } from '@/common/exceptions/domain.exception';
+import { ApplicationNotPendingException } from '@/modules/application/domain/exceptions/application.exceptions';
 
 export class JobApplication extends BaseEntity {
   status: ApplicationStatus;
@@ -17,27 +17,21 @@ export class JobApplication extends BaseEntity {
 
   accept(): void {
     if (this.status !== ApplicationStatus.PENDING) {
-      throw new BusinessRuleViolationException(
-        'Only pending applications can be accepted',
-      );
+      throw new ApplicationNotPendingException('accepted');
     }
     this.status = ApplicationStatus.ACCEPTED;
   }
 
   reject(): void {
     if (this.status !== ApplicationStatus.PENDING) {
-      throw new BusinessRuleViolationException(
-        'Only pending applications can be rejected',
-      );
+      throw new ApplicationNotPendingException('rejected');
     }
     this.status = ApplicationStatus.REJECTED;
   }
 
   withdraw(): void {
     if (this.status !== ApplicationStatus.PENDING) {
-      throw new BusinessRuleViolationException(
-        'Only pending applications can be withdrawn',
-      );
+      throw new ApplicationNotPendingException('withdrawn');
     }
     this.status = ApplicationStatus.WITHDRAWN;
   }

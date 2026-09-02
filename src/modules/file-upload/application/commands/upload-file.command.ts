@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
-import { BusinessRuleViolationException } from '@/common/exceptions/domain.exception';
+import {
+  FileMissingException,
+  InvalidFileTypeException,
+} from '@/modules/file-upload/domain/exceptions/file-upload.exceptions';
 
 const DEFAULT_ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -32,11 +35,11 @@ export class UploadFileHandler implements ICommandHandler<
     allowedMimeTypes,
   }: UploadFileCommand): Promise<{ url: string }> {
     if (!file) {
-      throw new BusinessRuleViolationException('FILE_NOT_FOUND');
+      throw new FileMissingException();
     }
 
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BusinessRuleViolationException('INVALID_FILE_TYPE');
+      throw new InvalidFileTypeException(file.mimetype);
     }
 
     const url = await this.storageProvider.upload(file, folder);

@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-password.dto';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { UserNotFoundException } from '@/modules/auth/domain/exceptions/auth.exceptions';
 
 export class ForgotPasswordCommand {
   constructor(public readonly dto: ForgotPasswordDto) {}
@@ -23,7 +23,7 @@ export class ForgotPasswordHandler implements ICommandHandler<
   async execute({ dto }: ForgotPasswordCommand): Promise<{ message: string }> {
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
-      throw new EntityNotFoundException('User', dto.email);
+      throw new UserNotFoundException(dto.email);
     }
 
     const resetCode = Math.random().toString(36).substring(2, 8).toUpperCase();

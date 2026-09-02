@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { InvalidVerificationCodeException } from '@/modules/auth/domain/exceptions/auth.exceptions';
 import * as bcrypt from 'bcrypt';
 
 export class ResetPasswordCommand {
@@ -20,7 +20,7 @@ export class ResetPasswordHandler implements ICommandHandler<
   async execute({ dto }: ResetPasswordCommand): Promise<{ message: string }> {
     const user = await this.userRepository.findByVerifyCode(dto.code);
     if (!user) {
-      throw new EntityNotFoundException('Verification code');
+      throw new InvalidVerificationCodeException();
     }
 
     const salt = await bcrypt.genSalt();

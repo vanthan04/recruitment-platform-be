@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { CompanyNotFoundException } from '@/modules/company/domain/exceptions/company.exceptions';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
 
@@ -39,7 +39,7 @@ export class UpdateCompanyHandler implements ICommandHandler<
   }: UpdateCompanyCommand): Promise<CompanyResponseDto> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) {
-      throw new EntityNotFoundException('Company', companyId);
+      throw new CompanyNotFoundException(companyId);
     }
 
     company.ensureOwner(ownerId);

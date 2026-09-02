@@ -1,9 +1,9 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import {
-  BusinessRuleViolationException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  CompanyOwnershipException,
+  CompanyAlreadyDeletedException,
+} from '@/modules/company/domain/exceptions/company.exceptions';
 
 /**
  * Company Aggregate Root.
@@ -38,15 +38,13 @@ export class Company extends BaseEntity {
 
   ensureOwner(userId: string): void {
     if (this.ownerId !== userId) {
-      throw new UnauthorizedDomainException(
-        'You are not the owner of this company',
-      );
+      throw new CompanyOwnershipException();
     }
   }
 
   softDelete(): void {
     if (this.deletedAt) {
-      throw new BusinessRuleViolationException('Company is already deleted');
+      throw new CompanyAlreadyDeletedException();
     }
     this.deletedAt = new Date();
   }

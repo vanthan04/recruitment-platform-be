@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { INotificationRepository } from '@/modules/notification/domain/repositories/notification.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { NotificationNotFoundException } from '@/modules/notification/domain/exceptions/notification.exceptions';
 import { NotificationResponseMapper } from '@/modules/notification/application/mappers/notification-response.mapper';
 import { NotificationResponseDto } from '@/modules/notification/application/dto/notification-response.dto';
 
@@ -29,7 +29,7 @@ export class MarkAsReadHandler implements ICommandHandler<
     const notification =
       await this.notificationRepository.findById(notificationId);
     if (!notification || notification.userId !== userId) {
-      throw new EntityNotFoundException('Notification', notificationId);
+      throw new NotificationNotFoundException(notificationId);
     }
 
     notification.markAsRead();

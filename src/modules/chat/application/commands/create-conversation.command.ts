@@ -11,9 +11,10 @@ import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-looku
 import { ConversationResponseMapper } from '@/modules/chat/application/mappers/conversation-response.mapper';
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
 import {
-  EntityNotFoundException,
-  BusinessRuleViolationException,
-} from '@/common/exceptions/domain.exception';
+  ChatApplicationNotFoundException,
+  ChatJobNotFoundException,
+  ApplicationNotAcceptedException,
+} from '@/modules/chat/domain/exceptions/chat.exceptions';
 import { ensureOwner } from '@/common/utils/ownership.util';
 
 const ELIGIBLE_APPLICATION_STATUS = 'ACCEPTED';
@@ -45,22 +46,20 @@ export class CreateConversationHandler implements ICommandHandler<
   }: CreateConversationCommand): Promise<ConversationResponseDto> {
     const application =
       await this.applicationLookupPort.findById(applicationId);
-    if (!application)
-      throw new EntityNotFoundException('Application', applicationId);
+    if (!application) throw new ChatApplicationNotFoundException(applicationId);
 
     if (application.status !== ELIGIBLE_APPLICATION_STATUS) {
-      throw new BusinessRuleViolationException(
-        'A conversation can only be started for an accepted application',
-      );
+      throw new ApplicationNotAcceptedException();
     }
 
     const job = await this.jobLookupPort.findById(application.jobId);
-    if (!job) throw new EntityNotFoundException('Job', application.jobId);
+    if (!job) throw new ChatJobNotFoundException(application.jobId);
 
     ensureOwner(
       job.postedById,
       recruiterId,
       'Only the job poster can start this conversation',
+      'CHAT_CONVERSATION_START_ACCESS_DENIED',
     );
 
     const conversation = new Conversation({

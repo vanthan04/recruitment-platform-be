@@ -6,11 +6,16 @@ import { IJobLookupPort } from '@/modules/application/application/ports/job-look
 import { ICvLookupPort } from '@/modules/application/application/ports/cv-lookup.port';
 import { JobApplication } from '@/modules/application/domain/entities/job-application.entity';
 import {
-  EntityNotFoundException,
-  DuplicateEntityException,
-  BusinessRuleViolationException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  ReferencedJobNotFoundException,
+  ReferencedCvNotFoundException,
+  JobNotAcceptingApplicationsException,
+  JobPostingExpiredException,
+  JobPostingRemovedException,
+  CvNotPublishedException,
+  ReferencedCvDeletedException,
+  CvOwnershipException,
+  AlreadyAppliedException,
+} from '@/modules/application/domain/exceptions/application.exceptions';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
 import {
@@ -53,37 +58,29 @@ export class ApplyJobHandler implements ICommandHandler<
       this.cvLookupPort.findById(input.cvId),
     ]);
 
-    if (!job) throw new EntityNotFoundException('Job', input.jobId);
-    if (!cv) throw new EntityNotFoundException('CV', input.cvId);
+    if (!job) throw new ReferencedJobNotFoundException(input.jobId);
+    if (!cv) throw new ReferencedCvNotFoundException(input.cvId);
 
     // Domain validations (job accepting applications)
     if (!job.isOpen) {
-      throw new BusinessRuleViolationException(
-        'This job is not currently accepting applications',
-      );
+      throw new JobNotAcceptingApplicationsException();
     }
     if (job.isExpired) {
-      throw new BusinessRuleViolationException('This job posting has expired');
+      throw new JobPostingExpiredException();
     }
     if (job.isDeleted) {
-      throw new BusinessRuleViolationException(
-        'This job posting has been removed',
-      );
+      throw new JobPostingRemovedException();
     }
 
     // Domain validations (CV ready for application)
     if (!cv.isPublished) {
-      throw new BusinessRuleViolationException(
-        'Only published CVs can be used for job applications',
-      );
+      throw new CvNotPublishedException();
     }
     if (cv.isDeleted) {
-      throw new BusinessRuleViolationException(
-        'Deleted CVs cannot be used for job applications',
-      );
+      throw new ReferencedCvDeletedException();
     }
     if (cv.userId !== userId) {
-      throw new UnauthorizedDomainException('You are not the owner of this CV');
+      throw new CvOwnershipException();
     }
 
     const existing = await this.applicationRepository.findByUserIdAndJobId(
@@ -91,7 +88,7 @@ export class ApplyJobHandler implements ICommandHandler<
       input.jobId,
     );
     if (existing) {
-      throw new DuplicateEntityException('Application', 'jobId');
+      throw new AlreadyAppliedException();
     }
 
     const application = new JobApplication({

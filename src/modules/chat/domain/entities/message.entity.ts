@@ -2,9 +2,12 @@ import { BaseEntity } from '@/common/domain/base.entity';
 import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
 import { MessageAttachment } from '@/modules/chat/domain/entities/message-attachment.entity';
 import {
-  BusinessRuleViolationException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  NotMessageSenderException,
+  CannotEditDeletedMessageException,
+  OnlyTextMessagesEditableException,
+  MessageContentEmptyException,
+  MessageAlreadyDeletedException,
+} from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 const DELETED_MESSAGE_PLACEHOLDER = 'Tin nhắn này đã bị xoá';
 
@@ -40,33 +43,27 @@ export class Message extends BaseEntity {
 
   ensureSender(userId: string): void {
     if (this.senderId !== userId) {
-      throw new UnauthorizedDomainException(
-        'Only the sender can modify this message',
-      );
+      throw new NotMessageSenderException();
     }
   }
 
   edit(newContent: string): void {
     if (this.isDeleted) {
-      throw new BusinessRuleViolationException('Cannot edit a deleted message');
+      throw new CannotEditDeletedMessageException();
     }
     if (this.messageType !== MessageType.TEXT) {
-      throw new BusinessRuleViolationException(
-        'Only text messages can be edited',
-      );
+      throw new OnlyTextMessagesEditableException();
     }
     const trimmed = newContent.trim();
     if (!trimmed) {
-      throw new BusinessRuleViolationException(
-        'Message content cannot be empty',
-      );
+      throw new MessageContentEmptyException();
     }
     this.content = trimmed;
   }
 
   softDelete(): void {
     if (this.isDeleted) {
-      throw new BusinessRuleViolationException('Message is already deleted');
+      throw new MessageAlreadyDeletedException();
     }
     this.deletedAt = new Date();
   }

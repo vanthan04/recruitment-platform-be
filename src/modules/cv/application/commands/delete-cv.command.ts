@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { CvNotFoundException } from '@/modules/cv/domain/exceptions/cv.exceptions';
 
 export class DeleteCvCommand {
   constructor(
@@ -18,7 +18,7 @@ export class DeleteCvHandler implements ICommandHandler<DeleteCvCommand, void> {
   async execute({ userId, cvId }: DeleteCvCommand): Promise<void> {
     const cv = await this.cvRepository.findById(cvId);
     if (!cv) {
-      throw new EntityNotFoundException('CV', cvId);
+      throw new CvNotFoundException(cvId);
     }
 
     cv.ensureOwner(userId);

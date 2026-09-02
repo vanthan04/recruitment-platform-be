@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@/common/enums/user-role.enum';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { UserNotFoundException } from '@/modules/user/domain/exceptions/user.exceptions';
 
 export interface AdminUpdateUserInput {
   status?: UserStatus;
@@ -25,7 +25,7 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
   async execute({ userId, input }: AdminUpdateUserStatusCommand) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new EntityNotFoundException('User', userId);
+      throw new UserNotFoundException(userId);
     }
 
     if (input.status) {

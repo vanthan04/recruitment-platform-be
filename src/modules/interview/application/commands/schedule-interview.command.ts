@@ -7,9 +7,10 @@ import { IInterviewUserLookupPort } from '@/modules/interview/application/ports/
 import { IInterviewMailPort } from '@/modules/interview/application/ports/mail.port';
 import { InterviewSchedule } from '@/modules/interview/domain/entities/interview-schedule.entity';
 import {
-  EntityNotFoundException,
-  BusinessRuleViolationException,
-} from '@/common/exceptions/domain.exception';
+  InterviewApplicationNotFoundException,
+  InterviewJobNotFoundException,
+  InterviewTimeInPastException,
+} from '@/modules/interview/domain/exceptions/interview.exceptions';
 import { ensureOwner } from '@/common/utils/ownership.util';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
@@ -52,22 +53,21 @@ export class ScheduleInterviewHandler implements ICommandHandler<
       input.jobApplicationId,
     );
     if (!application)
-      throw new EntityNotFoundException('Application', input.jobApplicationId);
+      throw new InterviewApplicationNotFoundException(input.jobApplicationId);
 
     const job = await this.jobLookupPort.findById(application.jobId);
-    if (!job) throw new EntityNotFoundException('Job', application.jobId);
+    if (!job) throw new InterviewJobNotFoundException(application.jobId);
 
     ensureOwner(
       job.postedById,
       recruiterId,
       'Only the job poster can schedule interviews for this application',
+      'INTERVIEW_SCHEDULE_ACCESS_DENIED',
     );
 
     const scheduledAt = new Date(input.scheduledAt);
     if (scheduledAt.getTime() <= Date.now()) {
-      throw new BusinessRuleViolationException(
-        'Interview time must be in the future',
-      );
+      throw new InterviewTimeInPastException();
     }
 
     const interview = new InterviewSchedule({

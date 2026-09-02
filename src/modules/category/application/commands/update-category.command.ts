@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICategoryRepository } from '@/modules/category/domain/repositories/category.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { CategoryNotFoundException } from '@/modules/category/domain/exceptions/category.exceptions';
 import { CategoryResponseMapper } from '@/modules/category/application/mappers/category-response.mapper';
 import { CategoryResponseDto } from '@/modules/category/application/dto/category-response.dto';
 
@@ -26,7 +26,7 @@ export class UpdateCategoryHandler implements ICommandHandler<
   }: UpdateCategoryCommand): Promise<CategoryResponseDto> {
     const category = await this.categoryRepository.findById(categoryId);
     if (!category) {
-      throw new EntityNotFoundException('Category', categoryId);
+      throw new CategoryNotFoundException(categoryId);
     }
 
     category.updateName(name);

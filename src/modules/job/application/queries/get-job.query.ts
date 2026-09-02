@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { JobNotFoundException } from '@/modules/job/domain/exceptions/job.exceptions';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
 
@@ -22,7 +22,7 @@ export class GetJobHandler implements IQueryHandler<
   async execute({ jobId }: GetJobQuery): Promise<JobResponseDto> {
     const job = await this.jobRepository.findById(jobId);
     if (!job) {
-      throw new EntityNotFoundException('Job', jobId);
+      throw new JobNotFoundException(jobId);
     }
 
     // Fire-and-forget — view count is analytics data, must not block the response.

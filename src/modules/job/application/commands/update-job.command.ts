@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import {
+  JobNotFoundException,
+  JobCategoryNotFoundException,
+} from '@/modules/job/domain/exceptions/job.exceptions';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
@@ -49,7 +52,7 @@ export class UpdateJobHandler implements ICommandHandler<
   }: UpdateJobCommand): Promise<JobResponseDto> {
     const job = await this.jobRepository.findById(jobId);
     if (!job) {
-      throw new EntityNotFoundException('Job', jobId);
+      throw new JobNotFoundException(jobId);
     }
 
     job.ensureOwner(recruiterId);
@@ -58,7 +61,7 @@ export class UpdateJobHandler implements ICommandHandler<
       input.categoryId &&
       !(await this.categoryLookup.exists(input.categoryId))
     ) {
-      throw new EntityNotFoundException('Category', input.categoryId);
+      throw new JobCategoryNotFoundException(input.categoryId);
     }
 
     job.updateDetails({

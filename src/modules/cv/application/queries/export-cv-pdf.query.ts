@@ -3,7 +3,7 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import PDFDocument from 'pdfkit';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { CvNotFoundException } from '@/modules/cv/domain/exceptions/cv.exceptions';
 
 export interface ExportCvPdfResult {
   buffer: Buffer;
@@ -25,7 +25,7 @@ export class ExportCvPdfHandler implements IQueryHandler<
   async execute({ cvId }: ExportCvPdfQuery): Promise<ExportCvPdfResult> {
     const cv = await this.cvRepository.findByIdWithRelations(cvId);
     if (!cv) {
-      throw new EntityNotFoundException('CV', cvId);
+      throw new CvNotFoundException(cvId);
     }
 
     const buffer = await this.renderPdf(cv);

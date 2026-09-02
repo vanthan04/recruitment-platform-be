@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICategoryRepository } from '@/modules/category/domain/repositories/category.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { CategoryNotFoundException } from '@/modules/category/domain/exceptions/category.exceptions';
 
 export class DeleteCategoryCommand {
   constructor(public readonly categoryId: string) {}
@@ -18,7 +18,7 @@ export class DeleteCategoryHandler implements ICommandHandler<
   async execute({ categoryId }: DeleteCategoryCommand): Promise<void> {
     const category = await this.categoryRepository.findById(categoryId);
     if (!category) {
-      throw new EntityNotFoundException('Category', categoryId);
+      throw new CategoryNotFoundException(categoryId);
     }
 
     await this.categoryRepository.delete(categoryId);

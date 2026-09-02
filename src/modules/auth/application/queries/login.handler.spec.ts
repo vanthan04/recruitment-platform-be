@@ -1,7 +1,7 @@
-import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { LoginHandler } from '@/modules/auth/application/queries/login.query';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
+import { InvalidCredentialsException } from '@/modules/auth/domain/exceptions/auth.exceptions';
 
 describe('LoginHandler', () => {
   let handler: LoginHandler;
@@ -18,17 +18,17 @@ describe('LoginHandler', () => {
     handler = new LoginHandler(userRepository);
   });
 
-  it('throws UnauthorizedException when the user does not exist', async () => {
+  it('throws InvalidCredentialsException when the user does not exist', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
 
     await expect(
       handler.execute({
         dto: { email: 'nouser@test.com', password: 'password123' },
       } as any),
-    ).rejects.toThrow(UnauthorizedException);
+    ).rejects.toThrow(InvalidCredentialsException);
   });
 
-  it('throws UnauthorizedException when the password does not match', async () => {
+  it('throws InvalidCredentialsException when the password does not match', async () => {
     userRepository.findByEmail.mockResolvedValue({
       id: 'user-1',
       email: 'user@test.com',
@@ -39,7 +39,7 @@ describe('LoginHandler', () => {
       handler.execute({
         dto: { email: 'user@test.com', password: 'wrong-password' },
       } as any),
-    ).rejects.toThrow(UnauthorizedException);
+    ).rejects.toThrow(InvalidCredentialsException);
   });
 
   it('returns the user when the credentials are correct', async () => {

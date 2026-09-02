@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { PermissionsService } from '@/modules/permission/application/permissions.service';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import {
+  RoleNotFoundException,
+  PermissionNotFoundException,
+} from '@/modules/permission/domain/exceptions/permission.exceptions';
 
 export class UpdateRolePermissionsCommand {
   constructor(
@@ -26,7 +29,7 @@ export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRoleP
 
   async execute({ roleId, permissionIds }: UpdateRolePermissionsCommand) {
     const role = await this.prisma.role.findUnique({ where: { id: roleId } });
-    if (!role) throw new EntityNotFoundException('Role', roleId);
+    if (!role) throw new RoleNotFoundException(roleId);
 
     const uniqueIds = Array.from(new Set(permissionIds));
     const existing = await this.prisma.permission.findMany({
@@ -36,7 +39,7 @@ export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRoleP
     if (existing.length !== uniqueIds.length) {
       const foundIds = new Set(existing.map((p) => p.id));
       const missing = uniqueIds.filter((id) => !foundIds.has(id));
-      throw new EntityNotFoundException('Permission', missing.join(', '));
+      throw new PermissionNotFoundException(missing.join(', '));
     }
 
     // Replace the role's full permission set atomically.

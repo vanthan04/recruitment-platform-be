@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { JobNotFoundException } from '@/modules/job/domain/exceptions/job.exceptions';
 
 export class DeleteJobCommand {
   constructor(
@@ -21,7 +21,7 @@ export class DeleteJobHandler implements ICommandHandler<
   async execute({ recruiterId, jobId }: DeleteJobCommand): Promise<void> {
     const job = await this.jobRepository.findById(jobId);
     if (!job) {
-      throw new EntityNotFoundException('Job', jobId);
+      throw new JobNotFoundException(jobId);
     }
 
     job.ensureOwner(recruiterId);

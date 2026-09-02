@@ -1,6 +1,11 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { InterviewStatus } from '@/modules/interview/domain/value-objects/interview-status.vo';
-import { BusinessRuleViolationException } from '@/common/exceptions/domain.exception';
+import {
+  CannotRescheduleCancelledInterviewException,
+  InterviewTimeInPastException,
+  InterviewAlreadyCancelledException,
+  InterviewLocationOrMeetingLinkRequiredException,
+} from '@/modules/interview/domain/exceptions/interview.exceptions';
 
 export class InterviewSchedule extends BaseEntity {
   jobApplicationId: string;
@@ -25,14 +30,10 @@ export class InterviewSchedule extends BaseEntity {
     note?: string | null,
   ): void {
     if (this.status === InterviewStatus.CANCELLED) {
-      throw new BusinessRuleViolationException(
-        'Cannot reschedule a cancelled interview',
-      );
+      throw new CannotRescheduleCancelledInterviewException();
     }
     if (scheduledAt.getTime() <= Date.now()) {
-      throw new BusinessRuleViolationException(
-        'Interview time must be in the future',
-      );
+      throw new InterviewTimeInPastException();
     }
 
     this.scheduledAt = scheduledAt;
@@ -45,18 +46,14 @@ export class InterviewSchedule extends BaseEntity {
 
   cancel(): void {
     if (this.status === InterviewStatus.CANCELLED) {
-      throw new BusinessRuleViolationException(
-        'Interview is already cancelled',
-      );
+      throw new InterviewAlreadyCancelledException();
     }
     this.status = InterviewStatus.CANCELLED;
   }
 
   private ensureLocationOrMeetingLink(): void {
     if (!this.location && !this.meetingLink) {
-      throw new BusinessRuleViolationException(
-        'Either location or meetingLink must be provided',
-      );
+      throw new InterviewLocationOrMeetingLinkRequiredException();
     }
   }
 }

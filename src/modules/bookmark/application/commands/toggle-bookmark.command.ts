@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IBookmarkRepository } from '@/modules/bookmark/domain/repositories/bookmark.repository';
 import { IJobLookupPort } from '@/modules/bookmark/application/ports/job-lookup.port';
 import { Bookmark } from '@/modules/bookmark/domain/entities/bookmark.entity';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { BookmarkedJobNotFoundException } from '@/modules/bookmark/domain/exceptions/bookmark.exceptions';
 
 export class ToggleBookmarkCommand {
   constructor(
@@ -28,7 +28,7 @@ export class ToggleBookmarkHandler implements ICommandHandler<
     jobId,
   }: ToggleBookmarkCommand): Promise<{ bookmarked: boolean }> {
     const jobExists = await this.jobLookup.exists(jobId);
-    if (!jobExists) throw new EntityNotFoundException('Job', jobId);
+    if (!jobExists) throw new BookmarkedJobNotFoundException(jobId);
 
     const existing = await this.bookmarkRepository.findByUserIdAndJobId(
       userId,

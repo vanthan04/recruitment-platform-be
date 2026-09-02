@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { RoleNotFoundException } from '@/modules/permission/domain/exceptions/permission.exceptions';
 
 export class GetRolePermissionsQuery {
   constructor(public readonly roleId: string) {}
@@ -17,7 +17,7 @@ export class GetRolePermissionsHandler implements IQueryHandler<GetRolePermissio
       where: { id: roleId },
       include: { rolePermissions: { include: { permission: true } } },
     });
-    if (!role) throw new EntityNotFoundException('Role', roleId);
+    if (!role) throw new RoleNotFoundException(roleId);
 
     return role.rolePermissions.map((rp) => rp.permission);
   }

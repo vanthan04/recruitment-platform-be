@@ -1,6 +1,6 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { NotificationType } from '@/modules/notification/domain/value-objects/notification-type.vo';
-import { BusinessRuleViolationException } from '@/common/exceptions/domain.exception';
+import { NotificationAlreadyReadException } from '@/modules/notification/domain/exceptions/notification.exceptions';
 
 /**
  * Notification Aggregate Root.
@@ -23,7 +23,7 @@ export class Notification extends BaseEntity {
 
   markAsRead(): void {
     if (this.isRead) {
-      throw new BusinessRuleViolationException('Notification is already read');
+      throw new NotificationAlreadyReadException();
     }
     this.isRead = true;
   }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { JobNotFoundException } from '@/modules/job/domain/exceptions/job.exceptions';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
 
@@ -26,7 +26,7 @@ export class ReopenJobHandler implements ICommandHandler<
   }: ReopenJobCommand): Promise<JobResponseDto> {
     const job = await this.jobRepository.findById(jobId);
     if (!job) {
-      throw new EntityNotFoundException('Job', jobId);
+      throw new JobNotFoundException(jobId);
     }
 
     job.ensureOwner(recruiterId);

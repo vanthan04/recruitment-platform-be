@@ -1,5 +1,8 @@
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
-import { BusinessRuleViolationException } from '@/common/exceptions/domain.exception';
+import {
+  CvNotPublishedForApplicationException,
+  CvDeletedForApplicationException,
+} from '@/modules/cv/domain/exceptions/cv.exceptions';
 
 /**
  * CV Domain Service.
@@ -14,15 +17,11 @@ export class CvDomainService {
    */
   static validateForApplication(cv: Cv): void {
     if (!cv.isPublished) {
-      throw new BusinessRuleViolationException(
-        'Only published CVs can be used for job applications',
-      );
+      throw new CvNotPublishedForApplicationException();
     }
 
     if (cv.isDeleted) {
-      throw new BusinessRuleViolationException(
-        'Deleted CVs cannot be used for job applications',
-      );
+      throw new CvDeletedForApplicationException();
     }
   }
 

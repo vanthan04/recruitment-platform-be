@@ -4,9 +4,15 @@ import { Experience } from '@/modules/cv/domain/entities/experience.entity';
 import { Education } from '@/modules/cv/domain/entities/education.entity';
 import { Skill } from '@/modules/cv/domain/entities/skill.entity';
 import {
-  BusinessRuleViolationException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  CvAlreadyPublishedException,
+  CvMissingContentException,
+  CvAlreadyDraftException,
+  CvAlreadyDeletedException,
+  CvNotDeletedException,
+  CvOwnershipException,
+  CvSkillAlreadyExistsException,
+  CvTitleRequiredException,
+} from '@/modules/cv/domain/exceptions/cv.exceptions';
 
 /**
  * CV Aggregate Root.
@@ -45,13 +51,11 @@ export class Cv extends BaseEntity {
    */
   publish(): void {
     if (this.status === CvStatus.PUBLISHED) {
-      throw new BusinessRuleViolationException('CV is already published');
+      throw new CvAlreadyPublishedException();
     }
 
     if (this.experiences.length === 0 && this.educations.length === 0) {
-      throw new BusinessRuleViolationException(
-        'CV must have at least one experience or education to be published',
-      );
+      throw new CvMissingContentException();
     }
 
     this.status = CvStatus.PUBLISHED;
@@ -63,7 +67,7 @@ export class Cv extends BaseEntity {
    */
   unpublish(): void {
     if (this.status === CvStatus.DRAFT) {
-      throw new BusinessRuleViolationException('CV is already in draft');
+      throw new CvAlreadyDraftException();
     }
 
     this.status = CvStatus.DRAFT;
@@ -75,7 +79,7 @@ export class Cv extends BaseEntity {
    */
   softDelete(): void {
     if (this.deletedAt) {
-      throw new BusinessRuleViolationException('CV is already deleted');
+      throw new CvAlreadyDeletedException();
     }
     this.deletedAt = new Date();
     this.status = CvStatus.DRAFT;
@@ -86,7 +90,7 @@ export class Cv extends BaseEntity {
    */
   restore(): void {
     if (!this.deletedAt) {
-      throw new BusinessRuleViolationException('CV is not deleted');
+      throw new CvNotDeletedException();
     }
     this.deletedAt = null;
   }
@@ -96,7 +100,7 @@ export class Cv extends BaseEntity {
    */
   ensureOwner(userId: string): void {
     if (this.userId !== userId) {
-      throw new UnauthorizedDomainException('You are not the owner of this CV');
+      throw new CvOwnershipException();
     }
   }
 
@@ -128,9 +132,7 @@ export class Cv extends BaseEntity {
       (s) => s.name.toLowerCase() === skill.name.toLowerCase(),
     );
     if (exists) {
-      throw new BusinessRuleViolationException(
-        `Skill "${skill.name}" already exists in this CV`,
-      );
+      throw new CvSkillAlreadyExistsException(skill.name);
     }
     this.skills.push(skill);
   }
@@ -141,7 +143,7 @@ export class Cv extends BaseEntity {
 
   updateTitle(title: string): void {
     if (!title || title.trim().length === 0) {
-      throw new BusinessRuleViolationException('CV title cannot be empty');
+      throw new CvTitleRequiredException();
     }
     this.title = title.trim();
   }

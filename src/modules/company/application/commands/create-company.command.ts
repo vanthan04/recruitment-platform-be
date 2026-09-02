@@ -4,7 +4,7 @@ import { ICompanyRepository } from '@/modules/company/domain/repositories/compan
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import { IUserCompanyLinkPort } from '@/modules/company/application/ports/user-company-link.port';
-import { DuplicateEntityException } from '@/common/exceptions/domain.exception';
+import { CompanyAlreadyExistsException } from '@/modules/company/domain/exceptions/company.exceptions';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
 
@@ -42,7 +42,7 @@ export class CreateCompanyHandler implements ICommandHandler<
   }: CreateCompanyCommand): Promise<CompanyResponseDto> {
     const existing = await this.companyRepository.findByOwnerId(ownerId);
     if (existing) {
-      throw new DuplicateEntityException('Company', 'owner');
+      throw new CompanyAlreadyExistsException();
     }
 
     const slug = await this.generateUniqueSlug(input.name);

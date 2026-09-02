@@ -4,7 +4,7 @@ import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/
 import { ICategoryLookupPort } from '@/modules/job-alert/application/ports/category-lookup.port';
 import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.entity';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { SavedSearchCategoryNotFoundException } from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
 import { SavedSearchResponseMapper } from '@/modules/job-alert/application/mappers/saved-search-response.mapper';
 import { SavedSearchResponseDto } from '@/modules/job-alert/application/dto/saved-search-response.dto';
 
@@ -41,7 +41,7 @@ export class CreateSavedSearchHandler implements ICommandHandler<
       input.categoryId &&
       !(await this.categoryLookupPort.exists(input.categoryId))
     ) {
-      throw new EntityNotFoundException('Category', input.categoryId);
+      throw new SavedSearchCategoryNotFoundException(input.categoryId);
     }
 
     const savedSearch = new SavedSearch({

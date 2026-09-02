@@ -5,7 +5,11 @@ import { IInterviewApplicationLookupPort } from '@/modules/interview/application
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
 import { IInterviewUserLookupPort } from '@/modules/interview/application/ports/user-lookup.port';
 import { IInterviewMailPort } from '@/modules/interview/application/ports/mail.port';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import {
+  InterviewNotFoundException,
+  InterviewApplicationNotFoundException,
+  InterviewJobNotFoundException,
+} from '@/modules/interview/domain/exceptions/interview.exceptions';
 import { ensureOwner } from '@/common/utils/ownership.util';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
@@ -37,25 +41,24 @@ export class CancelInterviewHandler implements ICommandHandler<
     interviewId,
   }: CancelInterviewCommand): Promise<InterviewResponseDto> {
     const interview = await this.interviewRepository.findById(interviewId);
-    if (!interview)
-      throw new EntityNotFoundException('InterviewSchedule', interviewId);
+    if (!interview) throw new InterviewNotFoundException(interviewId);
 
     const application = await this.applicationLookupPort.findById(
       interview.jobApplicationId,
     );
     if (!application)
-      throw new EntityNotFoundException(
-        'Application',
+      throw new InterviewApplicationNotFoundException(
         interview.jobApplicationId,
       );
 
     const job = await this.jobLookupPort.findById(application.jobId);
-    if (!job) throw new EntityNotFoundException('Job', application.jobId);
+    if (!job) throw new InterviewJobNotFoundException(application.jobId);
 
     ensureOwner(
       job.postedById,
       recruiterId,
       'Only the job poster can cancel this interview',
+      'INTERVIEW_CANCEL_ACCESS_DENIED',
     );
 
     interview.cancel();

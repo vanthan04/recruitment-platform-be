@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 export class MarkConversationReadCommand {
   constructor(
@@ -26,8 +26,7 @@ export class MarkConversationReadHandler implements ICommandHandler<
   }: MarkConversationReadCommand): Promise<void> {
     const conversation =
       await this.conversationRepository.findById(conversationId);
-    if (!conversation)
-      throw new EntityNotFoundException('Conversation', conversationId);
+    if (!conversation) throw new ConversationNotFoundException(conversationId);
     conversation.ensureMember(userId);
 
     await this.conversationRepository.markMemberRead(

@@ -4,7 +4,7 @@ import { IConversationRepository } from '@/modules/chat/domain/repositories/conv
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { MessagePageResponseDto } from '@/modules/chat/application/dto/message-response.dto';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 export class ListMessagesQuery {
   constructor(
@@ -34,8 +34,7 @@ export class ListMessagesHandler implements IQueryHandler<
   }: ListMessagesQuery): Promise<MessagePageResponseDto> {
     const conversation =
       await this.conversationRepository.findById(conversationId);
-    if (!conversation)
-      throw new EntityNotFoundException('Conversation', conversationId);
+    if (!conversation) throw new ConversationNotFoundException(conversationId);
     conversation.ensureMember(userId);
 
     const { items, nextCursor } = await this.messageRepository.findPage(

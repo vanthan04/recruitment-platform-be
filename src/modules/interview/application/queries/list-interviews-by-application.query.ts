@@ -4,9 +4,10 @@ import { IInterviewScheduleRepository } from '@/modules/interview/domain/reposit
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
 import {
-  EntityNotFoundException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  InterviewApplicationNotFoundException,
+  InterviewJobNotFoundException,
+  InterviewViewNotAllowedException,
+} from '@/modules/interview/domain/exceptions/interview.exceptions';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 
@@ -36,17 +37,15 @@ export class ListInterviewsByApplicationHandler implements IQueryHandler<
     const application =
       await this.applicationLookupPort.findById(jobApplicationId);
     if (!application)
-      throw new EntityNotFoundException('Application', jobApplicationId);
+      throw new InterviewApplicationNotFoundException(jobApplicationId);
 
     const job = await this.jobLookupPort.findById(application.jobId);
-    if (!job) throw new EntityNotFoundException('Job', application.jobId);
+    if (!job) throw new InterviewJobNotFoundException(application.jobId);
 
     const isCandidate = application.userId === requesterId;
     const isRecruiterOwner = job.postedById === requesterId;
     if (!isCandidate && !isRecruiterOwner) {
-      throw new UnauthorizedDomainException(
-        'You are not allowed to view interviews for this application',
-      );
+      throw new InterviewViewNotAllowedException();
     }
 
     const interviews =

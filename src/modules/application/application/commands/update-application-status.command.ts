@@ -3,7 +3,10 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import {
+  JobApplicationNotFoundException,
+  ReferencedJobNotFoundException,
+} from '@/modules/application/domain/exceptions/application.exceptions';
 import { ensureOwner } from '@/common/utils/ownership.util';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
@@ -40,16 +43,16 @@ export class UpdateApplicationStatusHandler implements ICommandHandler<
   }: UpdateApplicationStatusCommand): Promise<ApplicationResponseDto> {
     const application =
       await this.applicationRepository.findById(applicationId);
-    if (!application)
-      throw new EntityNotFoundException('Application', applicationId);
+    if (!application) throw new JobApplicationNotFoundException(applicationId);
 
     const job = await this.jobLookupPort.findById(application.jobId);
-    if (!job) throw new EntityNotFoundException('Job', application.jobId);
+    if (!job) throw new ReferencedJobNotFoundException(application.jobId);
 
     ensureOwner(
       job.postedById,
       recruiterId,
       'Only the job poster can update status',
+      'APPLICATION_STATUS_UPDATE_ACCESS_DENIED',
     );
 
     if (status === ApplicationStatus.ACCEPTED) {

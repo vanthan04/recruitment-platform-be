@@ -1,6 +1,6 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { ConversationStatus } from '@/modules/chat/domain/value-objects/conversation-status.vo';
-import { UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
+import { NotConversationMemberException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 /**
  * Conversation Aggregate Root.
@@ -31,9 +31,7 @@ export class Conversation extends BaseEntity {
 
   ensureMember(userId: string): void {
     if (!this.isMember(userId)) {
-      throw new UnauthorizedDomainException(
-        'You are not a participant in this conversation',
-      );
+      throw new NotConversationMemberException();
     }
   }
 

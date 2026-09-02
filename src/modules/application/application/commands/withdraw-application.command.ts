@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import {
-  EntityNotFoundException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  JobApplicationNotFoundException,
+  ApplicationOwnershipException,
+} from '@/modules/application/domain/exceptions/application.exceptions';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
 
@@ -32,13 +32,11 @@ export class WithdrawApplicationHandler implements ICommandHandler<
     const application =
       await this.applicationRepository.findById(applicationId);
     if (!application) {
-      throw new EntityNotFoundException('Application', applicationId);
+      throw new JobApplicationNotFoundException(applicationId);
     }
 
     if (application.userId !== userId) {
-      throw new UnauthorizedDomainException(
-        'You are not the owner of this application',
-      );
+      throw new ApplicationOwnershipException();
     }
 
     application.withdraw();

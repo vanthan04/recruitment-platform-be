@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import {
-  EntityNotFoundException,
-  UnauthorizedDomainException,
-} from '@/common/exceptions/domain.exception';
+  SavedSearchNotFoundException,
+  SavedSearchOwnershipException,
+} from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
 
 export class DeleteSavedSearchCommand {
   constructor(
@@ -28,13 +28,11 @@ export class DeleteSavedSearchHandler implements ICommandHandler<
     const savedSearch =
       await this.savedSearchRepository.findById(savedSearchId);
     if (!savedSearch) {
-      throw new EntityNotFoundException('SavedSearch', savedSearchId);
+      throw new SavedSearchNotFoundException(savedSearchId);
     }
 
     if (savedSearch.userId !== userId) {
-      throw new UnauthorizedDomainException(
-        'You are not the owner of this saved search',
-      );
+      throw new SavedSearchOwnershipException();
     }
 
     await this.savedSearchRepository.delete(savedSearchId);

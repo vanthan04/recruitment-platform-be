@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { CvNotFoundException } from '@/modules/cv/domain/exceptions/cv.exceptions';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
 import { CvResponseDto } from '@/modules/cv/application/dto/cv-response.dto';
 
@@ -23,7 +23,7 @@ export class PublishCvHandler implements ICommandHandler<
   async execute({ userId, cvId }: PublishCvCommand): Promise<CvResponseDto> {
     const cv = await this.cvRepository.findByIdWithRelations(cvId);
     if (!cv) {
-      throw new EntityNotFoundException('CV', cvId);
+      throw new CvNotFoundException(cvId);
     }
 
     cv.ensureOwner(userId);
