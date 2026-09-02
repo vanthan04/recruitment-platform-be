@@ -1,14 +1,23 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { INotificationRepository } from '@/modules/notification/domain/repositories/notification.repository';
 import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 import { NotificationResponseMapper } from '@/modules/notification/application/mappers/notification-response.mapper';
 import { NotificationResponseDto } from '@/modules/notification/application/dto/notification-response.dto';
 
+export class MarkAsReadCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly notificationId: string,
+  ) {}
+}
+
 @Injectable()
-export class MarkAsReadUseCase {
+@CommandHandler(MarkAsReadCommand)
+export class MarkAsReadHandler implements ICommandHandler<MarkAsReadCommand, NotificationResponseDto> {
   constructor(private readonly notificationRepository: INotificationRepository) {}
 
-  async execute(userId: string, notificationId: string): Promise<NotificationResponseDto> {
+  async execute({ userId, notificationId }: MarkAsReadCommand): Promise<NotificationResponseDto> {
     const notification = await this.notificationRepository.findById(notificationId);
     if (!notification || notification.userId !== userId) {
       throw new EntityNotFoundException('Notification', notificationId);

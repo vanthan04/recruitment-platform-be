@@ -1,16 +1,18 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { NotificationController } from '@/modules/notification/presentation/controllers/notification.controller';
 import { INotificationRepository } from '@/modules/notification/domain/repositories/notification.repository';
 import { NotificationInfraRepository } from '@/modules/notification/infrastructure/repositories/notification.infra-repository';
 import { NotificationPrismaRepository } from '@/modules/notification/infrastructure/persistence/prisma/notification-prisma.repository';
 import { ApplicationEventsListener } from '@/modules/notification/infrastructure/listeners/application-events.listener';
 
-import { CreateNotificationUseCase } from '@/modules/notification/application/use-cases/create-notification.use-case';
-import { ListMyNotificationsUseCase } from '@/modules/notification/application/use-cases/list-my-notifications.use-case';
-import { MarkAsReadUseCase } from '@/modules/notification/application/use-cases/mark-as-read.use-case';
-import { MarkAllAsReadUseCase } from '@/modules/notification/application/use-cases/mark-all-as-read.use-case';
+import { CreateNotificationHandler } from '@/modules/notification/application/commands/create-notification.command';
+import { MarkAsReadHandler } from '@/modules/notification/application/commands/mark-as-read.command';
+import { MarkAllAsReadHandler } from '@/modules/notification/application/commands/mark-all-as-read.command';
+import { ListMyNotificationsHandler } from '@/modules/notification/application/queries/list-my-notifications.query';
 
 @Module({
+  imports: [CqrsModule],
   controllers: [NotificationController],
   providers: [
     NotificationPrismaRepository,
@@ -18,10 +20,10 @@ import { MarkAllAsReadUseCase } from '@/modules/notification/application/use-cas
       provide: INotificationRepository,
       useClass: NotificationInfraRepository,
     },
-    CreateNotificationUseCase,
-    ListMyNotificationsUseCase,
-    MarkAsReadUseCase,
-    MarkAllAsReadUseCase,
+    CreateNotificationHandler,
+    MarkAsReadHandler,
+    MarkAllAsReadHandler,
+    ListMyNotificationsHandler,
     ApplicationEventsListener,
   ],
 })
