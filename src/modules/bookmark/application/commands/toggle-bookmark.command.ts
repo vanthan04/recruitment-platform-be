@@ -1,19 +1,28 @@
 import { Injectable } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IBookmarkRepository } from '@/modules/bookmark/domain/repositories/bookmark.repository';
-import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
+import { IJobLookupPort } from '@/modules/bookmark/application/ports/job-lookup.port';
 import { Bookmark } from '@/modules/bookmark/domain/entities/bookmark.entity';
 import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 
+export class ToggleBookmarkCommand {
+  constructor(
+    public readonly userId: string,
+    public readonly jobId: string,
+  ) {}
+}
+
 @Injectable()
-export class ToggleBookmarkUseCase {
+@CommandHandler(ToggleBookmarkCommand)
+export class ToggleBookmarkHandler implements ICommandHandler<ToggleBookmarkCommand, { bookmarked: boolean }> {
   constructor(
     private readonly bookmarkRepository: IBookmarkRepository,
-    private readonly jobRepository: IJobRepository,
+    private readonly jobLookup: IJobLookupPort,
   ) {}
 
-  async execute(userId: string, jobId: string): Promise<{ bookmarked: boolean }> {
-    const job = await this.jobRepository.findById(jobId);
-    if (!job) throw new EntityNotFoundException('Job', jobId);
+  async execute({ userId, jobId }: ToggleBookmarkCommand): Promise<{ bookmarked: boolean }> {
+    const jobExists = await this.jobLookup.exists(jobId);
+    if (!jobExists) throw new EntityNotFoundException('Job', jobId);
 
     const existing = await this.bookmarkRepository.findByUserIdAndJobId(userId, jobId);
 
