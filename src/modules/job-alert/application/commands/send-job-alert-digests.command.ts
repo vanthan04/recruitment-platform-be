@@ -3,7 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { IJobSearchPort } from '@/modules/job-alert/application/ports/job-search.port';
 import { IUserLookupPort } from '@/modules/job-alert/application/ports/user-lookup.port';
-import { IMailService } from '@/modules/mail/domain/ports/mail.service.port';
+import { IMailPort } from '@/modules/job-alert/application/ports/mail.port';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -11,16 +11,17 @@ export class SendJobAlertDigestsCommand {}
 
 @Injectable()
 @CommandHandler(SendJobAlertDigestsCommand)
-export class SendJobAlertDigestsHandler
-  implements ICommandHandler<SendJobAlertDigestsCommand, void>
-{
+export class SendJobAlertDigestsHandler implements ICommandHandler<
+  SendJobAlertDigestsCommand,
+  void
+> {
   private readonly logger = new Logger(SendJobAlertDigestsHandler.name);
 
   constructor(
     private readonly savedSearchRepository: ISavedSearchRepository,
     private readonly jobSearchPort: IJobSearchPort,
     private readonly userLookupPort: IUserLookupPort,
-    private readonly mailService: IMailService,
+    private readonly mailPort: IMailPort,
   ) {}
 
   async execute(): Promise<void> {
@@ -45,10 +46,13 @@ export class SendJobAlertDigestsHandler
       if (!user) continue;
 
       const jobListHtml = newJobs
-        .map((job) => `<li>${job.title} — ${job.companyName ?? ''} (${job.location})</li>`)
+        .map(
+          (job) =>
+            `<li>${job.title} — ${job.companyName ?? ''} (${job.location})</li>`,
+        )
         .join('');
 
-      await this.mailService.sendEmail({
+      await this.mailPort.sendEmail({
         to: user.email,
         subject: `${newJobs.length} new job(s) matching your saved search`,
         html: `<p>Here are new jobs matching your saved search:</p><ul>${jobListHtml}</ul>`,

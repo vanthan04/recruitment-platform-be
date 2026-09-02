@@ -7,10 +7,15 @@ import { IJobApplicationRepository } from '@/modules/application/domain/reposito
 
 @Injectable()
 export class InterviewApplicationLookupAdapter implements IInterviewApplicationLookupPort {
-  constructor(private readonly applicationRepository: IJobApplicationRepository) {}
+  constructor(
+    private readonly applicationRepository: IJobApplicationRepository,
+  ) {}
 
-  async findById(applicationId: string): Promise<InterviewApplicationLookupResult | null> {
-    const application = await this.applicationRepository.findById(applicationId);
+  async findById(
+    applicationId: string,
+  ): Promise<InterviewApplicationLookupResult | null> {
+    const application =
+      await this.applicationRepository.findById(applicationId);
     if (!application) return null;
 
     return {

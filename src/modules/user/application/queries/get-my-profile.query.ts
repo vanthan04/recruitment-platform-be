@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
+import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 
 export class GetMyProfileQuery {
   constructor(public readonly userId: string) {}
@@ -14,7 +15,7 @@ export class GetMyProfileHandler implements IQueryHandler<GetMyProfileQuery> {
   async execute({ userId }: GetMyProfileQuery) {
     const user = await this.userRepository.findByIdWithProfile(userId);
     if (!user) {
-      throw new NotFoundException('Người dùng không tồn tại');
+      throw new EntityNotFoundException('User', userId);
     }
 
     // Usually you don't return the password or other sensitive data

@@ -1,7 +1,15 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 
@@ -23,11 +31,17 @@ export class S3StorageProvider implements IFileStorageProvider {
         secretAccessKey: this.configService.get<string>('S3_SECRET_KEY')!,
       },
       endpoint: this.configService.get<string>('S3_ENDPOINT'),
-      forcePathStyle: this.configService.get<boolean>('S3_FORCE_PATH_STYLE', false),
+      forcePathStyle: this.configService.get<boolean>(
+        'S3_FORCE_PATH_STYLE',
+        false,
+      ),
     });
   }
 
-  async upload(file: Express.Multer.File, folder: string = 'general'): Promise<string> {
+  async upload(
+    file: Express.Multer.File,
+    folder: string = 'general',
+  ): Promise<string> {
     try {
       const fileExtension = path.extname(file.originalname);
       const fileName = `${randomUUID()}${fileExtension}`;
@@ -44,18 +58,21 @@ export class S3StorageProvider implements IFileStorageProvider {
 
       const endpoint = this.configService.get<string>('S3_ENDPOINT');
       if (endpoint) {
-          return `${endpoint}/${this.bucketName}/${fileKey}`;
+        return `${endpoint}/${this.bucketName}/${fileKey}`;
       }
 
       return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${fileKey}`;
     } catch (error) {
-      throw new InternalServerErrorException('Lỗi khi upload lên S3: ' + error.message);
+      throw new InternalServerErrorException(
+        'Lỗi khi upload lên S3: ' + error.message,
+      );
     }
   }
 
   async delete(fileUrl: string): Promise<void> {
     try {
-      const fileKey = fileUrl.split(`${this.bucketName}/`)[1] || fileUrl.split('.com/')[1];
+      const fileKey =
+        fileUrl.split(`${this.bucketName}/`)[1] || fileUrl.split('.com/')[1];
       if (fileKey) {
         const command = new DeleteObjectCommand({
           Bucket: this.bucketName,

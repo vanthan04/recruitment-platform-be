@@ -3,7 +3,8 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
 import { IApplicationUserLookupPort } from '@/modules/application/application/ports/user-lookup.port';
-import { EntityNotFoundException, UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
+import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { ensureOwner } from '@/common/utils/ownership.util';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
 
@@ -16,9 +17,10 @@ export class ListApplicationsByJobQuery {
 
 @Injectable()
 @QueryHandler(ListApplicationsByJobQuery)
-export class ListApplicationsByJobHandler
-  implements IQueryHandler<ListApplicationsByJobQuery, ApplicationResponseDto[]>
-{
+export class ListApplicationsByJobHandler implements IQueryHandler<
+  ListApplicationsByJobQuery,
+  ApplicationResponseDto[]
+> {
   constructor(
     private readonly applicationRepository: IJobApplicationRepository,
     private readonly jobLookupPort: IJobLookupPort,
@@ -32,9 +34,11 @@ export class ListApplicationsByJobHandler
     const job = await this.jobLookupPort.findById(jobId);
     if (!job) throw new EntityNotFoundException('Job', jobId);
 
-    if (job.postedById !== recruiterId) {
-      throw new UnauthorizedDomainException('Only the job poster can view applications');
-    }
+    ensureOwner(
+      job.postedById,
+      recruiterId,
+      'Only the job poster can view applications',
+    );
 
     const apps = await this.applicationRepository.findAllByJobId(jobId);
     const dtos = ApplicationResponseMapper.toDtoList(apps);

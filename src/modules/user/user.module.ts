@@ -26,4 +26,4 @@ import { AdminUpdateUserStatusHandler } from './application/commands/admin-updat
   ],
   exports: [IUserRepository],
 })
-export class UserModule { }
+export class UserModule {}

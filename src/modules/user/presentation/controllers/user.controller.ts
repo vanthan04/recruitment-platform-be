@@ -27,8 +27,13 @@ export class UserController {
 
   @Patch('profile')
   @ApiOperation({ summary: 'Cập nhật thông tin profile cá nhân' })
-  async updateProfile(@GetMe('id') userId: string, @Body() dto: UpdateProfileDto) {
-    const result = await this.commandBus.execute(new UpdateProfileCommand(userId, dto as any));
+  async updateProfile(
+    @GetMe('id') userId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    const result = await this.commandBus.execute(
+      new UpdateProfileCommand(userId, dto as any),
+    );
     return ApiResponse.ok(null, result.message);
   }
 }

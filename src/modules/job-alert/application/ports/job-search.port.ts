@@ -12,5 +12,8 @@ export interface JobSearchFilters {
 }
 
 export abstract class IJobSearchPort {
-  abstract findRecentMatchingJobs(filters: JobSearchFilters, since: Date): Promise<JobDigestItem[]>;
+  abstract findRecentMatchingJobs(
+    filters: JobSearchFilters,
+    since: Date,
+  ): Promise<JobDigestItem[]>;
 }

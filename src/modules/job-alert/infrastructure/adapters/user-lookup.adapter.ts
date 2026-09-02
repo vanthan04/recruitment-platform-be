@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { IUserLookupPort, UserEmailLookupResult } from '@/modules/job-alert/application/ports/user-lookup.port';
+import {
+  IUserLookupPort,
+  UserEmailLookupResult,
+} from '@/modules/job-alert/application/ports/user-lookup.port';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 
 @Injectable()

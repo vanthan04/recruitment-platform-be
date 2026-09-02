@@ -4,8 +4,9 @@ import { IInterviewScheduleRepository } from '@/modules/interview/domain/reposit
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
 import { IInterviewUserLookupPort } from '@/modules/interview/application/ports/user-lookup.port';
-import { IMailService } from '@/modules/mail/domain/ports/mail.service.port';
-import { EntityNotFoundException, UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
+import { IInterviewMailPort } from '@/modules/interview/application/ports/mail.port';
+import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import { ensureOwner } from '@/common/utils/ownership.util';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 import { buildInterviewEmail } from '@/modules/interview/application/utils/interview-mail.util';
@@ -19,28 +20,43 @@ export class CancelInterviewCommand {
 
 @Injectable()
 @CommandHandler(CancelInterviewCommand)
-export class CancelInterviewHandler implements ICommandHandler<CancelInterviewCommand, InterviewResponseDto> {
+export class CancelInterviewHandler implements ICommandHandler<
+  CancelInterviewCommand,
+  InterviewResponseDto
+> {
   constructor(
     private readonly interviewRepository: IInterviewScheduleRepository,
     private readonly applicationLookupPort: IInterviewApplicationLookupPort,
     private readonly jobLookupPort: IInterviewJobLookupPort,
     private readonly userLookupPort: IInterviewUserLookupPort,
-    private readonly mailService: IMailService,
+    private readonly mailPort: IInterviewMailPort,
   ) {}
 
-  async execute({ recruiterId, interviewId }: CancelInterviewCommand): Promise<InterviewResponseDto> {
+  async execute({
+    recruiterId,
+    interviewId,
+  }: CancelInterviewCommand): Promise<InterviewResponseDto> {
     const interview = await this.interviewRepository.findById(interviewId);
-    if (!interview) throw new EntityNotFoundException('InterviewSchedule', interviewId);
+    if (!interview)
+      throw new EntityNotFoundException('InterviewSchedule', interviewId);
 
-    const application = await this.applicationLookupPort.findById(interview.jobApplicationId);
-    if (!application) throw new EntityNotFoundException('Application', interview.jobApplicationId);
+    const application = await this.applicationLookupPort.findById(
+      interview.jobApplicationId,
+    );
+    if (!application)
+      throw new EntityNotFoundException(
+        'Application',
+        interview.jobApplicationId,
+      );
 
     const job = await this.jobLookupPort.findById(application.jobId);
     if (!job) throw new EntityNotFoundException('Job', application.jobId);
 
-    if (job.postedById !== recruiterId) {
-      throw new UnauthorizedDomainException('Only the job poster can cancel this interview');
-    }
+    ensureOwner(
+      job.postedById,
+      recruiterId,
+      'Only the job poster can cancel this interview',
+    );
 
     interview.cancel();
     const saved = await this.interviewRepository.update(interview);
@@ -51,7 +67,7 @@ export class CancelInterviewHandler implements ICommandHandler<CancelInterviewCo
         jobTitle: job.title,
         scheduledAt: saved.scheduledAt,
       });
-      await this.mailService.sendEmail({ to: candidate.email, subject, html });
+      await this.mailPort.sendEmail({ to: candidate.email, subject, html });
     }
 
     return InterviewResponseMapper.toDto(saved);

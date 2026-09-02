@@ -33,7 +33,10 @@ export class ApplyJobCommand {
 
 @Injectable()
 @CommandHandler(ApplyJobCommand)
-export class ApplyJobHandler implements ICommandHandler<ApplyJobCommand, ApplicationResponseDto> {
+export class ApplyJobHandler implements ICommandHandler<
+  ApplyJobCommand,
+  ApplicationResponseDto
+> {
   constructor(
     private readonly applicationRepository: IJobApplicationRepository,
     private readonly jobLookupPort: IJobLookupPort,
@@ -41,7 +44,10 @@ export class ApplyJobHandler implements ICommandHandler<ApplyJobCommand, Applica
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async execute({ userId, input }: ApplyJobCommand): Promise<ApplicationResponseDto> {
+  async execute({
+    userId,
+    input,
+  }: ApplyJobCommand): Promise<ApplicationResponseDto> {
     const [job, cv] = await Promise.all([
       this.jobLookupPort.findById(input.jobId),
       this.cvLookupPort.findById(input.cvId),
@@ -52,27 +58,38 @@ export class ApplyJobHandler implements ICommandHandler<ApplyJobCommand, Applica
 
     // Domain validations (job accepting applications)
     if (!job.isOpen) {
-      throw new BusinessRuleViolationException('This job is not currently accepting applications');
+      throw new BusinessRuleViolationException(
+        'This job is not currently accepting applications',
+      );
     }
     if (job.isExpired) {
       throw new BusinessRuleViolationException('This job posting has expired');
     }
     if (job.isDeleted) {
-      throw new BusinessRuleViolationException('This job posting has been removed');
+      throw new BusinessRuleViolationException(
+        'This job posting has been removed',
+      );
     }
 
     // Domain validations (CV ready for application)
     if (!cv.isPublished) {
-      throw new BusinessRuleViolationException('Only published CVs can be used for job applications');
+      throw new BusinessRuleViolationException(
+        'Only published CVs can be used for job applications',
+      );
     }
     if (cv.isDeleted) {
-      throw new BusinessRuleViolationException('Deleted CVs cannot be used for job applications');
+      throw new BusinessRuleViolationException(
+        'Deleted CVs cannot be used for job applications',
+      );
     }
     if (cv.userId !== userId) {
       throw new UnauthorizedDomainException('You are not the owner of this CV');
     }
 
-    const existing = await this.applicationRepository.findByUserIdAndJobId(userId, input.jobId);
+    const existing = await this.applicationRepository.findByUserIdAndJobId(
+      userId,
+      input.jobId,
+    );
     if (existing) {
       throw new DuplicateEntityException('Application', 'jobId');
     }
@@ -88,7 +105,14 @@ export class ApplyJobHandler implements ICommandHandler<ApplyJobCommand, Applica
 
     this.eventEmitter.emit(
       JOB_APPLIED_EVENT,
-      new JobAppliedEvent(saved.id, userId, input.jobId, input.cvId, job.postedById, job.title),
+      new JobAppliedEvent(
+        saved.id,
+        userId,
+        input.jobId,
+        input.cvId,
+        job.postedById,
+        job.title,
+      ),
     );
 
     return ApplicationResponseMapper.toDto(saved);

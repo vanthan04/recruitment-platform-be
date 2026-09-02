@@ -10,12 +10,17 @@ export class ListMyApplicationsQuery {
 
 @Injectable()
 @QueryHandler(ListMyApplicationsQuery)
-export class ListMyApplicationsHandler
-  implements IQueryHandler<ListMyApplicationsQuery, ApplicationResponseDto[]>
-{
-  constructor(private readonly applicationRepository: IJobApplicationRepository) {}
+export class ListMyApplicationsHandler implements IQueryHandler<
+  ListMyApplicationsQuery,
+  ApplicationResponseDto[]
+> {
+  constructor(
+    private readonly applicationRepository: IJobApplicationRepository,
+  ) {}
 
-  async execute({ userId }: ListMyApplicationsQuery): Promise<ApplicationResponseDto[]> {
+  async execute({
+    userId,
+  }: ListMyApplicationsQuery): Promise<ApplicationResponseDto[]> {
     const apps = await this.applicationRepository.findAllByUserId(userId);
     return ApplicationResponseMapper.toDtoList(apps);
   }

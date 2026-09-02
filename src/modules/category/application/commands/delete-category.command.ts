@@ -9,7 +9,10 @@ export class DeleteCategoryCommand {
 
 @Injectable()
 @CommandHandler(DeleteCategoryCommand)
-export class DeleteCategoryHandler implements ICommandHandler<DeleteCategoryCommand, void> {
+export class DeleteCategoryHandler implements ICommandHandler<
+  DeleteCategoryCommand,
+  void
+> {
   constructor(private readonly categoryRepository: ICategoryRepository) {}
 
   async execute({ categoryId }: DeleteCategoryCommand): Promise<void> {

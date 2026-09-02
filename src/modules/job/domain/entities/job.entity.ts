@@ -81,7 +81,9 @@ export class Job extends BaseEntity {
 
   reopen(): void {
     if (this.status !== JobStatus.CLOSED) {
-      throw new BusinessRuleViolationException('Only closed jobs can be reopened');
+      throw new BusinessRuleViolationException(
+        'Only closed jobs can be reopened',
+      );
     }
     this.status = JobStatus.OPEN;
   }
@@ -143,7 +145,11 @@ export class Job extends BaseEntity {
     if (data.benefits !== undefined) this.benefits = data.benefits;
     if (data.expiresAt !== undefined) this.expiresAt = data.expiresAt;
 
-    if (data.salaryMin !== undefined || data.salaryMax !== undefined || data.currency !== undefined) {
+    if (
+      data.salaryMin !== undefined ||
+      data.salaryMax !== undefined ||
+      data.currency !== undefined
+    ) {
       this.salary = new SalaryRange(
         data.salaryMin ?? this.salary?.min ?? null,
         data.salaryMax ?? this.salary?.max ?? null,

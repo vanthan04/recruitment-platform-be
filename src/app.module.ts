@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { RateLimitModule } from '@/common/rate-limit/rate-limit.module';
+import { DynamoThrottlerStorage } from '@/common/rate-limit/dynamo-throttler-storage.service';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UserModule } from '@/modules/user/user.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
+import { PermissionModule } from '@/modules/permission/permission.module';
 import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
 import { CompanyModule } from '@/modules/company/company.module';
 import { CategoryModule } from '@/modules/category/category.module';
@@ -28,13 +30,20 @@ import appConfig from '@/common/config/app.config';
       validationSchema: envValidationSchema,
       load: [appConfig],
     }),
-    ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+    ThrottlerModule.forRootAsync({
+      imports: [RateLimitModule],
+      inject: [DynamoThrottlerStorage],
+      useFactory: (storage: DynamoThrottlerStorage) => ({
+        throttlers: [{ ttl: 60000, limit: 60 }],
+        storage,
+      }),
+    }),
     PrismaModule.forRoot({
       log: ['query', 'info', 'warn', 'error'],
       errorFormat: 'pretty',
     }),
+    PermissionModule,
     AuthModule,
     UserModule,
     FileUploadModule,
@@ -57,4 +66,4 @@ import appConfig from '@/common/config/app.config';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

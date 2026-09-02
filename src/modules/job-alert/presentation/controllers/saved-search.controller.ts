@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -25,9 +35,14 @@ export class SavedSearchController {
 
   @Post()
   @Roles(UserRole.CANDIDATE)
-  @ApiOperation({ summary: 'Save a search to get emailed when matching jobs are posted (Candidate only)' })
+  @ApiOperation({
+    summary:
+      'Save a search to get emailed when matching jobs are posted (Candidate only)',
+  })
   async create(@GetMe('id') userId: string, @Body() dto: CreateSavedSearchDto) {
-    const result = await this.commandBus.execute(new CreateSavedSearchCommand(userId, dto));
+    const result = await this.commandBus.execute(
+      new CreateSavedSearchCommand(userId, dto),
+    );
     return ApiResponse.ok(result, 'Saved search created successfully');
   }
 
@@ -35,7 +50,9 @@ export class SavedSearchController {
   @Roles(UserRole.CANDIDATE)
   @ApiOperation({ summary: 'List my saved searches (Candidate only)' })
   async list(@GetMe('id') userId: string) {
-    const result = await this.queryBus.execute(new ListMySavedSearchesQuery(userId));
+    const result = await this.queryBus.execute(
+      new ListMySavedSearchesQuery(userId),
+    );
     return ApiResponse.ok(result, 'Saved searches retrieved successfully');
   }
 
@@ -43,7 +60,12 @@ export class SavedSearchController {
   @Roles(UserRole.CANDIDATE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a saved search (owner only)' })
-  async delete(@GetMe('id') userId: string, @Param('id') savedSearchId: string) {
-    await this.commandBus.execute(new DeleteSavedSearchCommand(userId, savedSearchId));
+  async delete(
+    @GetMe('id') userId: string,
+    @Param('id') savedSearchId: string,
+  ) {
+    await this.commandBus.execute(
+      new DeleteSavedSearchCommand(userId, savedSearchId),
+    );
   }
 }

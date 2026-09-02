@@ -16,7 +16,10 @@ export class ExportCvPdfQuery {
 
 @Injectable()
 @QueryHandler(ExportCvPdfQuery)
-export class ExportCvPdfHandler implements IQueryHandler<ExportCvPdfQuery, ExportCvPdfResult> {
+export class ExportCvPdfHandler implements IQueryHandler<
+  ExportCvPdfQuery,
+  ExportCvPdfResult
+> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
   async execute({ cvId }: ExportCvPdfQuery): Promise<ExportCvPdfResult> {
@@ -53,7 +56,9 @@ export class ExportCvPdfHandler implements IQueryHandler<ExportCvPdfQuery, Expor
         doc.moveDown(0.5);
         for (const exp of cv.experiences) {
           const period = `${exp.dateRange.startDate.toDateString()} - ${
-            exp.dateRange.isCurrent ? 'Present' : exp.dateRange.endDate?.toDateString()
+            exp.dateRange.isCurrent
+              ? 'Present'
+              : exp.dateRange.endDate?.toDateString()
           }`;
           doc.fontSize(13).text(`${exp.position} at ${exp.company}`);
           doc.fontSize(10).text(period);
@@ -81,7 +86,11 @@ export class ExportCvPdfHandler implements IQueryHandler<ExportCvPdfQuery, Expor
         doc.moveDown(0.5);
         doc
           .fontSize(11)
-          .text(cv.skills.map((s) => (s.level ? `${s.name} (${s.level})` : s.name)).join(', '));
+          .text(
+            cv.skills
+              .map((s) => (s.level ? `${s.name} (${s.level})` : s.name))
+              .join(', '),
+          );
       }
 
       doc.end();

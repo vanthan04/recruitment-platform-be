@@ -14,11 +14,20 @@ export class MarkAsReadCommand {
 
 @Injectable()
 @CommandHandler(MarkAsReadCommand)
-export class MarkAsReadHandler implements ICommandHandler<MarkAsReadCommand, NotificationResponseDto> {
-  constructor(private readonly notificationRepository: INotificationRepository) {}
+export class MarkAsReadHandler implements ICommandHandler<
+  MarkAsReadCommand,
+  NotificationResponseDto
+> {
+  constructor(
+    private readonly notificationRepository: INotificationRepository,
+  ) {}
 
-  async execute({ userId, notificationId }: MarkAsReadCommand): Promise<NotificationResponseDto> {
-    const notification = await this.notificationRepository.findById(notificationId);
+  async execute({
+    userId,
+    notificationId,
+  }: MarkAsReadCommand): Promise<NotificationResponseDto> {
+    const notification =
+      await this.notificationRepository.findById(notificationId);
     if (!notification || notification.userId !== userId) {
       throw new EntityNotFoundException('Notification', notificationId);
     }

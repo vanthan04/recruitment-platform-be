@@ -11,7 +11,10 @@ export class GetJobQuery {
 
 @Injectable()
 @QueryHandler(GetJobQuery)
-export class GetJobHandler implements IQueryHandler<GetJobQuery, JobResponseDto> {
+export class GetJobHandler implements IQueryHandler<
+  GetJobQuery,
+  JobResponseDto
+> {
   private readonly logger = new Logger(GetJobHandler.name);
 
   constructor(private readonly jobRepository: IJobRepository) {}
@@ -25,7 +28,9 @@ export class GetJobHandler implements IQueryHandler<GetJobQuery, JobResponseDto>
     // Fire-and-forget — view count is analytics data, must not block the response.
     this.jobRepository
       .incrementViewCount(jobId)
-      .catch((err) => this.logger.error('Failed to increment job view count', err));
+      .catch((err) =>
+        this.logger.error('Failed to increment job view count', err),
+      );
 
     return JobResponseMapper.toDto(job);
   }

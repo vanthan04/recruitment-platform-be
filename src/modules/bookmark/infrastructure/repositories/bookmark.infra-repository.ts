@@ -8,7 +8,10 @@ import { BookmarkMapper } from '@/modules/bookmark/infrastructure/persistence/ma
 export class BookmarkInfraRepository implements IBookmarkRepository {
   constructor(private readonly bookmarkPrisma: BookmarkPrismaRepository) {}
 
-  async findByUserIdAndJobId(userId: string, jobId: string): Promise<Bookmark | null> {
+  async findByUserIdAndJobId(
+    userId: string,
+    jobId: string,
+  ): Promise<Bookmark | null> {
     const raw = await this.bookmarkPrisma.findByUserIdAndJobId(userId, jobId);
     return BookmarkMapper.toDomain(raw);
   }

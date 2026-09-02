@@ -6,7 +6,9 @@ import { SavedSearchMapper } from '@/modules/job-alert/infrastructure/persistenc
 
 @Injectable()
 export class SavedSearchInfraRepository implements ISavedSearchRepository {
-  constructor(private readonly savedSearchPrisma: SavedSearchPrismaRepository) {}
+  constructor(
+    private readonly savedSearchPrisma: SavedSearchPrismaRepository,
+  ) {}
 
   async findById(id: string): Promise<SavedSearch | null> {
     const raw = await this.savedSearchPrisma.findById(id);

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -28,9 +36,17 @@ export class InterviewController {
 
   @Post()
   @Roles(UserRole.RECRUITER)
-  @ApiOperation({ summary: 'Schedule an interview for a job application (Recruiter owner only)' })
-  async schedule(@GetMe('id') recruiterId: string, @Body() dto: ScheduleInterviewDto) {
-    const result = await this.commandBus.execute(new ScheduleInterviewCommand(recruiterId, dto));
+  @ApiOperation({
+    summary:
+      'Schedule an interview for a job application (Recruiter owner only)',
+  })
+  async schedule(
+    @GetMe('id') recruiterId: string,
+    @Body() dto: ScheduleInterviewDto,
+  ) {
+    const result = await this.commandBus.execute(
+      new ScheduleInterviewCommand(recruiterId, dto),
+    );
     return ApiResponse.ok(result, 'Interview scheduled successfully');
   }
 
@@ -42,7 +58,9 @@ export class InterviewController {
     @Param('id') id: string,
     @Body() dto: RescheduleInterviewDto,
   ) {
-    const result = await this.commandBus.execute(new RescheduleInterviewCommand(recruiterId, id, dto));
+    const result = await this.commandBus.execute(
+      new RescheduleInterviewCommand(recruiterId, id, dto),
+    );
     return ApiResponse.ok(result, 'Interview rescheduled successfully');
   }
 
@@ -50,14 +68,22 @@ export class InterviewController {
   @Roles(UserRole.RECRUITER)
   @ApiOperation({ summary: 'Cancel an interview (Recruiter owner only)' })
   async cancel(@GetMe('id') recruiterId: string, @Param('id') id: string) {
-    const result = await this.commandBus.execute(new CancelInterviewCommand(recruiterId, id));
+    const result = await this.commandBus.execute(
+      new CancelInterviewCommand(recruiterId, id),
+    );
     return ApiResponse.ok(result, 'Interview cancelled successfully');
   }
 
   @Get('application/:applicationId')
   @Roles(UserRole.CANDIDATE, UserRole.RECRUITER)
-  @ApiOperation({ summary: 'List interviews for a job application (candidate or recruiter owner)' })
-  async listByApplication(@GetMe('id') requesterId: string, @Param('applicationId') applicationId: string) {
+  @ApiOperation({
+    summary:
+      'List interviews for a job application (candidate or recruiter owner)',
+  })
+  async listByApplication(
+    @GetMe('id') requesterId: string,
+    @Param('applicationId') applicationId: string,
+  ) {
     const result = await this.queryBus.execute(
       new ListInterviewsByApplicationQuery(requesterId, applicationId),
     );

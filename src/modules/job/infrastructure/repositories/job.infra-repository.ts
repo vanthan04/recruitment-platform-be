@@ -3,15 +3,23 @@ import { IJobRepository } from '@/modules/job/domain/repositories/job.repository
 import { Job } from '@/modules/job/domain/entities/job.entity';
 import { JobPrismaRepository } from '@/modules/job/infrastructure/persistence/prisma/job-prisma.repository';
 import { JobMapper } from '@/modules/job/infrastructure/persistence/mappers/job.mapper';
+import { ICompanyLookupPort } from '@/modules/job/application/ports/company-lookup.port';
+import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class JobInfraRepository implements IJobRepository {
-  constructor(private readonly jobPrisma: JobPrismaRepository) {}
+  constructor(
+    private readonly jobPrisma: JobPrismaRepository,
+    private readonly companyLookupPort: ICompanyLookupPort,
+    private readonly categoryLookupPort: ICategoryLookupPort,
+  ) {}
 
   async findById(id: string): Promise<Job | null> {
-    const raw = await this.jobPrisma.findById(id);
-    return JobMapper.toDomain(raw);
+    const job = JobMapper.toDomain(await this.jobPrisma.findById(id));
+    if (!job) return null;
+    const [enriched] = await this.attachSummaries([job]);
+    return enriched;
   }
 
   async findAllPaginated(params: {
@@ -33,10 +41,17 @@ export class JobInfraRepository implements IJobRepository {
     };
 
     if (params.keyword) {
+      // Matching on company name used to be a relational Prisma filter
+      // straight into company's table — resolved via ICompanyLookupPort
+      // instead, so this module never queries company's table directly.
+      const matchingCompanyIds =
+        await this.companyLookupPort.searchIdsByKeyword(params.keyword);
       where.OR = [
         { title: { contains: params.keyword, mode: 'insensitive' } },
         { description: { contains: params.keyword, mode: 'insensitive' } },
-        { company: { name: { contains: params.keyword, mode: 'insensitive' } } },
+        ...(matchingCompanyIds.length > 0
+          ? [{ companyId: { in: matchingCompanyIds } }]
+          : []),
       ];
     }
 
@@ -74,18 +89,20 @@ export class JobInfraRepository implements IJobRepository {
       where,
     });
 
-    return {
-      jobs: raws.map((r) => JobMapper.toDomain(r)!),
-      total,
-    };
+    const jobs = await this.attachSummaries(
+      raws.map((r) => JobMapper.toDomain(r)!),
+    );
+    return { jobs, total };
   }
 
   async findAllByRecruiter(recruiterId: string): Promise<Job[]> {
     const raws = await this.jobPrisma.findAllByRecruiter(recruiterId);
-    return raws.map((r) => JobMapper.toDomain(r)!);
+    return this.attachSummaries(raws.map((r) => JobMapper.toDomain(r)!));
   }
 
   async findExpiredOpenJobs(): Promise<Job[]> {
+    // Internal cron use only (close-expired-jobs) — nothing here reads
+    // .company/.category, so skip the lookup round-trips.
     const raws = await this.jobPrisma.findExpiredOpen();
     return raws.map((r) => JobMapper.toDomain(r)!);
   }
@@ -93,13 +110,15 @@ export class JobInfraRepository implements IJobRepository {
   async save(job: Job): Promise<Job> {
     const data = JobMapper.toPersistence(job);
     const raw = await this.jobPrisma.create(data);
-    return JobMapper.toDomain(raw)!;
+    const [enriched] = await this.attachSummaries([JobMapper.toDomain(raw)!]);
+    return enriched;
   }
 
   async update(job: Job): Promise<Job> {
     const data = JobMapper.toPersistence(job);
     const raw = await this.jobPrisma.update(job.id, data);
-    return JobMapper.toDomain(raw)!;
+    const [enriched] = await this.attachSummaries([JobMapper.toDomain(raw)!]);
+    return enriched;
   }
 
   async delete(id: string): Promise<void> {
@@ -108,5 +127,28 @@ export class JobInfraRepository implements IJobRepository {
 
   async incrementViewCount(id: string): Promise<void> {
     await this.jobPrisma.incrementViewCount(id);
+  }
+
+  /** Batch-attaches company/category summaries — one lookup per unique id, not per job. */
+  private async attachSummaries(jobs: Job[]): Promise<Job[]> {
+    if (jobs.length === 0) return jobs;
+
+    const companyIds = jobs.map((j) => j.companyId);
+    const categoryIds = jobs
+      .map((j) => j.categoryId)
+      .filter((id): id is string => !!id);
+
+    const [companies, categories] = await Promise.all([
+      this.companyLookupPort.findManyByIds(companyIds),
+      this.categoryLookupPort.findManyByIds(categoryIds),
+    ]);
+
+    for (const job of jobs) {
+      job.company = companies.get(job.companyId);
+      job.category = job.categoryId
+        ? categories.get(job.categoryId)
+        : undefined;
+    }
+    return jobs;
   }
 }

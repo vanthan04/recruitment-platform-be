@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ICvLookupPort, CvLookupResult } from '@/modules/application/application/ports/cv-lookup.port';
+import {
+  ICvLookupPort,
+  CvLookupResult,
+} from '@/modules/application/application/ports/cv-lookup.port';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 
 @Injectable()

@@ -27,15 +27,19 @@ export class CreateCompanyCommand {
 
 @Injectable()
 @CommandHandler(CreateCompanyCommand)
-export class CreateCompanyHandler
-  implements ICommandHandler<CreateCompanyCommand, CompanyResponseDto>
-{
+export class CreateCompanyHandler implements ICommandHandler<
+  CreateCompanyCommand,
+  CompanyResponseDto
+> {
   constructor(
     private readonly companyRepository: ICompanyRepository,
     private readonly userCompanyLinkPort: IUserCompanyLinkPort,
   ) {}
 
-  async execute({ ownerId, input }: CreateCompanyCommand): Promise<CompanyResponseDto> {
+  async execute({
+    ownerId,
+    input,
+  }: CreateCompanyCommand): Promise<CompanyResponseDto> {
     const existing = await this.companyRepository.findByOwnerId(ownerId);
     if (existing) {
       throw new DuplicateEntityException('Company', 'owner');

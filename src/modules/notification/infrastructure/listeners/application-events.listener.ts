@@ -30,14 +30,20 @@ export class ApplicationEventsListener {
   }
 
   @OnEvent(APPLICATION_STATUS_CHANGED_EVENT)
-  async handleApplicationStatusChanged(event: ApplicationStatusChangedEvent): Promise<void> {
+  async handleApplicationStatusChanged(
+    event: ApplicationStatusChangedEvent,
+  ): Promise<void> {
     await this.commandBus.execute(
       new CreateNotificationCommand(
         event.candidateId,
         NotificationType.APPLICATION_STATUS_CHANGED,
         'Application status updated',
         `Your application for "${event.jobTitle}" is now ${event.status}`,
-        { applicationId: event.applicationId, jobId: event.jobId, status: event.status },
+        {
+          applicationId: event.applicationId,
+          jobId: event.jobId,
+          status: event.status,
+        },
       ),
     );
   }

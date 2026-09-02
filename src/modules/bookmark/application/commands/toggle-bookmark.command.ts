@@ -14,17 +14,26 @@ export class ToggleBookmarkCommand {
 
 @Injectable()
 @CommandHandler(ToggleBookmarkCommand)
-export class ToggleBookmarkHandler implements ICommandHandler<ToggleBookmarkCommand, { bookmarked: boolean }> {
+export class ToggleBookmarkHandler implements ICommandHandler<
+  ToggleBookmarkCommand,
+  { bookmarked: boolean }
+> {
   constructor(
     private readonly bookmarkRepository: IBookmarkRepository,
     private readonly jobLookup: IJobLookupPort,
   ) {}
 
-  async execute({ userId, jobId }: ToggleBookmarkCommand): Promise<{ bookmarked: boolean }> {
+  async execute({
+    userId,
+    jobId,
+  }: ToggleBookmarkCommand): Promise<{ bookmarked: boolean }> {
     const jobExists = await this.jobLookup.exists(jobId);
     if (!jobExists) throw new EntityNotFoundException('Job', jobId);
 
-    const existing = await this.bookmarkRepository.findByUserIdAndJobId(userId, jobId);
+    const existing = await this.bookmarkRepository.findByUserIdAndJobId(
+      userId,
+      jobId,
+    );
 
     if (existing) {
       await this.bookmarkRepository.delete(userId, jobId);

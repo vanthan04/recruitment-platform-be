@@ -6,15 +6,23 @@ import { JobApplicationMapper } from '@/modules/application/infrastructure/persi
 
 @Injectable()
 export class JobApplicationInfraRepository implements IJobApplicationRepository {
-  constructor(private readonly applicationPrisma: JobApplicationPrismaRepository) {}
+  constructor(
+    private readonly applicationPrisma: JobApplicationPrismaRepository,
+  ) {}
 
   async findById(id: string): Promise<JobApplication | null> {
     const raw = await this.applicationPrisma.findById(id);
     return JobApplicationMapper.toDomain(raw);
   }
 
-  async findByUserIdAndJobId(userId: string, jobId: string): Promise<JobApplication | null> {
-    const raw = await this.applicationPrisma.findByUserIdAndJobId(userId, jobId);
+  async findByUserIdAndJobId(
+    userId: string,
+    jobId: string,
+  ): Promise<JobApplication | null> {
+    const raw = await this.applicationPrisma.findByUserIdAndJobId(
+      userId,
+      jobId,
+    );
     return JobApplicationMapper.toDomain(raw);
   }
 
@@ -40,8 +48,11 @@ export class JobApplicationInfraRepository implements IJobApplicationRepository 
     return JobApplicationMapper.toDomain(raw)!;
   }
 
-  async countByJobIdGroupedByStatus(jobId: string): Promise<Record<string, number>> {
-    const groups = await this.applicationPrisma.countByJobIdGroupedByStatus(jobId);
+  async countByJobIdGroupedByStatus(
+    jobId: string,
+  ): Promise<Record<string, number>> {
+    const groups =
+      await this.applicationPrisma.countByJobIdGroupedByStatus(jobId);
     return groups.reduce<Record<string, number>>((acc, g) => {
       acc[g.status] = g._count._all;
       return acc;

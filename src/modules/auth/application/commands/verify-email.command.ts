@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { VerifyEmailDto } from '@/modules/auth/presentation/dtos/verify-email.dto';
 import { UserStatus } from '@/common/enums/user-status.enum';
+import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 
 export class VerifyEmailCommand {
   constructor(public readonly dto: VerifyEmailDto) {}
@@ -10,13 +11,16 @@ export class VerifyEmailCommand {
 
 @Injectable()
 @CommandHandler(VerifyEmailCommand)
-export class VerifyEmailHandler implements ICommandHandler<VerifyEmailCommand, { message: string }> {
+export class VerifyEmailHandler implements ICommandHandler<
+  VerifyEmailCommand,
+  { message: string }
+> {
   constructor(private readonly userRepository: IAuthUserRepositoryPort) {}
 
   async execute({ dto }: VerifyEmailCommand): Promise<{ message: string }> {
     const user = await this.userRepository.findByVerifyCode(dto.code);
     if (!user) {
-      throw new NotFoundException('Mã xác thực không hợp lệ hoặc đã hết hạn');
+      throw new EntityNotFoundException('Verification code');
     }
 
     user.status = UserStatus.ACTIVE;

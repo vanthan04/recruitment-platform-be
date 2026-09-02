@@ -38,14 +38,20 @@ export class CreateJobCommand {
 
 @Injectable()
 @CommandHandler(CreateJobCommand)
-export class CreateJobHandler implements ICommandHandler<CreateJobCommand, JobResponseDto> {
+export class CreateJobHandler implements ICommandHandler<
+  CreateJobCommand,
+  JobResponseDto
+> {
   constructor(
     private readonly jobRepository: IJobRepository,
     private readonly userLookup: IUserLookupPort,
     private readonly categoryLookup: ICategoryLookupPort,
   ) {}
 
-  async execute({ recruiterId, input }: CreateJobCommand): Promise<JobResponseDto> {
+  async execute({
+    recruiterId,
+    input,
+  }: CreateJobCommand): Promise<JobResponseDto> {
     const companyId = await this.userLookup.getRecruiterCompanyId(recruiterId);
     if (!companyId) {
       throw new BusinessRuleViolationException(
@@ -53,7 +59,10 @@ export class CreateJobHandler implements ICommandHandler<CreateJobCommand, JobRe
       );
     }
 
-    if (input.categoryId && !(await this.categoryLookup.exists(input.categoryId))) {
+    if (
+      input.categoryId &&
+      !(await this.categoryLookup.exists(input.categoryId))
+    ) {
       throw new EntityNotFoundException('Category', input.categoryId);
     }
 

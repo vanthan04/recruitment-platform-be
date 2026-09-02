@@ -40,7 +40,9 @@ export class CategoryController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a job category (Admin only)' })
   async create(@Body() dto: CreateCategoryDto) {
-    const result = await this.commandBus.execute(new CreateCategoryCommand(dto.name));
+    const result = await this.commandBus.execute(
+      new CreateCategoryCommand(dto.name),
+    );
     return ApiResponse.ok(result, 'Category created successfully');
   }
 
@@ -56,8 +58,13 @@ export class CategoryController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a job category (Admin only)' })
-  async update(@Param('id') categoryId: string, @Body() dto: UpdateCategoryDto) {
-    const result = await this.commandBus.execute(new UpdateCategoryCommand(categoryId, dto.name!));
+  async update(
+    @Param('id') categoryId: string,
+    @Body() dto: UpdateCategoryDto,
+  ) {
+    const result = await this.commandBus.execute(
+      new UpdateCategoryCommand(categoryId, dto.name!),
+    );
     return ApiResponse.ok(result, 'Category updated successfully');
   }
 

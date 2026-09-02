@@ -19,8 +19,13 @@ export class CreateNotificationCommand {
 
 @Injectable()
 @CommandHandler(CreateNotificationCommand)
-export class CreateNotificationHandler implements ICommandHandler<CreateNotificationCommand, void> {
-  constructor(private readonly notificationRepository: INotificationRepository) {}
+export class CreateNotificationHandler implements ICommandHandler<
+  CreateNotificationCommand,
+  void
+> {
+  constructor(
+    private readonly notificationRepository: INotificationRepository,
+  ) {}
 
   async execute(command: CreateNotificationCommand): Promise<void> {
     const notification = new Notification({

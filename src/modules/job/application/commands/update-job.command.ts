@@ -33,13 +33,20 @@ export class UpdateJobCommand {
 
 @Injectable()
 @CommandHandler(UpdateJobCommand)
-export class UpdateJobHandler implements ICommandHandler<UpdateJobCommand, JobResponseDto> {
+export class UpdateJobHandler implements ICommandHandler<
+  UpdateJobCommand,
+  JobResponseDto
+> {
   constructor(
     private readonly jobRepository: IJobRepository,
     private readonly categoryLookup: ICategoryLookupPort,
   ) {}
 
-  async execute({ recruiterId, jobId, input }: UpdateJobCommand): Promise<JobResponseDto> {
+  async execute({
+    recruiterId,
+    jobId,
+    input,
+  }: UpdateJobCommand): Promise<JobResponseDto> {
     const job = await this.jobRepository.findById(jobId);
     if (!job) {
       throw new EntityNotFoundException('Job', jobId);
@@ -47,7 +54,10 @@ export class UpdateJobHandler implements ICommandHandler<UpdateJobCommand, JobRe
 
     job.ensureOwner(recruiterId);
 
-    if (input.categoryId && !(await this.categoryLookup.exists(input.categoryId))) {
+    if (
+      input.categoryId &&
+      !(await this.categoryLookup.exists(input.categoryId))
+    ) {
       throw new EntityNotFoundException('Category', input.categoryId);
     }
 

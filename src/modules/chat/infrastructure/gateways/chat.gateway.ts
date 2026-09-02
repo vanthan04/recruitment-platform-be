@@ -20,7 +20,10 @@ import { CreateMessageCommand } from '@/modules/chat/application/commands/create
 import { MarkConversationReadCommand } from '@/modules/chat/application/commands/mark-conversation-read.command';
 import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
 import { CreateMessageAttachmentInput } from '@/modules/chat/application/commands/create-message.command';
-import { MESSAGE_SENT_EVENT, MessageSentEvent } from '@/modules/chat/infrastructure/events/message-sent.event';
+import {
+  MESSAGE_SENT_EVENT,
+  MessageSentEvent,
+} from '@/modules/chat/infrastructure/events/message-sent.event';
 
 interface SendMessagePayload {
   conversationId: string;

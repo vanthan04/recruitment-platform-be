@@ -24,16 +24,23 @@ export class CreateSavedSearchCommand {
 
 @Injectable()
 @CommandHandler(CreateSavedSearchCommand)
-export class CreateSavedSearchHandler
-  implements ICommandHandler<CreateSavedSearchCommand, SavedSearchResponseDto>
-{
+export class CreateSavedSearchHandler implements ICommandHandler<
+  CreateSavedSearchCommand,
+  SavedSearchResponseDto
+> {
   constructor(
     private readonly savedSearchRepository: ISavedSearchRepository,
     private readonly categoryLookupPort: ICategoryLookupPort,
   ) {}
 
-  async execute({ userId, input }: CreateSavedSearchCommand): Promise<SavedSearchResponseDto> {
-    if (input.categoryId && !(await this.categoryLookupPort.exists(input.categoryId))) {
+  async execute({
+    userId,
+    input,
+  }: CreateSavedSearchCommand): Promise<SavedSearchResponseDto> {
+    if (
+      input.categoryId &&
+      !(await this.categoryLookupPort.exists(input.categoryId))
+    ) {
       throw new EntityNotFoundException('Category', input.categoryId);
     }
 

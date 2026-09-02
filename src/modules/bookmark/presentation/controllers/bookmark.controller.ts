@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -31,8 +25,13 @@ export class BookmarkController {
   @Roles(UserRole.CANDIDATE)
   @ApiOperation({ summary: 'Toggle bookmark for a job (Candidate only)' })
   async toggle(@GetMe('id') userId: string, @Param('jobId') jobId: string) {
-    const result = await this.commandBus.execute(new ToggleBookmarkCommand(userId, jobId));
-    return ApiResponse.ok(result, result.bookmarked ? 'Job bookmarked' : 'Bookmark removed');
+    const result = await this.commandBus.execute(
+      new ToggleBookmarkCommand(userId, jobId),
+    );
+    return ApiResponse.ok(
+      result,
+      result.bookmarked ? 'Job bookmarked' : 'Bookmark removed',
+    );
   }
 
   @Get()

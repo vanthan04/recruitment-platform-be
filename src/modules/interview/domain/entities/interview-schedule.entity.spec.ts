@@ -2,7 +2,9 @@ import { InterviewSchedule } from '@/modules/interview/domain/entities/interview
 import { InterviewStatus } from '@/modules/interview/domain/value-objects/interview-status.vo';
 import { BusinessRuleViolationException } from '@/common/exceptions/domain.exception';
 
-function makeInterview(overrides: Partial<InterviewSchedule> = {}): InterviewSchedule {
+function makeInterview(
+  overrides: Partial<InterviewSchedule> = {},
+): InterviewSchedule {
   return new InterviewSchedule({
     jobApplicationId: 'application-1',
     scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -22,13 +24,16 @@ describe('InterviewSchedule entity', () => {
     });
 
     it('throws when both location and meetingLink are missing', () => {
-      expect(() => makeInterview({ location: null, meetingLink: null })).toThrow(
-        BusinessRuleViolationException,
-      );
+      expect(() =>
+        makeInterview({ location: null, meetingLink: null }),
+      ).toThrow(BusinessRuleViolationException);
     });
 
     it('accepts a location-only (in-person) interview', () => {
-      const interview = makeInterview({ location: '123 Main St', meetingLink: null });
+      const interview = makeInterview({
+        location: '123 Main St',
+        meetingLink: null,
+      });
       expect(interview.location).toBe('123 Main St');
     });
   });
@@ -45,15 +50,17 @@ describe('InterviewSchedule entity', () => {
     it('throws when the new time is not in the future', () => {
       const interview = makeInterview();
       const pastDate = new Date(Date.now() - 1000);
-      expect(() => interview.reschedule(pastDate)).toThrow(BusinessRuleViolationException);
+      expect(() => interview.reschedule(pastDate)).toThrow(
+        BusinessRuleViolationException,
+      );
     });
 
     it('throws when rescheduling a cancelled interview', () => {
       const interview = makeInterview();
       interview.cancel();
-      expect(() => interview.reschedule(new Date(Date.now() + 1000 * 60 * 60))).toThrow(
-        BusinessRuleViolationException,
-      );
+      expect(() =>
+        interview.reschedule(new Date(Date.now() + 1000 * 60 * 60)),
+      ).toThrow(BusinessRuleViolationException);
     });
   });
 

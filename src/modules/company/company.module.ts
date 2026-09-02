@@ -5,11 +5,8 @@ import { ICompanyRepository } from '@/modules/company/domain/repositories/compan
 import { CompanyInfraRepository } from '@/modules/company/infrastructure/repositories/company.infra-repository';
 import { CompanyPrismaRepository } from '@/modules/company/infrastructure/persistence/prisma/company-prisma.repository';
 import { UserModule } from '@/modules/user/user.module';
-import { JobModule } from '@/modules/job/job.module';
 import { IUserCompanyLinkPort } from '@/modules/company/application/ports/user-company-link.port';
 import { UserCompanyLinkAdapter } from '@/modules/company/infrastructure/adapters/user-company-link.adapter';
-import { IJobSearchPort } from '@/modules/company/application/ports/job-search.port';
-import { JobSearchAdapter } from '@/modules/company/infrastructure/adapters/job-search.adapter';
 
 import { CreateCompanyHandler } from '@/modules/company/application/commands/create-company.command';
 import { UpdateCompanyHandler } from '@/modules/company/application/commands/update-company.command';
@@ -18,7 +15,7 @@ import { GetCompanyHandler } from '@/modules/company/application/queries/get-com
 import { ListCompaniesHandler } from '@/modules/company/application/queries/list-companies.query';
 
 @Module({
-  imports: [CqrsModule, UserModule, JobModule],
+  imports: [CqrsModule, UserModule],
   controllers: [CompanyController],
   providers: [
     CompanyPrismaRepository,
@@ -29,10 +26,6 @@ import { ListCompaniesHandler } from '@/modules/company/application/queries/list
     {
       provide: IUserCompanyLinkPort,
       useClass: UserCompanyLinkAdapter,
-    },
-    {
-      provide: IJobSearchPort,
-      useClass: JobSearchAdapter,
     },
     CreateCompanyHandler,
     UpdateCompanyHandler,

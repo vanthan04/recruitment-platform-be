@@ -1,4 +1,12 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from '@/modules/auth/application/auth.service';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
@@ -15,16 +23,17 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-  ) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() dto: RegisterRequestDto) {
     const result = await this.authService.register(dto);
-    return ApiResponse.ok(result, "Tạo User thành công. Vui lòng check email để xác thực tài khoản");
+    return ApiResponse.ok(
+      result,
+      'Tạo User thành công. Vui lòng check email để xác thực tài khoản',
+    );
   }
 
   @Post('login')
@@ -73,7 +82,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout current device (revokes the given refresh token)' })
+  @ApiOperation({
+    summary: 'Logout current device (revokes the given refresh token)',
+  })
   async logout(@Req() req: any, @Body() dto: RefreshTokenDto) {
     await this.authService.logout(req.user.id, dto.refreshToken);
     return ApiResponse.ok(null, 'Đăng xuất thành công');
@@ -82,7 +93,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout from all devices (revokes every active session)' })
+  @ApiOperation({
+    summary: 'Logout from all devices (revokes every active session)',
+  })
   async logoutAll(@Req() req: any) {
     await this.authService.logoutAll(req.user.id);
     return ApiResponse.ok(null, 'Đăng xuất khỏi tất cả thiết bị thành công');

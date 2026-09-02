@@ -4,13 +4,13 @@ import { IInterviewScheduleRepository } from '@/modules/interview/domain/reposit
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
 import { IInterviewUserLookupPort } from '@/modules/interview/application/ports/user-lookup.port';
-import { IMailService } from '@/modules/mail/domain/ports/mail.service.port';
+import { IInterviewMailPort } from '@/modules/interview/application/ports/mail.port';
 import { InterviewSchedule } from '@/modules/interview/domain/entities/interview-schedule.entity';
 import {
   EntityNotFoundException,
-  UnauthorizedDomainException,
   BusinessRuleViolationException,
 } from '@/common/exceptions/domain.exception';
+import { ensureOwner } from '@/common/utils/ownership.util';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 import { buildInterviewEmail } from '@/modules/interview/application/utils/interview-mail.util';
@@ -32,31 +32,42 @@ export class ScheduleInterviewCommand {
 
 @Injectable()
 @CommandHandler(ScheduleInterviewCommand)
-export class ScheduleInterviewHandler
-  implements ICommandHandler<ScheduleInterviewCommand, InterviewResponseDto>
-{
+export class ScheduleInterviewHandler implements ICommandHandler<
+  ScheduleInterviewCommand,
+  InterviewResponseDto
+> {
   constructor(
     private readonly interviewRepository: IInterviewScheduleRepository,
     private readonly applicationLookupPort: IInterviewApplicationLookupPort,
     private readonly jobLookupPort: IInterviewJobLookupPort,
     private readonly userLookupPort: IInterviewUserLookupPort,
-    private readonly mailService: IMailService,
+    private readonly mailPort: IInterviewMailPort,
   ) {}
 
-  async execute({ recruiterId, input }: ScheduleInterviewCommand): Promise<InterviewResponseDto> {
-    const application = await this.applicationLookupPort.findById(input.jobApplicationId);
-    if (!application) throw new EntityNotFoundException('Application', input.jobApplicationId);
+  async execute({
+    recruiterId,
+    input,
+  }: ScheduleInterviewCommand): Promise<InterviewResponseDto> {
+    const application = await this.applicationLookupPort.findById(
+      input.jobApplicationId,
+    );
+    if (!application)
+      throw new EntityNotFoundException('Application', input.jobApplicationId);
 
     const job = await this.jobLookupPort.findById(application.jobId);
     if (!job) throw new EntityNotFoundException('Job', application.jobId);
 
-    if (job.postedById !== recruiterId) {
-      throw new UnauthorizedDomainException('Only the job poster can schedule interviews for this application');
-    }
+    ensureOwner(
+      job.postedById,
+      recruiterId,
+      'Only the job poster can schedule interviews for this application',
+    );
 
     const scheduledAt = new Date(input.scheduledAt);
     if (scheduledAt.getTime() <= Date.now()) {
-      throw new BusinessRuleViolationException('Interview time must be in the future');
+      throw new BusinessRuleViolationException(
+        'Interview time must be in the future',
+      );
     }
 
     const interview = new InterviewSchedule({
@@ -79,7 +90,7 @@ export class ScheduleInterviewHandler
         meetingLink: saved.meetingLink,
         note: saved.note,
       });
-      await this.mailService.sendEmail({ to: candidate.email, subject, html });
+      await this.mailPort.sendEmail({ to: candidate.email, subject, html });
     }
 
     return InterviewResponseMapper.toDto(saved);

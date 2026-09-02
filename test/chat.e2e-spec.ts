@@ -33,7 +33,13 @@ describe('Chat module (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     app.useGlobalFilters(new GlobalExceptionFilter());
     await app.init();
   });
@@ -49,14 +55,20 @@ describe('Chat module (e2e)', () => {
     return match[1];
   }
 
-  async function registerAndLogin(email: string, role: 'CANDIDATE' | 'RECRUITER'): Promise<string> {
+  async function registerAndLogin(
+    email: string,
+    role: 'CANDIDATE' | 'RECRUITER',
+  ): Promise<string> {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({ email, password: 'password123', fullName: `E2E ${role}`, role })
       .expect(201);
 
     const code = extractVerifyCode(email);
-    await request(app.getHttpServer()).post('/api/v1/auth/verify').send({ code }).expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/verify')
+      .send({ code })
+      .expect(200);
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -75,9 +87,18 @@ describe('Chat module (e2e)', () => {
   let conversationId: string;
 
   it('sets up recruiter, candidate, stranger, job, CV and an ACCEPTED application', async () => {
-    recruiterToken = await registerAndLogin(`chat-recruiter-${runId}@e2e.test`, 'RECRUITER');
-    candidateToken = await registerAndLogin(`chat-candidate-${runId}@e2e.test`, 'CANDIDATE');
-    strangerToken = await registerAndLogin(`chat-stranger-${runId}@e2e.test`, 'CANDIDATE');
+    recruiterToken = await registerAndLogin(
+      `chat-recruiter-${runId}@e2e.test`,
+      'RECRUITER',
+    );
+    candidateToken = await registerAndLogin(
+      `chat-candidate-${runId}@e2e.test`,
+      'CANDIDATE',
+    );
+    strangerToken = await registerAndLogin(
+      `chat-stranger-${runId}@e2e.test`,
+      'CANDIDATE',
+    );
 
     await request(app.getHttpServer())
       .post('/api/v1/companies')
@@ -88,14 +109,28 @@ describe('Chat module (e2e)', () => {
     const jobRes = await request(app.getHttpServer())
       .post('/api/v1/jobs')
       .set('Authorization', `Bearer ${recruiterToken}`)
-      .send({ title: 'Chat E2E Backend Developer', description: 'Build APIs', location: 'Remote' })
+      .send({
+        title: 'Chat E2E Backend Developer',
+        description: 'Build APIs',
+        location: 'Remote',
+      })
       .expect(201);
     jobId = jobRes.body.data.id;
 
     const cvRes = await request(app.getHttpServer())
       .post('/api/v1/cvs')
       .set('Authorization', `Bearer ${candidateToken}`)
-      .send({ title: 'Chat E2E CV', experiences: [{ company: 'Acme', position: 'Engineer', startDate: '2020-01-01', isCurrent: true }] })
+      .send({
+        title: 'Chat E2E CV',
+        experiences: [
+          {
+            company: 'Acme',
+            position: 'Engineer',
+            startDate: '2020-01-01',
+            isCurrent: true,
+          },
+        ],
+      })
       .expect(201);
     const cvId = cvRes.body.data.id;
     await request(app.getHttpServer())
@@ -169,7 +204,10 @@ describe('Chat module (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/api/v1/conversations/${conversationId}/messages`)
       .set('Authorization', `Bearer ${candidateToken}`)
-      .send({ content: 'Thank you! When can we talk?', clientMessageId: '22222222-2222-4222-8222-222222222222' })
+      .send({
+        content: 'Thank you! When can we talk?',
+        clientMessageId: '22222222-2222-4222-8222-222222222222',
+      })
       .expect(201);
   });
 
@@ -196,7 +234,9 @@ describe('Chat module (e2e)', () => {
       .set('Authorization', `Bearer ${candidateToken}`)
       .expect(200);
 
-    const conversation = listRes.body.data.find((c: any) => c.id === conversationId);
+    const conversation = listRes.body.data.find(
+      (c: any) => c.id === conversationId,
+    );
     expect(conversation.unreadCount).toBe(0);
   });
 });

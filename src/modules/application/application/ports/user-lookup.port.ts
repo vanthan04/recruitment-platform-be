@@ -9,5 +9,7 @@ export interface ApplicationUserLookupResult {
  * enough to show "who applied" on the recruiter's application list.
  */
 export abstract class IApplicationUserLookupPort {
-  abstract findById(userId: string): Promise<ApplicationUserLookupResult | null>;
+  abstract findById(
+    userId: string,
+  ): Promise<ApplicationUserLookupResult | null>;
 }

@@ -16,4 +16,12 @@ export class User extends BaseEntity {
     super();
     Object.assign(this, partial);
   }
+
+  changeStatus(newStatus: UserStatus): void {
+    this.status = newStatus;
+  }
+
+  changeRole(newRole: UserRole): void {
+    this.role = newRole;
+  }
 }

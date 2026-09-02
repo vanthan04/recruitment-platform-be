@@ -6,15 +6,20 @@ import { InterviewScheduleMapper } from '@/modules/interview/infrastructure/pers
 
 @Injectable()
 export class InterviewScheduleInfraRepository implements IInterviewScheduleRepository {
-  constructor(private readonly interviewPrisma: InterviewSchedulePrismaRepository) {}
+  constructor(
+    private readonly interviewPrisma: InterviewSchedulePrismaRepository,
+  ) {}
 
   async findById(id: string): Promise<InterviewSchedule | null> {
     const raw = await this.interviewPrisma.findById(id);
     return InterviewScheduleMapper.toDomain(raw);
   }
 
-  async findByApplicationId(jobApplicationId: string): Promise<InterviewSchedule[]> {
-    const raws = await this.interviewPrisma.findByApplicationId(jobApplicationId);
+  async findByApplicationId(
+    jobApplicationId: string,
+  ): Promise<InterviewSchedule[]> {
+    const raws =
+      await this.interviewPrisma.findByApplicationId(jobApplicationId);
     return raws.map((r) => InterviewScheduleMapper.toDomain(r)!);
   }
 

@@ -1,4 +1,11 @@
-import { Controller, Get, Patch, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -22,21 +29,33 @@ export class NotificationController {
 
   @Get()
   @ApiOperation({ summary: 'List my notifications' })
-  async list(@GetMe('id') userId: string, @Query() query: ListNotificationsDto) {
+  async list(
+    @GetMe('id') userId: string,
+    @Query() query: ListNotificationsDto,
+  ) {
     const result = await this.queryBus.execute(
       new ListMyNotificationsQuery(userId, query.page ?? 1, query.limit ?? 10),
     );
-    return ApiResponse.ok(result.notifications, 'Notifications retrieved successfully', {
-      total: result.total,
-      page: result.page,
-      limit: result.limit,
-    });
+    return ApiResponse.ok(
+      result.notifications,
+      'Notifications retrieved successfully',
+      {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      },
+    );
   }
 
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark one notification as read' })
-  async markAsRead(@GetMe('id') userId: string, @Param('id') notificationId: string) {
-    const result = await this.commandBus.execute(new MarkAsReadCommand(userId, notificationId));
+  async markAsRead(
+    @GetMe('id') userId: string,
+    @Param('id') notificationId: string,
+  ) {
+    const result = await this.commandBus.execute(
+      new MarkAsReadCommand(userId, notificationId),
+    );
     return ApiResponse.ok(result, 'Notification marked as read');
   }
 

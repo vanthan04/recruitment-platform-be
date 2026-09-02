@@ -96,9 +96,7 @@ export class Cv extends BaseEntity {
    */
   ensureOwner(userId: string): void {
     if (this.userId !== userId) {
-      throw new UnauthorizedDomainException(
-        'You are not the owner of this CV',
-      );
+      throw new UnauthorizedDomainException('You are not the owner of this CV');
     }
   }
 

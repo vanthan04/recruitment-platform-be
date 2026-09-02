@@ -1,11 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsString,
-  IsOptional,
-  IsEnum,
-  IsInt,
-  Min,
-} from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { PageOptionsDto } from '@/common/dtos/page-options.dto';

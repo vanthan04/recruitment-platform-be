@@ -1,9 +1,10 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
 import { UserStatus } from '@/common/enums/user-status.enum';
+import { DuplicateEntityException } from '@/common/exceptions/domain.exception';
 import * as bcrypt from 'bcrypt';
 
 export class RegisterCommand {
@@ -12,7 +13,10 @@ export class RegisterCommand {
 
 @Injectable()
 @CommandHandler(RegisterCommand)
-export class RegisterHandler implements ICommandHandler<RegisterCommand, { email: string }> {
+export class RegisterHandler implements ICommandHandler<
+  RegisterCommand,
+  { email: string }
+> {
   constructor(
     private readonly userRepository: IAuthUserRepositoryPort,
     private readonly mailService: IAuthMailServicePort,
@@ -21,7 +25,7 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand, { email
   async execute({ dto }: RegisterCommand): Promise<{ email: string }> {
     const isExisted = await this.userRepository.existsByEmail(dto.email);
     if (isExisted) {
-      throw new ConflictException('EMAIL_ALREADY_EXISTS');
+      throw new DuplicateEntityException('User', 'email');
     }
 
     const salt = await bcrypt.genSalt();

@@ -14,10 +14,16 @@ export class CloseJobCommand {
 
 @Injectable()
 @CommandHandler(CloseJobCommand)
-export class CloseJobHandler implements ICommandHandler<CloseJobCommand, JobResponseDto> {
+export class CloseJobHandler implements ICommandHandler<
+  CloseJobCommand,
+  JobResponseDto
+> {
   constructor(private readonly jobRepository: IJobRepository) {}
 
-  async execute({ recruiterId, jobId }: CloseJobCommand): Promise<JobResponseDto> {
+  async execute({
+    recruiterId,
+    jobId,
+  }: CloseJobCommand): Promise<JobResponseDto> {
     const job = await this.jobRepository.findById(jobId);
     if (!job) {
       throw new EntityNotFoundException('Job', jobId);

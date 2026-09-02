@@ -10,7 +10,10 @@ export class ListMyCvsQuery {
 
 @Injectable()
 @QueryHandler(ListMyCvsQuery)
-export class ListMyCvsHandler implements IQueryHandler<ListMyCvsQuery, CvResponseDto[]> {
+export class ListMyCvsHandler implements IQueryHandler<
+  ListMyCvsQuery,
+  CvResponseDto[]
+> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
   async execute({ userId }: ListMyCvsQuery): Promise<CvResponseDto[]> {

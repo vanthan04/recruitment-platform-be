@@ -22,7 +22,9 @@ export class CvResponseMapper {
     dto.createdAt = cv.createdAt;
     dto.updatedAt = cv.updatedAt;
     dto.userId = cv.userId;
-    dto.experiences = (cv.experiences ?? []).map(CvResponseMapper.toExperienceDto);
+    dto.experiences = (cv.experiences ?? []).map(
+      CvResponseMapper.toExperienceDto,
+    );
     dto.educations = (cv.educations ?? []).map(CvResponseMapper.toEducationDto);
     dto.skills = (cv.skills ?? []).map(CvResponseMapper.toSkillDto);
     return dto;

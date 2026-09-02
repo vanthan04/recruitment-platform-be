@@ -44,7 +44,10 @@ export class CreateCvCommand {
 
 @Injectable()
 @CommandHandler(CreateCvCommand)
-export class CreateCvHandler implements ICommandHandler<CreateCvCommand, CvResponseDto> {
+export class CreateCvHandler implements ICommandHandler<
+  CreateCvCommand,
+  CvResponseDto
+> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
   async execute({ userId, input }: CreateCvCommand): Promise<CvResponseDto> {

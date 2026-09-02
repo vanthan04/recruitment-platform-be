@@ -11,7 +11,10 @@ export class CreateCategoryCommand {
 
 @Injectable()
 @CommandHandler(CreateCategoryCommand)
-export class CreateCategoryHandler implements ICommandHandler<CreateCategoryCommand, CategoryResponseDto> {
+export class CreateCategoryHandler implements ICommandHandler<
+  CreateCategoryCommand,
+  CategoryResponseDto
+> {
   constructor(private readonly categoryRepository: ICategoryRepository) {}
 
   async execute({ name }: CreateCategoryCommand): Promise<CategoryResponseDto> {

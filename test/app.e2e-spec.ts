@@ -36,7 +36,11 @@ describe('Job portal core flow (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     app.useGlobalFilters(new GlobalExceptionFilter());
     await app.init();
@@ -67,11 +71,19 @@ describe('Job portal core flow (e2e)', () => {
   it('registers, verifies and logs in a recruiter', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({ email: recruiterEmail, password, fullName: 'Recruiter E2E', role: 'RECRUITER' })
+      .send({
+        email: recruiterEmail,
+        password,
+        fullName: 'Recruiter E2E',
+        role: 'RECRUITER',
+      })
       .expect(201);
 
     const code = extractVerifyCode(recruiterEmail);
-    await request(app.getHttpServer()).post('/api/v1/auth/verify').send({ code }).expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/verify')
+      .send({ code })
+      .expect(200);
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -94,7 +106,11 @@ describe('Job portal core flow (e2e)', () => {
     const jobRes = await request(app.getHttpServer())
       .post('/api/v1/jobs')
       .set('Authorization', `Bearer ${recruiterToken}`)
-      .send({ title: 'E2E Backend Developer', description: 'Build APIs', location: 'Remote' })
+      .send({
+        title: 'E2E Backend Developer',
+        description: 'Build APIs',
+        location: 'Remote',
+      })
       .expect(201);
     jobId = jobRes.body.data.id;
     expect(jobRes.body.data.companyId).toBe(companyId);
@@ -103,11 +119,19 @@ describe('Job portal core flow (e2e)', () => {
   it('registers, verifies and logs in a candidate', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({ email: candidateEmail, password, fullName: 'Candidate E2E', role: 'CANDIDATE' })
+      .send({
+        email: candidateEmail,
+        password,
+        fullName: 'Candidate E2E',
+        role: 'CANDIDATE',
+      })
       .expect(201);
 
     const code = extractVerifyCode(candidateEmail);
-    await request(app.getHttpServer()).post('/api/v1/auth/verify').send({ code }).expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/verify')
+      .send({ code })
+      .expect(200);
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -125,7 +149,12 @@ describe('Job portal core flow (e2e)', () => {
       .send({
         title: 'My E2E CV',
         experiences: [
-          { company: 'Acme', position: 'Engineer', startDate: '2020-01-01', isCurrent: true },
+          {
+            company: 'Acme',
+            position: 'Engineer',
+            startDate: '2020-01-01',
+            isCurrent: true,
+          },
         ],
       })
       .expect(201);

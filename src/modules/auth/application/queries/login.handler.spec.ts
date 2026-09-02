@@ -22,7 +22,9 @@ describe('LoginHandler', () => {
     userRepository.findByEmail.mockResolvedValue(null);
 
     await expect(
-      handler.execute({ dto: { email: 'nouser@test.com', password: 'password123' } } as any),
+      handler.execute({
+        dto: { email: 'nouser@test.com', password: 'password123' },
+      } as any),
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -34,7 +36,9 @@ describe('LoginHandler', () => {
     } as any);
 
     await expect(
-      handler.execute({ dto: { email: 'user@test.com', password: 'wrong-password' } } as any),
+      handler.execute({
+        dto: { email: 'user@test.com', password: 'wrong-password' },
+      } as any),
     ).rejects.toThrow(UnauthorizedException);
   });
 

@@ -10,10 +10,15 @@ export class ListBookmarksQuery {
 
 @Injectable()
 @QueryHandler(ListBookmarksQuery)
-export class ListBookmarksHandler implements IQueryHandler<ListBookmarksQuery, BookmarkResponseDto[]> {
+export class ListBookmarksHandler implements IQueryHandler<
+  ListBookmarksQuery,
+  BookmarkResponseDto[]
+> {
   constructor(private readonly bookmarkRepository: IBookmarkRepository) {}
 
-  async execute({ userId }: ListBookmarksQuery): Promise<BookmarkResponseDto[]> {
+  async execute({
+    userId,
+  }: ListBookmarksQuery): Promise<BookmarkResponseDto[]> {
     const bookmarks = await this.bookmarkRepository.findAllByUserId(userId);
     return BookmarkResponseMapper.toDtoList(bookmarks);
   }

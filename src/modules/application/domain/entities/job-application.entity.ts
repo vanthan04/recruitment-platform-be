@@ -17,21 +17,27 @@ export class JobApplication extends BaseEntity {
 
   accept(): void {
     if (this.status !== ApplicationStatus.PENDING) {
-      throw new BusinessRuleViolationException('Only pending applications can be accepted');
+      throw new BusinessRuleViolationException(
+        'Only pending applications can be accepted',
+      );
     }
     this.status = ApplicationStatus.ACCEPTED;
   }
 
   reject(): void {
     if (this.status !== ApplicationStatus.PENDING) {
-      throw new BusinessRuleViolationException('Only pending applications can be rejected');
+      throw new BusinessRuleViolationException(
+        'Only pending applications can be rejected',
+      );
     }
     this.status = ApplicationStatus.REJECTED;
   }
 
   withdraw(): void {
     if (this.status !== ApplicationStatus.PENDING) {
-      throw new BusinessRuleViolationException('Only pending applications can be withdrawn');
+      throw new BusinessRuleViolationException(
+        'Only pending applications can be withdrawn',
+      );
     }
     this.status = ApplicationStatus.WITHDRAWN;
   }

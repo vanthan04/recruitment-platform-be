@@ -24,13 +24,15 @@ export interface ListCompaniesResult {
 
 @Injectable()
 @QueryHandler(ListCompaniesQuery)
-export class ListCompaniesHandler
-  implements IQueryHandler<ListCompaniesQuery, ListCompaniesResult>
-{
+export class ListCompaniesHandler implements IQueryHandler<
+  ListCompaniesQuery,
+  ListCompaniesResult
+> {
   constructor(private readonly companyRepository: ICompanyRepository) {}
 
   async execute({ input }: ListCompaniesQuery): Promise<ListCompaniesResult> {
-    const { companies, total } = await this.companyRepository.findAllPaginated(input);
+    const { companies, total } =
+      await this.companyRepository.findAllPaginated(input);
 
     return {
       companies: CompanyResponseMapper.toDtoList(companies),

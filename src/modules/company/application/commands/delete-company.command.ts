@@ -12,7 +12,10 @@ export class DeleteCompanyCommand {
 
 @Injectable()
 @CommandHandler(DeleteCompanyCommand)
-export class DeleteCompanyHandler implements ICommandHandler<DeleteCompanyCommand, void> {
+export class DeleteCompanyHandler implements ICommandHandler<
+  DeleteCompanyCommand,
+  void
+> {
   constructor(private readonly companyRepository: ICompanyRepository) {}
 
   async execute({ ownerId, companyId }: DeleteCompanyCommand): Promise<void> {

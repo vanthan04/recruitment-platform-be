@@ -1,12 +1,23 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApplyJobHandler } from '@/modules/application/application/commands/apply-job.command';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
-import { IJobLookupPort, JobLookupResult } from '@/modules/application/application/ports/job-lookup.port';
-import { ICvLookupPort, CvLookupResult } from '@/modules/application/application/ports/cv-lookup.port';
+import {
+  IJobLookupPort,
+  JobLookupResult,
+} from '@/modules/application/application/ports/job-lookup.port';
+import {
+  ICvLookupPort,
+  CvLookupResult,
+} from '@/modules/application/application/ports/cv-lookup.port';
 import { JOB_APPLIED_EVENT } from '@/modules/application/infrastructure/events/job-applied.event';
-import { EntityNotFoundException, DuplicateEntityException } from '@/common/exceptions/domain.exception';
+import {
+  EntityNotFoundException,
+  DuplicateEntityException,
+} from '@/common/exceptions/domain.exception';
 
-function makeOpenJob(overrides: Partial<JobLookupResult> = {}): JobLookupResult {
+function makeOpenJob(
+  overrides: Partial<JobLookupResult> = {},
+): JobLookupResult {
   return {
     id: 'job-1',
     title: 'Backend Developer',
@@ -19,7 +30,9 @@ function makeOpenJob(overrides: Partial<JobLookupResult> = {}): JobLookupResult 
   };
 }
 
-function makePublishedCv(overrides: Partial<CvLookupResult> = {}): CvLookupResult {
+function makePublishedCv(
+  overrides: Partial<CvLookupResult> = {},
+): CvLookupResult {
   return {
     id: 'cv-1',
     userId: 'candidate-1',
@@ -50,7 +63,12 @@ describe('ApplyJobHandler', () => {
     cvLookupPort = { findById: jest.fn() };
     eventEmitter = { emit: jest.fn() } as any;
 
-    handler = new ApplyJobHandler(applicationRepository, jobLookupPort, cvLookupPort, eventEmitter);
+    handler = new ApplyJobHandler(
+      applicationRepository,
+      jobLookupPort,
+      cvLookupPort,
+      eventEmitter,
+    );
   });
 
   it('throws EntityNotFoundException when the job does not exist', async () => {
@@ -79,7 +97,9 @@ describe('ApplyJobHandler', () => {
 
   it('throws when the CV is not published', async () => {
     jobLookupPort.findById.mockResolvedValue(makeOpenJob());
-    cvLookupPort.findById.mockResolvedValue(makePublishedCv({ isPublished: false }));
+    cvLookupPort.findById.mockResolvedValue(
+      makePublishedCv({ isPublished: false }),
+    );
 
     await expect(
       handler.execute({
@@ -91,7 +111,9 @@ describe('ApplyJobHandler', () => {
 
   it('throws when a different candidate owns the CV', async () => {
     jobLookupPort.findById.mockResolvedValue(makeOpenJob());
-    cvLookupPort.findById.mockResolvedValue(makePublishedCv({ userId: 'someone-else' }));
+    cvLookupPort.findById.mockResolvedValue(
+      makePublishedCv({ userId: 'someone-else' }),
+    );
 
     await expect(
       handler.execute({
@@ -104,7 +126,9 @@ describe('ApplyJobHandler', () => {
   it('throws DuplicateEntityException when already applied to the job', async () => {
     jobLookupPort.findById.mockResolvedValue(makeOpenJob());
     cvLookupPort.findById.mockResolvedValue(makePublishedCv());
-    applicationRepository.findByUserIdAndJobId.mockResolvedValue({ id: 'existing-app' } as any);
+    applicationRepository.findByUserIdAndJobId.mockResolvedValue({
+      id: 'existing-app',
+    } as any);
 
     await expect(
       handler.execute({
@@ -118,7 +142,9 @@ describe('ApplyJobHandler', () => {
     jobLookupPort.findById.mockResolvedValue(makeOpenJob());
     cvLookupPort.findById.mockResolvedValue(makePublishedCv());
     applicationRepository.findByUserIdAndJobId.mockResolvedValue(null);
-    applicationRepository.save.mockImplementation(async (app) => ({ ...app, id: 'app-1' }) as any);
+    applicationRepository.save.mockImplementation(
+      async (app) => ({ ...app, id: 'app-1' }) as any,
+    );
 
     const result = await handler.execute({
       userId: 'candidate-1',
@@ -127,7 +153,11 @@ describe('ApplyJobHandler', () => {
 
     expect(result.id).toBe('app-1');
     expect(applicationRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'candidate-1', jobId: 'job-1', cvId: 'cv-1' }),
+      expect.objectContaining({
+        userId: 'candidate-1',
+        jobId: 'job-1',
+        cvId: 'cv-1',
+      }),
     );
     expect(eventEmitter.emit).toHaveBeenCalledWith(
       JOB_APPLIED_EVENT,

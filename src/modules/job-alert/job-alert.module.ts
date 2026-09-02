@@ -14,12 +14,13 @@ import { IJobSearchPort } from '@/modules/job-alert/application/ports/job-search
 import { JobSearchAdapter } from '@/modules/job-alert/infrastructure/adapters/job-search.adapter';
 import { IUserLookupPort } from '@/modules/job-alert/application/ports/user-lookup.port';
 import { UserLookupAdapter } from '@/modules/job-alert/infrastructure/adapters/user-lookup.adapter';
+import { IMailPort } from '@/modules/job-alert/application/ports/mail.port';
+import { MailAdapter } from '@/modules/job-alert/infrastructure/adapters/mail.adapter';
 
 import { CreateSavedSearchHandler } from '@/modules/job-alert/application/commands/create-saved-search.command';
 import { DeleteSavedSearchHandler } from '@/modules/job-alert/application/commands/delete-saved-search.command';
 import { SendJobAlertDigestsHandler } from '@/modules/job-alert/application/commands/send-job-alert-digests.command';
 import { ListMySavedSearchesHandler } from '@/modules/job-alert/application/queries/list-my-saved-searches.query';
-import { JobAlertDigestCron } from '@/modules/job-alert/application/jobs/job-alert-digest.cron';
 
 @Module({
   imports: [CqrsModule, CategoryModule, JobModule, UserModule, MailModule],
@@ -42,11 +43,14 @@ import { JobAlertDigestCron } from '@/modules/job-alert/application/jobs/job-ale
       provide: IUserLookupPort,
       useClass: UserLookupAdapter,
     },
+    {
+      provide: IMailPort,
+      useClass: MailAdapter,
+    },
     CreateSavedSearchHandler,
     DeleteSavedSearchHandler,
     SendJobAlertDigestsHandler,
     ListMySavedSearchesHandler,
-    JobAlertDigestCron,
   ],
 })
 export class JobAlertModule {}

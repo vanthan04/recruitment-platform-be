@@ -16,7 +16,13 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -119,7 +125,9 @@ export class CvController {
   @Roles(UserRole.CANDIDATE)
   @ApiOperation({ summary: 'Publish CV' })
   async publish(@GetMe('id') userId: string, @Param('id') cvId: string) {
-    const result = await this.commandBus.execute(new PublishCvCommand(userId, cvId));
+    const result = await this.commandBus.execute(
+      new PublishCvCommand(userId, cvId),
+    );
     return ApiResponse.ok(result, 'CV published successfully');
   }
 
@@ -136,22 +144,31 @@ export class CvController {
   @ApiOperation({ summary: 'Upload a ready-made CV file (PDF/DOC/DOCX)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
   })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_CV_FILE_SIZE_BYTES } }))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: MAX_CV_FILE_SIZE_BYTES } }),
+  )
   async uploadFile(
     @GetMe('id') userId: string,
     @Param('id') cvId: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const result = await this.commandBus.execute(new UploadCvFileCommand(userId, cvId, file));
+    const result = await this.commandBus.execute(
+      new UploadCvFileCommand(userId, cvId, file),
+    );
     return ApiResponse.ok(result, 'CV file uploaded successfully');
   }
 
   @Get(':id/export')
   @ApiOperation({ summary: 'Export CV as PDF' })
   async exportPdf(@Param('id') cvId: string, @Res() res: Response) {
-    const { buffer, fileName } = await this.queryBus.execute(new ExportCvPdfQuery(cvId));
+    const { buffer, fileName } = await this.queryBus.execute(
+      new ExportCvPdfQuery(cvId),
+    );
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${fileName}"`,

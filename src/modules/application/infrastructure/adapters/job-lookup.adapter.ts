@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { IJobLookupPort, JobLookupResult } from '@/modules/application/application/ports/job-lookup.port';
+import {
+  IJobLookupPort,
+  JobLookupResult,
+} from '@/modules/application/application/ports/job-lookup.port';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 
 @Injectable()

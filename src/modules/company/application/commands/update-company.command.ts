@@ -26,12 +26,17 @@ export class UpdateCompanyCommand {
 
 @Injectable()
 @CommandHandler(UpdateCompanyCommand)
-export class UpdateCompanyHandler
-  implements ICommandHandler<UpdateCompanyCommand, CompanyResponseDto>
-{
+export class UpdateCompanyHandler implements ICommandHandler<
+  UpdateCompanyCommand,
+  CompanyResponseDto
+> {
   constructor(private readonly companyRepository: ICompanyRepository) {}
 
-  async execute({ ownerId, companyId, input }: UpdateCompanyCommand): Promise<CompanyResponseDto> {
+  async execute({
+    ownerId,
+    companyId,
+    input,
+  }: UpdateCompanyCommand): Promise<CompanyResponseDto> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) {
       throw new EntityNotFoundException('Company', companyId);

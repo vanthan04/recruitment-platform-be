@@ -22,12 +22,15 @@ export function buildInterviewEmail(
     };
   }
 
-  const actionLabel = action === 'rescheduled' ? 'đã được dời sang' : 'đã được lên lịch vào';
+  const actionLabel =
+    action === 'rescheduled' ? 'đã được dời sang' : 'đã được lên lịch vào';
   const lines: string[] = [
     `<p>Lịch phỏng vấn cho vị trí <b>${jobTitle}</b> ${actionLabel} <b>${formatDateTime(scheduledAt)}</b>.</p>`,
   ];
   if (meetingLink) {
-    lines.push(`<p>Link tham gia phỏng vấn online: <a href="${meetingLink}">${meetingLink}</a></p>`);
+    lines.push(
+      `<p>Link tham gia phỏng vấn online: <a href="${meetingLink}">${meetingLink}</a></p>`,
+    );
   }
   if (location) {
     lines.push(`<p>Địa điểm phỏng vấn trực tiếp: ${location}</p>`);

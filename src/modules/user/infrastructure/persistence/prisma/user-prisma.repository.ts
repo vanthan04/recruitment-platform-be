@@ -9,7 +9,7 @@ import { UserRole } from '@/common/enums/user-role.enum';
 import { UserStatus } from '@/common/enums/user-status.enum';
 
 @Injectable()
-export class UserPrismaRepository 
+export class UserPrismaRepository
   extends BasePrismaRepository<
     Prisma.UserDelegate,
     {
@@ -19,8 +19,8 @@ export class UserPrismaRepository
       update: Prisma.UserUpdateArgs;
       delete: Prisma.UserDeleteArgs;
     }
-  > 
-  implements IUserRepository 
+  >
+  implements IUserRepository
 {
   constructor(private readonly prismaService: PrismaService) {
     super(prismaService.user);
@@ -68,30 +68,32 @@ export class UserPrismaRepository
           verifyCode: data.verifyCode,
           role: data.role as any,
           status: data.status as any,
-          profile: data.profile ? {
-            upsert: {
-              create: {
-                fullName: data.profile.fullName || '',
-                phoneNumber: data.profile.phoneNumber,
-                gender: data.profile.gender as any,
-                birthDate: data.profile.birthDate,
-                avatarUrl: data.profile.avatarUrl,
-                headline: data.profile.headline,
-                summary: data.profile.summary,
-              },
-              update: {
-                fullName: data.profile.fullName,
-                phoneNumber: data.profile.phoneNumber,
-                gender: data.profile.gender as any,
-                birthDate: data.profile.birthDate,
-                avatarUrl: data.profile.avatarUrl,
-                headline: data.profile.headline,
-                summary: data.profile.summary,
+          profile: data.profile
+            ? {
+                upsert: {
+                  create: {
+                    fullName: data.profile.fullName || '',
+                    phoneNumber: data.profile.phoneNumber,
+                    gender: data.profile.gender as any,
+                    birthDate: data.profile.birthDate,
+                    avatarUrl: data.profile.avatarUrl,
+                    headline: data.profile.headline,
+                    summary: data.profile.summary,
+                  },
+                  update: {
+                    fullName: data.profile.fullName,
+                    phoneNumber: data.profile.phoneNumber,
+                    gender: data.profile.gender as any,
+                    birthDate: data.profile.birthDate,
+                    avatarUrl: data.profile.avatarUrl,
+                    headline: data.profile.headline,
+                    summary: data.profile.summary,
+                  },
+                },
               }
-            }
-          } : undefined
+            : undefined,
         },
-        include: { profile: true }
+        include: { profile: true },
       });
       return UserMapper.toDomain(updated)!;
     }
@@ -118,7 +120,10 @@ export class UserPrismaRepository
     return UserMapper.toDomain(created)!;
   }
 
-  async updateProfile(userId: string, profile: Partial<User['profile']>): Promise<void> {
+  async updateProfile(
+    userId: string,
+    profile: Partial<User['profile']>,
+  ): Promise<void> {
     await this.prismaService.user.update({
       where: { id: userId },
       data: {
@@ -131,9 +136,9 @@ export class UserPrismaRepository
             avatarUrl: profile?.avatarUrl,
             headline: profile?.headline,
             summary: profile?.summary,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 
@@ -145,14 +150,20 @@ export class UserPrismaRepository
     return UserMapper.toDomain(user);
   }
 
-  async updateCompanyId(userId: string, companyId: string | null): Promise<void> {
+  async updateCompanyId(
+    userId: string,
+    companyId: string | null,
+  ): Promise<void> {
     await this.prismaService.user.update({
       where: { id: userId },
       data: { companyId },
     });
   }
 
-  async findAllPaginated(page: number, limit: number): Promise<{ users: User[]; total: number }> {
+  async findAllPaginated(
+    page: number,
+    limit: number,
+  ): Promise<{ users: User[]; total: number }> {
     const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([
       this.prismaService.user.findMany({
@@ -165,7 +176,7 @@ export class UserPrismaRepository
     ]);
 
     return {
-      users: users.map(user => UserMapper.toDomain(user)!),
+      users: users.map((user) => UserMapper.toDomain(user)!),
       total,
     };
   }

@@ -15,6 +15,8 @@ import { IInterviewApplicationLookupPort } from '@/modules/interview/application
 import { InterviewApplicationLookupAdapter } from '@/modules/interview/infrastructure/adapters/application-lookup.adapter';
 import { IInterviewUserLookupPort } from '@/modules/interview/application/ports/user-lookup.port';
 import { InterviewUserLookupAdapter } from '@/modules/interview/infrastructure/adapters/user-lookup.adapter';
+import { IInterviewMailPort } from '@/modules/interview/application/ports/mail.port';
+import { InterviewMailAdapter } from '@/modules/interview/infrastructure/adapters/mail.adapter';
 
 import { ScheduleInterviewHandler } from '@/modules/interview/application/commands/schedule-interview.command';
 import { RescheduleInterviewHandler } from '@/modules/interview/application/commands/reschedule-interview.command';
@@ -22,7 +24,13 @@ import { CancelInterviewHandler } from '@/modules/interview/application/commands
 import { ListInterviewsByApplicationHandler } from '@/modules/interview/application/queries/list-interviews-by-application.query';
 
 @Module({
-  imports: [CqrsModule, JobModule, JobApplicationModule, UserModule, MailModule],
+  imports: [
+    CqrsModule,
+    JobModule,
+    JobApplicationModule,
+    UserModule,
+    MailModule,
+  ],
   controllers: [InterviewController],
   providers: [
     InterviewSchedulePrismaRepository,
@@ -41,6 +49,10 @@ import { ListInterviewsByApplicationHandler } from '@/modules/interview/applicat
     {
       provide: IInterviewUserLookupPort,
       useClass: InterviewUserLookupAdapter,
+    },
+    {
+      provide: IInterviewMailPort,
+      useClass: InterviewMailAdapter,
     },
     ScheduleInterviewHandler,
     RescheduleInterviewHandler,

@@ -18,9 +18,7 @@ export class JobDomainService {
     }
 
     if (job.isExpired) {
-      throw new BusinessRuleViolationException(
-        'This job posting has expired',
-      );
+      throw new BusinessRuleViolationException('This job posting has expired');
     }
 
     if (job.isDeleted) {

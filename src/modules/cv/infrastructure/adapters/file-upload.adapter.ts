@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { IFileUploadPort, UploadedFileResult } from '@/modules/cv/application/ports/file-upload.port';
+import {
+  IFileUploadPort,
+  UploadedFileResult,
+} from '@/modules/cv/application/ports/file-upload.port';
 import { FileUploadService } from '@/modules/file-upload/application/file-upload.service';
 
 @Injectable()

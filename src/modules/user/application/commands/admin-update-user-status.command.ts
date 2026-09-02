@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@/common/enums/user-role.enum';
+import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 
 export interface AdminUpdateUserInput {
   status?: UserStatus;
@@ -24,14 +25,14 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
   async execute({ userId, input }: AdminUpdateUserStatusCommand) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('Người dùng không tồn tại');
+      throw new EntityNotFoundException('User', userId);
     }
 
     if (input.status) {
-      user.status = input.status;
+      user.changeStatus(input.status);
     }
     if (input.role) {
-      user.role = input.role;
+      user.changeRole(input.role);
     }
 
     await this.userRepository.save(user);

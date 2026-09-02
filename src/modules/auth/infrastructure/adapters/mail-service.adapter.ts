@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { IAuthMailServicePort, SendMailOptions } from '../../application/ports/auth-mail-service.port';
+import {
+  IAuthMailServicePort,
+  SendMailOptions,
+} from '../../application/ports/auth-mail-service.port';
 import { IMailService } from '@/modules/mail/domain/ports/mail.service.port';
 
 @Injectable()

@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { Gender } from '@/common/enums/gender.enum';
+import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 
 export interface UpdateProfileInput {
   fullName?: string;
@@ -26,7 +27,7 @@ export class UpdateProfileHandler implements ICommandHandler<UpdateProfileComman
   async execute({ userId, input }: UpdateProfileCommand) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('Người dùng không tồn tại');
+      throw new EntityNotFoundException('User', userId);
     }
 
     await this.userRepository.updateProfile(userId, input);

@@ -21,17 +21,25 @@ export interface ListMyNotificationsResult {
 
 @Injectable()
 @QueryHandler(ListMyNotificationsQuery)
-export class ListMyNotificationsHandler
-  implements IQueryHandler<ListMyNotificationsQuery, ListMyNotificationsResult>
-{
-  constructor(private readonly notificationRepository: INotificationRepository) {}
+export class ListMyNotificationsHandler implements IQueryHandler<
+  ListMyNotificationsQuery,
+  ListMyNotificationsResult
+> {
+  constructor(
+    private readonly notificationRepository: INotificationRepository,
+  ) {}
 
-  async execute({ userId, page, limit }: ListMyNotificationsQuery): Promise<ListMyNotificationsResult> {
-    const { notifications, total } = await this.notificationRepository.findAllByUserPaginated(
-      userId,
-      page,
-      limit,
-    );
+  async execute({
+    userId,
+    page,
+    limit,
+  }: ListMyNotificationsQuery): Promise<ListMyNotificationsResult> {
+    const { notifications, total } =
+      await this.notificationRepository.findAllByUserPaginated(
+        userId,
+        page,
+        limit,
+      );
 
     return {
       notifications: NotificationResponseMapper.toDtoList(notifications),

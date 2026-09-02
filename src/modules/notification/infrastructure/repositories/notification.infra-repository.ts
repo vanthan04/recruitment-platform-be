@@ -6,7 +6,9 @@ import { NotificationMapper } from '@/modules/notification/infrastructure/persis
 
 @Injectable()
 export class NotificationInfraRepository implements INotificationRepository {
-  constructor(private readonly notificationPrisma: NotificationPrismaRepository) {}
+  constructor(
+    private readonly notificationPrisma: NotificationPrismaRepository,
+  ) {}
 
   async findById(id: string): Promise<Notification | null> {
     const raw = await this.notificationPrisma.findById(id);
@@ -19,11 +21,8 @@ export class NotificationInfraRepository implements INotificationRepository {
     limit: number,
   ): Promise<{ notifications: Notification[]; total: number }> {
     const skip = (page - 1) * limit;
-    const { notifications: raws, total } = await this.notificationPrisma.findAllByUserPaginated(
-      userId,
-      skip,
-      limit,
-    );
+    const { notifications: raws, total } =
+      await this.notificationPrisma.findAllByUserPaginated(userId, skip, limit);
 
     return {
       notifications: raws.map((r) => NotificationMapper.toDomain(r)!),

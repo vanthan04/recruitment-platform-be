@@ -3,7 +3,10 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IInterviewScheduleRepository } from '@/modules/interview/domain/repositories/interview-schedule.repository';
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
-import { EntityNotFoundException, UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
+import {
+  EntityNotFoundException,
+  UnauthorizedDomainException,
+} from '@/common/exceptions/domain.exception';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 
@@ -16,9 +19,10 @@ export class ListInterviewsByApplicationQuery {
 
 @Injectable()
 @QueryHandler(ListInterviewsByApplicationQuery)
-export class ListInterviewsByApplicationHandler
-  implements IQueryHandler<ListInterviewsByApplicationQuery, InterviewResponseDto[]>
-{
+export class ListInterviewsByApplicationHandler implements IQueryHandler<
+  ListInterviewsByApplicationQuery,
+  InterviewResponseDto[]
+> {
   constructor(
     private readonly interviewRepository: IInterviewScheduleRepository,
     private readonly applicationLookupPort: IInterviewApplicationLookupPort,
@@ -29,8 +33,10 @@ export class ListInterviewsByApplicationHandler
     requesterId,
     jobApplicationId,
   }: ListInterviewsByApplicationQuery): Promise<InterviewResponseDto[]> {
-    const application = await this.applicationLookupPort.findById(jobApplicationId);
-    if (!application) throw new EntityNotFoundException('Application', jobApplicationId);
+    const application =
+      await this.applicationLookupPort.findById(jobApplicationId);
+    if (!application)
+      throw new EntityNotFoundException('Application', jobApplicationId);
 
     const job = await this.jobLookupPort.findById(application.jobId);
     if (!job) throw new EntityNotFoundException('Job', application.jobId);
@@ -38,10 +44,13 @@ export class ListInterviewsByApplicationHandler
     const isCandidate = application.userId === requesterId;
     const isRecruiterOwner = job.postedById === requesterId;
     if (!isCandidate && !isRecruiterOwner) {
-      throw new UnauthorizedDomainException('You are not allowed to view interviews for this application');
+      throw new UnauthorizedDomainException(
+        'You are not allowed to view interviews for this application',
+      );
     }
 
-    const interviews = await this.interviewRepository.findByApplicationId(jobApplicationId);
+    const interviews =
+      await this.interviewRepository.findByApplicationId(jobApplicationId);
     return InterviewResponseMapper.toDtoList(interviews);
   }
 }

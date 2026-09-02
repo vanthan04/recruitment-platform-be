@@ -42,9 +42,16 @@ export class CompanyController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.RECRUITER)
-  @ApiOperation({ summary: 'Create my company (Recruiter only, 1 per recruiter)' })
-  async create(@GetMe('id') recruiterId: string, @Body() dto: CreateCompanyDto) {
-    const result = await this.commandBus.execute(new CreateCompanyCommand(recruiterId, dto));
+  @ApiOperation({
+    summary: 'Create my company (Recruiter only, 1 per recruiter)',
+  })
+  async create(
+    @GetMe('id') recruiterId: string,
+    @Body() dto: CreateCompanyDto,
+  ) {
+    const result = await this.commandBus.execute(
+      new CreateCompanyCommand(recruiterId, dto),
+    );
     return ApiResponse.ok(result, 'Company created successfully');
   }
 
@@ -59,15 +66,19 @@ export class CompanyController {
         industry: query.industry,
       }),
     );
-    return ApiResponse.ok(result.companies, 'Companies retrieved successfully', {
-      total: result.total,
-      page: result.page,
-      limit: result.limit,
-    });
+    return ApiResponse.ok(
+      result.companies,
+      'Companies retrieved successfully',
+      {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      },
+    );
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get company by ID (with its open jobs)' })
+  @ApiOperation({ summary: 'Get company by ID' })
   async getById(@Param('id') id: string) {
     const result = await this.queryBus.execute(new GetCompanyQuery(id));
     return ApiResponse.ok(result, 'Company retrieved successfully');
@@ -95,7 +106,12 @@ export class CompanyController {
   @Roles(UserRole.RECRUITER)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete company (Owner only, soft delete)' })
-  async delete(@GetMe('id') recruiterId: string, @Param('id') companyId: string) {
-    await this.commandBus.execute(new DeleteCompanyCommand(recruiterId, companyId));
+  async delete(
+    @GetMe('id') recruiterId: string,
+    @Param('id') companyId: string,
+  ) {
+    await this.commandBus.execute(
+      new DeleteCompanyCommand(recruiterId, companyId),
+    );
   }
 }

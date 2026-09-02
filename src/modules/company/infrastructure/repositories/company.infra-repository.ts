@@ -48,11 +48,12 @@ export class CompanyInfraRepository implements ICompanyRepository {
       where.industry = { contains: params.industry, mode: 'insensitive' };
     }
 
-    const { companies: raws, total } = await this.companyPrisma.findAllPaginated({
-      skip,
-      take: params.limit,
-      where,
-    });
+    const { companies: raws, total } =
+      await this.companyPrisma.findAllPaginated({
+        skip,
+        take: params.limit,
+        where,
+      });
 
     return {
       companies: raws.map((r) => CompanyMapper.toDomain(r)!),

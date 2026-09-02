@@ -5,6 +5,9 @@ import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
 
 export class JobMapper {
+  // `raw.company`/`raw.category` are attached by JobInfraRepository (via
+  // ICompanyLookupPort/ICategoryLookupPort) after this mapping, never by a
+  // Prisma include — this mapper only ever sees the job's own columns.
   static toDomain(raw: any): Job | null {
     if (!raw) return null;
 
@@ -13,13 +16,7 @@ export class JobMapper {
       title: raw.title,
       description: raw.description,
       companyId: raw.companyId,
-      company: raw.company
-        ? { id: raw.company.id, name: raw.company.name, logoUrl: raw.company.logoUrl }
-        : undefined,
       categoryId: raw.categoryId,
-      category: raw.category
-        ? { id: raw.category.id, name: raw.category.name, slug: raw.category.slug }
-        : undefined,
       location: raw.location,
       jobType: raw.jobType as JobType,
       level: raw.level as JobLevel | null,

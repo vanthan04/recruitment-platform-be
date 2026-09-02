@@ -10,13 +10,17 @@ export class ListMySavedSearchesQuery {
 
 @Injectable()
 @QueryHandler(ListMySavedSearchesQuery)
-export class ListMySavedSearchesHandler
-  implements IQueryHandler<ListMySavedSearchesQuery, SavedSearchResponseDto[]>
-{
+export class ListMySavedSearchesHandler implements IQueryHandler<
+  ListMySavedSearchesQuery,
+  SavedSearchResponseDto[]
+> {
   constructor(private readonly savedSearchRepository: ISavedSearchRepository) {}
 
-  async execute({ userId }: ListMySavedSearchesQuery): Promise<SavedSearchResponseDto[]> {
-    const savedSearches = await this.savedSearchRepository.findAllByUserId(userId);
+  async execute({
+    userId,
+  }: ListMySavedSearchesQuery): Promise<SavedSearchResponseDto[]> {
+    const savedSearches =
+      await this.savedSearchRepository.findAllByUserId(userId);
     return SavedSearchResponseMapper.toDtoList(savedSearches);
   }
 }

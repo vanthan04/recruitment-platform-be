@@ -20,12 +20,12 @@ export class JobApplicationPrismaRepository {
   }
 
   async findAllByJobId(jobId: string) {
+    // No `include` here on purpose — JobApplicationMapper.toDomain only ever
+    // reads the JobApplication's own scalar columns. Candidate/CV summaries
+    // for the recruiter view are fetched separately via ports
+    // (IApplicationUserLookupPort etc.), not a cross-module Prisma join.
     return this.prisma.jobApplication.findMany({
       where: { jobId },
-      include: {
-        user: { include: { profile: true } },
-        cv: true,
-      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -33,9 +33,6 @@ export class JobApplicationPrismaRepository {
   async findAllByUserId(userId: string) {
     return this.prisma.jobApplication.findMany({
       where: { userId },
-      include: {
-        job: true,
-      },
       orderBy: { createdAt: 'desc' },
     });
   }

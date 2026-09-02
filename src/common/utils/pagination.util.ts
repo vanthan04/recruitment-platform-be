@@ -38,13 +38,13 @@ export const getPaginationInfo = ({
   let totalPages = Math.ceil(total / limit);
   const currentPage = Math.max(DEFAULT_PAGINATION.DEFAULT_PAGE, page);
   if (totalPages < currentPage && totalPages !== 0) {
-      // Logic adjustment if needed, but keeping user's logic
+    // Logic adjustment if needed, but keeping user's logic
   }
   if (totalPages < currentPage) totalPages = totalPages; // user logic was totalPages = 0 but let's stick closer to their snippet
-  
+
   const hasNextPage = currentPage < totalPages;
   const hasPrevPage = currentPage > 1;
-  
+
   return {
     page: currentPage,
     limit,
@@ -55,7 +55,13 @@ export const getPaginationInfo = ({
   };
 };
 
-export const getSortedDataInfo = ({ sortKey, order }: { sortKey: string; order: string }) => {
+export const getSortedDataInfo = ({
+  sortKey,
+  order,
+}: {
+  sortKey: string;
+  order: string;
+}) => {
   const sortKeyMap: Record<string, string> = {
     date: 'createdAt',
   };

@@ -12,7 +12,7 @@ export class ApplicationResponseMapper {
     dto.cvId = app.cvId;
     dto.createdAt = app.createdAt;
     dto.updatedAt = app.updatedAt;
-    
+
     // In a real scenario, we might map nested relations if they exist in the domain object
     return dto;
   }

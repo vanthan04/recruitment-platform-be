@@ -12,9 +12,9 @@ import { ConversationResponseMapper } from '@/modules/chat/application/mappers/c
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
 import {
   EntityNotFoundException,
-  UnauthorizedDomainException,
   BusinessRuleViolationException,
 } from '@/common/exceptions/domain.exception';
+import { ensureOwner } from '@/common/utils/ownership.util';
 
 const ELIGIBLE_APPLICATION_STATUS = 'ACCEPTED';
 
@@ -57,11 +57,11 @@ export class CreateConversationHandler implements ICommandHandler<
     const job = await this.jobLookupPort.findById(application.jobId);
     if (!job) throw new EntityNotFoundException('Job', application.jobId);
 
-    if (job.postedById !== recruiterId) {
-      throw new UnauthorizedDomainException(
-        'Only the job poster can start this conversation',
-      );
-    }
+    ensureOwner(
+      job.postedById,
+      recruiterId,
+      'Only the job poster can start this conversation',
+    );
 
     const conversation = new Conversation({
       jobId: job.id,

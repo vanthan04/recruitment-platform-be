@@ -66,7 +66,9 @@ describe('Job entity', () => {
 
     it('throws UnauthorizedDomainException for a different recruiter', () => {
       const job = makeJob({ postedById: 'recruiter-1' });
-      expect(() => job.ensureOwner('recruiter-2')).toThrow(UnauthorizedDomainException);
+      expect(() => job.ensureOwner('recruiter-2')).toThrow(
+        UnauthorizedDomainException,
+      );
     });
   });
 
@@ -82,12 +84,18 @@ describe('Job entity', () => {
     });
 
     it('is open only when status is OPEN, not expired, and not deleted', () => {
-      const job = makeJob({ status: JobStatus.OPEN, expiresAt: new Date('2999-01-01') });
+      const job = makeJob({
+        status: JobStatus.OPEN,
+        expiresAt: new Date('2999-01-01'),
+      });
       expect(job.isOpen).toBe(true);
     });
 
     it('is not open when expired even if status is OPEN', () => {
-      const job = makeJob({ status: JobStatus.OPEN, expiresAt: new Date('2000-01-01') });
+      const job = makeJob({
+        status: JobStatus.OPEN,
+        expiresAt: new Date('2000-01-01'),
+      });
       expect(job.isOpen).toBe(false);
     });
   });

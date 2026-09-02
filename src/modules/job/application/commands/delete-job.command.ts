@@ -12,7 +12,10 @@ export class DeleteJobCommand {
 
 @Injectable()
 @CommandHandler(DeleteJobCommand)
-export class DeleteJobHandler implements ICommandHandler<DeleteJobCommand, void> {
+export class DeleteJobHandler implements ICommandHandler<
+  DeleteJobCommand,
+  void
+> {
   constructor(private readonly jobRepository: IJobRepository) {}
 
   async execute({ recruiterId, jobId }: DeleteJobCommand): Promise<void> {

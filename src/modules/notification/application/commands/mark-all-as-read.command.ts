@@ -8,8 +8,13 @@ export class MarkAllAsReadCommand {
 
 @Injectable()
 @CommandHandler(MarkAllAsReadCommand)
-export class MarkAllAsReadHandler implements ICommandHandler<MarkAllAsReadCommand, void> {
-  constructor(private readonly notificationRepository: INotificationRepository) {}
+export class MarkAllAsReadHandler implements ICommandHandler<
+  MarkAllAsReadCommand,
+  void
+> {
+  constructor(
+    private readonly notificationRepository: INotificationRepository,
+  ) {}
 
   async execute({ userId }: MarkAllAsReadCommand): Promise<void> {
     await this.notificationRepository.markAllAsRead(userId);

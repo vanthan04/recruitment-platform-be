@@ -14,10 +14,10 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { RolesGuard } from '@/common/guards/roles.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
 import { CreateJobCommand } from '@/modules/job/application/commands/create-job.command';
@@ -42,11 +42,13 @@ export class JobController {
 
   @Post()
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.JOB_CREATE)
   @ApiOperation({ summary: 'Create a new job (Recruiter only)' })
   async create(@GetMe('id') recruiterId: string, @Body() dto: CreateJobDto) {
-    const result = await this.commandBus.execute(new CreateJobCommand(recruiterId, dto));
+    const result = await this.commandBus.execute(
+      new CreateJobCommand(recruiterId, dto),
+    );
     return ApiResponse.ok(result, 'Job created successfully');
   }
 
@@ -83,22 +85,24 @@ export class JobController {
 
   @Patch(':id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.JOB_UPDATE)
   @ApiOperation({ summary: 'Update job (Recruiter owner only)' })
   async update(
     @GetMe('id') recruiterId: string,
     @Param('id') jobId: string,
     @Body() dto: UpdateJobDto,
   ) {
-    const result = await this.commandBus.execute(new UpdateJobCommand(recruiterId, jobId, dto));
+    const result = await this.commandBus.execute(
+      new UpdateJobCommand(recruiterId, jobId, dto),
+    );
     return ApiResponse.ok(result, 'Job updated successfully');
   }
 
   @Delete(':id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.JOB_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete job (Recruiter owner only)' })
   async delete(@GetMe('id') recruiterId: string, @Param('id') jobId: string) {
@@ -107,21 +111,27 @@ export class JobController {
 
   @Patch(':id/close')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
-  @ApiOperation({ summary: 'Close job, stop accepting applications (Recruiter owner only)' })
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.JOB_UPDATE)
+  @ApiOperation({
+    summary: 'Close job, stop accepting applications (Recruiter owner only)',
+  })
   async close(@GetMe('id') recruiterId: string, @Param('id') jobId: string) {
-    const result = await this.commandBus.execute(new CloseJobCommand(recruiterId, jobId));
+    const result = await this.commandBus.execute(
+      new CloseJobCommand(recruiterId, jobId),
+    );
     return ApiResponse.ok(result, 'Job closed successfully');
   }
 
   @Patch(':id/reopen')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.RECRUITER)
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.JOB_UPDATE)
   @ApiOperation({ summary: 'Reopen a closed job (Recruiter owner only)' })
   async reopen(@GetMe('id') recruiterId: string, @Param('id') jobId: string) {
-    const result = await this.commandBus.execute(new ReopenJobCommand(recruiterId, jobId));
+    const result = await this.commandBus.execute(
+      new ReopenJobCommand(recruiterId, jobId),
+    );
     return ApiResponse.ok(result, 'Job reopened successfully');
   }
 }

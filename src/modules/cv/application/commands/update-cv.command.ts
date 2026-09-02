@@ -47,10 +47,17 @@ export class UpdateCvCommand {
 
 @Injectable()
 @CommandHandler(UpdateCvCommand)
-export class UpdateCvHandler implements ICommandHandler<UpdateCvCommand, CvResponseDto> {
+export class UpdateCvHandler implements ICommandHandler<
+  UpdateCvCommand,
+  CvResponseDto
+> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
-  async execute({ userId, cvId, input }: UpdateCvCommand): Promise<CvResponseDto> {
+  async execute({
+    userId,
+    cvId,
+    input,
+  }: UpdateCvCommand): Promise<CvResponseDto> {
     const cv = await this.cvRepository.findByIdWithRelations(cvId);
     if (!cv) {
       throw new EntityNotFoundException('CV', cvId);

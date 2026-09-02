@@ -101,6 +101,50 @@ enum InterviewStatus {
 }
 
 // ─────────────────────────────────────────────
+// RBAC Module (database-driven authorization)
+// ─────────────────────────────────────────────
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  createdAt DateTime @default(now())
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ─────────────────────────────────────────────
 // User & Profile
 // ─────────────────────────────────────────────
 
@@ -109,7 +153,13 @@ model User {
   email        String     @unique
   password     String
   verifyCode   String?
+  // Legacy enum column, kept in sync with roleId by a DB trigger (see migration).
+  // Application code still reads/writes this column so the existing auth flow
+  // (JWT payload, register, admin role change) needs no changes. roleId/roleRef
+  // is the DB-driven RBAC join used by PermissionGuard and the RBAC admin API.
   role         UserRole   @default(CANDIDATE)
+  roleRef      Role       @relation(fields: [roleId], references: [id])
+  roleId       String
   status       UserStatus @default(PENDING)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

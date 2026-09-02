@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { DuplicateEntityException } from '@/common/exceptions/domain.exception';
 import { RegisterHandler } from '@/modules/auth/application/commands/register.command';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
@@ -23,7 +23,7 @@ describe('RegisterHandler', () => {
     handler = new RegisterHandler(userRepository, mailService);
   });
 
-  it('throws ConflictException when the email is already registered', async () => {
+  it('throws DuplicateEntityException when the email is already registered', async () => {
     userRepository.existsByEmail.mockResolvedValue(true);
 
     await expect(
@@ -35,7 +35,7 @@ describe('RegisterHandler', () => {
           role: UserRole.CANDIDATE,
         },
       } as any),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(DuplicateEntityException);
 
     expect(userRepository.save).not.toHaveBeenCalled();
     expect(mailService.sendEmail).not.toHaveBeenCalled();

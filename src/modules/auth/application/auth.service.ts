@@ -1,10 +1,11 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import * as crypto from 'crypto';
-import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
+import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
+import { UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
 import { RegisterCommand } from '@/modules/auth/application/commands/register.command';
@@ -23,7 +24,7 @@ const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // matches the 7d expiresI
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: IAuthUserRepositoryPort,
     private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -62,7 +63,10 @@ export class AuthService {
 
   /** Logout this device only — revokes just the session tied to the given refresh token. */
   async logout(userId: string, refreshToken: string) {
-    await this.refreshTokenRepository.revokeByHash(userId, this.hashToken(refreshToken));
+    await this.refreshTokenRepository.revokeByHash(
+      userId,
+      this.hashToken(refreshToken),
+    );
   }
 
   /** Logout everywhere — revokes every active session for the user. */
@@ -77,7 +81,7 @@ export class AuthService {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new ForbiddenException('Invalid Refresh Token');
+      throw new UnauthorizedDomainException('Invalid Refresh Token');
     }
 
     const userId = payload.sub;
@@ -85,12 +89,12 @@ export class AuthService {
 
     const stored = await this.refreshTokenRepository.findValidByHash(tokenHash);
     if (!stored || stored.userId !== userId) {
-      throw new ForbiddenException('Access Denied');
+      throw new UnauthorizedDomainException('Access Denied');
     }
 
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new ForbiddenException('Access Denied');
+      throw new UnauthorizedDomainException('Access Denied');
     }
 
     // Rotate: the old refresh token is single-use — revoke it before issuing a new pair.
@@ -146,9 +150,5 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
     };
-  }
-
-  async validateUser(payload: any) {
-    return this.userRepository.findById(payload.sub);
   }
 }

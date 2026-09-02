@@ -18,12 +18,21 @@ export class InterviewSchedule extends BaseEntity {
     this.ensureLocationOrMeetingLink();
   }
 
-  reschedule(scheduledAt: Date, location?: string | null, meetingLink?: string | null, note?: string | null): void {
+  reschedule(
+    scheduledAt: Date,
+    location?: string | null,
+    meetingLink?: string | null,
+    note?: string | null,
+  ): void {
     if (this.status === InterviewStatus.CANCELLED) {
-      throw new BusinessRuleViolationException('Cannot reschedule a cancelled interview');
+      throw new BusinessRuleViolationException(
+        'Cannot reschedule a cancelled interview',
+      );
     }
     if (scheduledAt.getTime() <= Date.now()) {
-      throw new BusinessRuleViolationException('Interview time must be in the future');
+      throw new BusinessRuleViolationException(
+        'Interview time must be in the future',
+      );
     }
 
     this.scheduledAt = scheduledAt;
@@ -36,14 +45,18 @@ export class InterviewSchedule extends BaseEntity {
 
   cancel(): void {
     if (this.status === InterviewStatus.CANCELLED) {
-      throw new BusinessRuleViolationException('Interview is already cancelled');
+      throw new BusinessRuleViolationException(
+        'Interview is already cancelled',
+      );
     }
     this.status = InterviewStatus.CANCELLED;
   }
 
   private ensureLocationOrMeetingLink(): void {
     if (!this.location && !this.meetingLink) {
-      throw new BusinessRuleViolationException('Either location or meetingLink must be provided');
+      throw new BusinessRuleViolationException(
+        'Either location or meetingLink must be provided',
+      );
     }
   }
 }

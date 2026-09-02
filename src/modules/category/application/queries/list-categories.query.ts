@@ -8,7 +8,10 @@ export class ListCategoriesQuery {}
 
 @Injectable()
 @QueryHandler(ListCategoriesQuery)
-export class ListCategoriesHandler implements IQueryHandler<ListCategoriesQuery, CategoryResponseDto[]> {
+export class ListCategoriesHandler implements IQueryHandler<
+  ListCategoriesQuery,
+  CategoryResponseDto[]
+> {
   constructor(private readonly categoryRepository: ICategoryRepository) {}
 
   async execute(): Promise<CategoryResponseDto[]> {

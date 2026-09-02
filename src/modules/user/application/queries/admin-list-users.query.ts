@@ -19,12 +19,16 @@ export interface AdminListUsersResult {
 
 @Injectable()
 @QueryHandler(AdminListUsersQuery)
-export class AdminListUsersHandler
-  implements IQueryHandler<AdminListUsersQuery, AdminListUsersResult>
-{
+export class AdminListUsersHandler implements IQueryHandler<
+  AdminListUsersQuery,
+  AdminListUsersResult
+> {
   constructor(private readonly userRepository: IUserRepository) {}
 
-  async execute({ page, limit }: AdminListUsersQuery): Promise<AdminListUsersResult> {
+  async execute({
+    page,
+    limit,
+  }: AdminListUsersQuery): Promise<AdminListUsersResult> {
     const normalized = normalizePagination({ page, limit });
 
     const { users, total } = await this.userRepository.findAllPaginated(
@@ -37,6 +41,11 @@ export class AdminListUsersHandler
       return safeUser;
     });
 
-    return { users: data, total, page: normalized.page, limit: normalized.limit };
+    return {
+      users: data,
+      total,
+      page: normalized.page,
+      limit: normalized.limit,
+    };
   }
 }

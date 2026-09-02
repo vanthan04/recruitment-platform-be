@@ -6,5 +6,7 @@ export interface InterviewApplicationLookupResult {
 }
 
 export abstract class IInterviewApplicationLookupPort {
-  abstract findById(applicationId: string): Promise<InterviewApplicationLookupResult | null>;
+  abstract findById(
+    applicationId: string,
+  ): Promise<InterviewApplicationLookupResult | null>;
 }

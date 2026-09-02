@@ -30,7 +30,10 @@ export interface ListJobsResult {
 
 @Injectable()
 @QueryHandler(ListJobsQuery)
-export class ListJobsHandler implements IQueryHandler<ListJobsQuery, ListJobsResult> {
+export class ListJobsHandler implements IQueryHandler<
+  ListJobsQuery,
+  ListJobsResult
+> {
   constructor(private readonly jobRepository: IJobRepository) {}
 
   async execute({ input }: ListJobsQuery): Promise<ListJobsResult> {

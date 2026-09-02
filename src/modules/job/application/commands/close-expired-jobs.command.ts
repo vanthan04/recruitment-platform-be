@@ -9,7 +9,10 @@ export class CloseExpiredJobsCommand {}
 
 @Injectable()
 @CommandHandler(CloseExpiredJobsCommand)
-export class CloseExpiredJobsHandler implements ICommandHandler<CloseExpiredJobsCommand, void> {
+export class CloseExpiredJobsHandler implements ICommandHandler<
+  CloseExpiredJobsCommand,
+  void
+> {
   private readonly logger = new Logger(CloseExpiredJobsHandler.name);
 
   constructor(private readonly jobRepository: IJobRepository) {}

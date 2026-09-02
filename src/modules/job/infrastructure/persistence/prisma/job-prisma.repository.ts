@@ -6,23 +6,13 @@ import { Prisma } from '@prisma/client';
 export class JobPrismaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  private readonly companySelect = {
-    select: { id: true, name: true, logoUrl: true },
-  };
-
-  private readonly categorySelect = {
-    select: { id: true, name: true, slug: true },
-  };
-
-  private readonly relationIncludes = {
-    company: this.companySelect,
-    category: this.categorySelect,
-  };
+  // No `include` here — this repository only ever touches the `jobs` table.
+  // Company/category summaries are attached in JobInfraRepository via
+  // ICompanyLookupPort/ICategoryLookupPort, not a Prisma relational join.
 
   async findById(id: string) {
     return this.prisma.job.findFirst({
       where: { id, deletedAt: null },
-      include: this.relationIncludes,
     });
   }
 
@@ -38,7 +28,6 @@ export class JobPrismaRepository {
         take: params.take,
         where: params.where,
         orderBy: params.orderBy || { createdAt: 'desc' },
-        include: this.relationIncludes,
       }),
       this.prisma.job.count({ where: params.where }),
     ]);
@@ -50,7 +39,6 @@ export class JobPrismaRepository {
     return this.prisma.job.findMany({
       where: { postedById: recruiterId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
-      include: this.relationIncludes,
     });
   }
 
@@ -65,14 +53,13 @@ export class JobPrismaRepository {
   }
 
   async create(data: any) {
-    return this.prisma.job.create({ data, include: this.relationIncludes });
+    return this.prisma.job.create({ data });
   }
 
   async update(id: string, data: any) {
     return this.prisma.job.update({
       where: { id },
       data,
-      include: this.relationIncludes,
     });
   }
 

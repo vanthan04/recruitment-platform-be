@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-password.dto';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
+import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
 
 export class ForgotPasswordCommand {
   constructor(public readonly dto: ForgotPasswordDto) {}
@@ -10,9 +11,10 @@ export class ForgotPasswordCommand {
 
 @Injectable()
 @CommandHandler(ForgotPasswordCommand)
-export class ForgotPasswordHandler
-  implements ICommandHandler<ForgotPasswordCommand, { message: string }>
-{
+export class ForgotPasswordHandler implements ICommandHandler<
+  ForgotPasswordCommand,
+  { message: string }
+> {
   constructor(
     private readonly userRepository: IAuthUserRepositoryPort,
     private readonly mailService: IAuthMailServicePort,
@@ -21,7 +23,7 @@ export class ForgotPasswordHandler
   async execute({ dto }: ForgotPasswordCommand): Promise<{ message: string }> {
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
-      throw new NotFoundException('Không tìm thấy người dùng với email này');
+      throw new EntityNotFoundException('User', dto.email);
     }
 
     const resetCode = Math.random().toString(36).substring(2, 8).toUpperCase();

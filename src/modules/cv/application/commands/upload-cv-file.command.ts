@@ -22,15 +22,20 @@ export class UploadCvFileCommand {
 
 @Injectable()
 @CommandHandler(UploadCvFileCommand)
-export class UploadCvFileHandler
-  implements ICommandHandler<UploadCvFileCommand, CvResponseDto>
-{
+export class UploadCvFileHandler implements ICommandHandler<
+  UploadCvFileCommand,
+  CvResponseDto
+> {
   constructor(
     private readonly cvRepository: ICvRepository,
     private readonly fileUploadPort: IFileUploadPort,
   ) {}
 
-  async execute({ userId, cvId, file }: UploadCvFileCommand): Promise<CvResponseDto> {
+  async execute({
+    userId,
+    cvId,
+    file,
+  }: UploadCvFileCommand): Promise<CvResponseDto> {
     const cv = await this.cvRepository.findByIdWithRelations(cvId);
     if (!cv) {
       throw new EntityNotFoundException('CV', cvId);
@@ -38,7 +43,11 @@ export class UploadCvFileHandler
 
     cv.ensureOwner(userId);
 
-    const { url } = await this.fileUploadPort.uploadFile(file, 'cvs', ALLOWED_CV_FILE_TYPES);
+    const { url } = await this.fileUploadPort.uploadFile(
+      file,
+      'cvs',
+      ALLOWED_CV_FILE_TYPES,
+    );
     cv.attachFile(url);
 
     const updated = await this.cvRepository.update(cv);

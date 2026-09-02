@@ -40,7 +40,9 @@ export class JobApplicationController {
   @Roles(UserRole.CANDIDATE)
   @ApiOperation({ summary: 'Apply for a job (Candidate only)' })
   async apply(@GetMe('id') userId: string, @Body() dto: ApplyJobDto) {
-    const result = await this.commandBus.execute(new ApplyJobCommand(userId, dto));
+    const result = await this.commandBus.execute(
+      new ApplyJobCommand(userId, dto),
+    );
     return ApiResponse.ok(result, 'Application submitted successfully');
   }
 
@@ -48,31 +50,52 @@ export class JobApplicationController {
   @Roles(UserRole.CANDIDATE)
   @ApiOperation({ summary: 'List my applications (Candidate only)' })
   async listMyApplications(@GetMe('id') userId: string) {
-    const result = await this.queryBus.execute(new ListMyApplicationsQuery(userId));
+    const result = await this.queryBus.execute(
+      new ListMyApplicationsQuery(userId),
+    );
     return ApiResponse.ok(result, 'Applications retrieved successfully');
   }
 
   @Get('job/:jobId')
   @Roles(UserRole.RECRUITER)
-  @ApiOperation({ summary: 'List applications for a specific job (Recruiter owner only)' })
-  async listByJob(@GetMe('id') recruiterId: string, @Param('jobId') jobId: string) {
-    const result = await this.queryBus.execute(new ListApplicationsByJobQuery(recruiterId, jobId));
+  @ApiOperation({
+    summary: 'List applications for a specific job (Recruiter owner only)',
+  })
+  async listByJob(
+    @GetMe('id') recruiterId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    const result = await this.queryBus.execute(
+      new ListApplicationsByJobQuery(recruiterId, jobId),
+    );
     return ApiResponse.ok(result, 'Applications retrieved successfully');
   }
 
   @Get('job/:jobId/stats')
   @Roles(UserRole.RECRUITER)
-  @ApiOperation({ summary: 'Get application stats + view count for a job (Recruiter owner only)' })
-  async getJobStats(@GetMe('id') recruiterId: string, @Param('jobId') jobId: string) {
-    const result = await this.queryBus.execute(new GetJobStatsQuery(recruiterId, jobId));
+  @ApiOperation({
+    summary:
+      'Get application stats + view count for a job (Recruiter owner only)',
+  })
+  async getJobStats(
+    @GetMe('id') recruiterId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    const result = await this.queryBus.execute(
+      new GetJobStatsQuery(recruiterId, jobId),
+    );
     return ApiResponse.ok(result, 'Job stats retrieved successfully');
   }
 
   @Patch(':id/withdraw')
   @Roles(UserRole.CANDIDATE)
-  @ApiOperation({ summary: 'Withdraw a pending application (Candidate owner only)' })
+  @ApiOperation({
+    summary: 'Withdraw a pending application (Candidate owner only)',
+  })
   async withdraw(@GetMe('id') userId: string, @Param('id') id: string) {
-    const result = await this.commandBus.execute(new WithdrawApplicationCommand(userId, id));
+    const result = await this.commandBus.execute(
+      new WithdrawApplicationCommand(userId, id),
+    );
     return ApiResponse.ok(result, 'Application withdrawn successfully');
   }
 

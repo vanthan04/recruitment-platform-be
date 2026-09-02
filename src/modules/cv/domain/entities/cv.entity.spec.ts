@@ -9,7 +9,12 @@ import {
 } from '@/common/exceptions/domain.exception';
 
 function makeCv(overrides: Partial<Cv> = {}): Cv {
-  return new Cv({ title: 'My CV', summary: null, userId: 'user-1', ...overrides });
+  return new Cv({
+    title: 'My CV',
+    summary: null,
+    userId: 'user-1',
+    ...overrides,
+  });
 }
 
 function makeExperience(): Experience {
@@ -67,14 +72,18 @@ describe('Cv entity', () => {
 
     it('throws UnauthorizedDomainException when the userId does not match', () => {
       const cv = makeCv({ userId: 'user-1' });
-      expect(() => cv.ensureOwner('someone-else')).toThrow(UnauthorizedDomainException);
+      expect(() => cv.ensureOwner('someone-else')).toThrow(
+        UnauthorizedDomainException,
+      );
     });
   });
 
   describe('addSkill', () => {
     it('adds a skill', () => {
       const cv = makeCv();
-      cv.addSkill(new Skill({ name: 'TypeScript', level: 'Advanced', cvId: 'cv-1' }));
+      cv.addSkill(
+        new Skill({ name: 'TypeScript', level: 'Advanced', cvId: 'cv-1' }),
+      );
       expect(cv.skills).toHaveLength(1);
     });
 
@@ -82,7 +91,9 @@ describe('Cv entity', () => {
       const cv = makeCv();
       cv.addSkill(new Skill({ name: 'TypeScript', level: null, cvId: 'cv-1' }));
       expect(() =>
-        cv.addSkill(new Skill({ name: 'typescript', level: null, cvId: 'cv-1' })),
+        cv.addSkill(
+          new Skill({ name: 'typescript', level: null, cvId: 'cv-1' }),
+        ),
       ).toThrow(BusinessRuleViolationException);
     });
   });
@@ -96,7 +107,9 @@ describe('Cv entity', () => {
 
     it('throws when the title is empty', () => {
       const cv = makeCv();
-      expect(() => cv.updateTitle('   ')).toThrow(BusinessRuleViolationException);
+      expect(() => cv.updateTitle('   ')).toThrow(
+        BusinessRuleViolationException,
+      );
     });
   });
 });

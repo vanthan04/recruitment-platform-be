@@ -14,10 +14,16 @@ export class UpdateCategoryCommand {
 
 @Injectable()
 @CommandHandler(UpdateCategoryCommand)
-export class UpdateCategoryHandler implements ICommandHandler<UpdateCategoryCommand, CategoryResponseDto> {
+export class UpdateCategoryHandler implements ICommandHandler<
+  UpdateCategoryCommand,
+  CategoryResponseDto
+> {
   constructor(private readonly categoryRepository: ICategoryRepository) {}
 
-  async execute({ categoryId, name }: UpdateCategoryCommand): Promise<CategoryResponseDto> {
+  async execute({
+    categoryId,
+    name,
+  }: UpdateCategoryCommand): Promise<CategoryResponseDto> {
     const category = await this.categoryRepository.findById(categoryId);
     if (!category) {
       throw new EntityNotFoundException('Category', categoryId);

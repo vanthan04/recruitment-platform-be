@@ -19,10 +19,13 @@ import { IChatApplicationLookupPort } from '@/modules/chat/application/ports/app
 import { ChatApplicationLookupAdapter } from '@/modules/chat/infrastructure/adapters/application-lookup.adapter';
 import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-lookup.port';
 import { ChatUserLookupAdapter } from '@/modules/chat/infrastructure/adapters/user-lookup.adapter';
+import { IChatNotificationPort } from '@/modules/chat/application/ports/chat-notification.port';
+import { ChatNotificationAdapter } from '@/modules/chat/infrastructure/adapters/chat-notification.adapter';
 
 import { JobModule } from '@/modules/job/job.module';
 import { UserModule } from '@/modules/user/user.module';
 import { JobApplicationModule } from '@/modules/application/job-application.module';
+import { NotificationModule } from '@/modules/notification/notification.module';
 
 import { ChatGateway } from '@/modules/chat/infrastructure/gateways/chat.gateway';
 import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat-presence.service';
@@ -43,6 +46,7 @@ import { ListMessagesHandler } from '@/modules/chat/application/queries/list-mes
     JobModule,
     UserModule,
     JobApplicationModule,
+    NotificationModule,
     // The gateway verifies the `access_token` cookie itself (see ws-auth.util.ts) —
     // this JwtModule registration is scoped to Chat, mirroring AuthModule's own
     // (which isn't exported, so it can't be reused directly).
@@ -66,6 +70,7 @@ import { ListMessagesHandler } from '@/modules/chat/application/queries/list-mes
       useClass: ChatApplicationLookupAdapter,
     },
     { provide: IChatUserLookupPort, useClass: ChatUserLookupAdapter },
+    { provide: IChatNotificationPort, useClass: ChatNotificationAdapter },
 
     ChatGateway,
     ChatPresenceService,

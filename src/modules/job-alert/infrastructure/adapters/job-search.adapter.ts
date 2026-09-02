@@ -10,7 +10,10 @@ import { IJobRepository } from '@/modules/job/domain/repositories/job.repository
 export class JobSearchAdapter implements IJobSearchPort {
   constructor(private readonly jobRepository: IJobRepository) {}
 
-  async findRecentMatchingJobs(filters: JobSearchFilters, since: Date): Promise<JobDigestItem[]> {
+  async findRecentMatchingJobs(
+    filters: JobSearchFilters,
+    since: Date,
+  ): Promise<JobDigestItem[]> {
     const { jobs } = await this.jobRepository.findAllPaginated({
       page: 1,
       limit: 20,

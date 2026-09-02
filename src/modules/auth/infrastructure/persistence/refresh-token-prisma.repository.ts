@@ -9,14 +9,20 @@ import {
 export class RefreshTokenPrismaRepository implements IRefreshTokenRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+  async create(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
     await this.prisma.refreshToken.create({
       data: { userId, tokenHash, expiresAt },
     });
   }
 
   async findValidByHash(tokenHash: string): Promise<StoredRefreshToken | null> {
-    const row = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
+    const row = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
     if (!row || row.revokedAt || row.expiresAt < new Date()) {
       return null;
     }

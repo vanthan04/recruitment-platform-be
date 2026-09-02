@@ -11,7 +11,9 @@ import {
 } from 'class-validator';
 
 export class UpdateExperienceDto {
-  @ApiPropertyOptional({ description: 'ID for existing experience (omit for new)' })
+  @ApiPropertyOptional({
+    description: 'ID for existing experience (omit for new)',
+  })
   @IsString()
   @IsOptional()
   id?: string;
@@ -48,7 +50,9 @@ export class UpdateExperienceDto {
 }
 
 export class UpdateEducationDto {
-  @ApiPropertyOptional({ description: 'ID for existing education (omit for new)' })
+  @ApiPropertyOptional({
+    description: 'ID for existing education (omit for new)',
+  })
   @IsString()
   @IsOptional()
   id?: string;
