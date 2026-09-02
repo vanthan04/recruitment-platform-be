@@ -1,4 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from '@/modules/auth/application/auth.service';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
@@ -9,7 +10,7 @@ import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-passwor
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
 import { ApiResponse } from '@/common/dtos/api-response';
 import { JwtAuthGuard } from '@/modules/auth/presentation/security/guards/jwt-auth.guard';
-import { ApiOperation, ApiResponse as SwaggerResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -19,6 +20,7 @@ export class AuthController {
   ) { }
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() dto: RegisterRequestDto) {
     const result = await this.authService.register(dto);
@@ -27,6 +29,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Login user' })
   async login(@Body() dto: LoginRequestDto) {
     const result = await this.authService.login(dto);
@@ -43,6 +46,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Request password reset' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const result = await this.authService.forgotPassword(dto);
@@ -62,17 +66,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change password (Authenticated)' })
   async changePassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
-    const result = await this.authService.changePassword(req.user.userId, dto);
+    const result = await this.authService.changePassword(req.user.id, dto);
     return ApiResponse.ok(null, result.message);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout user' })
-  async logout(@Req() req: any) {
-    await this.authService.logout(req.user.userId);
+  @ApiOperation({ summary: 'Logout current device (revokes the given refresh token)' })
+  async logout(@Req() req: any, @Body() dto: RefreshTokenDto) {
+    await this.authService.logout(req.user.id, dto.refreshToken);
     return ApiResponse.ok(null, 'Đăng xuất thành công');
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout from all devices (revokes every active session)' })
+  async logoutAll(@Req() req: any) {
+    await this.authService.logoutAll(req.user.id);
+    return ApiResponse.ok(null, 'Đăng xuất khỏi tất cả thiết bị thành công');
   }
 
   @Post('refresh')

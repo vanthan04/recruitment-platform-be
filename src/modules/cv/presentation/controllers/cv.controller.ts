@@ -7,10 +7,15 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Res,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/presentation/security/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -24,9 +29,13 @@ import { PublishCvUseCase } from '@/modules/cv/application/use-cases/publish-cv.
 import { GetCvUseCase } from '@/modules/cv/application/use-cases/get-cv.use-case';
 import { ListMyCvsUseCase } from '@/modules/cv/application/use-cases/list-my-cvs.use-case';
 import { DeleteCvUseCase } from '@/modules/cv/application/use-cases/delete-cv.use-case';
+import { UploadCvFileUseCase } from '@/modules/cv/application/use-cases/upload-cv-file.use-case';
+import { ExportCvPdfUseCase } from '@/modules/cv/application/use-cases/export-cv-pdf.use-case';
 
 import { CreateCvDto } from '@/modules/cv/presentation/dtos/create-cv.dto';
 import { UpdateCvDto } from '@/modules/cv/presentation/dtos/update-cv.dto';
+
+const MAX_CV_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 @ApiTags('cvs')
 @ApiBearerAuth()
@@ -40,6 +49,8 @@ export class CvController {
     private readonly getCvUseCase: GetCvUseCase,
     private readonly listMyCvsUseCase: ListMyCvsUseCase,
     private readonly deleteCvUseCase: DeleteCvUseCase,
+    private readonly uploadCvFileUseCase: UploadCvFileUseCase,
+    private readonly exportCvPdfUseCase: ExportCvPdfUseCase,
   ) {}
 
   @Post()
@@ -119,5 +130,33 @@ export class CvController {
   @ApiOperation({ summary: 'Delete CV (soft delete)' })
   async delete(@GetMe('id') userId: string, @Param('id') cvId: string) {
     await this.deleteCvUseCase.execute(userId, cvId);
+  }
+
+  @Post(':id/upload')
+  @Roles(UserRole.CANDIDATE)
+  @ApiOperation({ summary: 'Upload a ready-made CV file (PDF/DOC/DOCX)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+  })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_CV_FILE_SIZE_BYTES } }))
+  async uploadFile(
+    @GetMe('id') userId: string,
+    @Param('id') cvId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const result = await this.uploadCvFileUseCase.execute(userId, cvId, file);
+    return ApiResponse.ok(result, 'CV file uploaded successfully');
+  }
+
+  @Get(':id/export')
+  @ApiOperation({ summary: 'Export CV as PDF' })
+  async exportPdf(@Param('id') cvId: string, @Res() res: Response) {
+    const { buffer, fileName } = await this.exportCvPdfUseCase.execute(cvId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+    });
+    res.send(buffer);
   }
 }

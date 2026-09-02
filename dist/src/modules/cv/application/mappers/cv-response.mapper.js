@@ -8,6 +8,7 @@ class CvResponseMapper {
         dto.id = cv.id;
         dto.title = cv.title;
         dto.summary = cv.summary;
+        dto.fileUrl = cv.fileUrl;
         dto.status = cv.status;
         dto.publishedAt = cv.publishedAt;
         dto.createdAt = cv.createdAt;

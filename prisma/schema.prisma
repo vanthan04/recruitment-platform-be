@@ -51,6 +51,29 @@ enum ApplicationStatus {
   PENDING
   ACCEPTED
   REJECTED
+  WITHDRAWN
+}
+
+enum CompanySize {
+  SIZE_1_10
+  SIZE_11_50
+  SIZE_51_200
+  SIZE_201_500
+  SIZE_500_PLUS
+}
+
+enum JobLevel {
+  INTERN
+  FRESHER
+  JUNIOR
+  MIDDLE
+  SENIOR
+  MANAGER
+}
+
+enum NotificationType {
+  NEW_APPLICATION
+  APPLICATION_STATUS_CHANGED
 }
 
 // ─────────────────────────────────────────────
@@ -61,7 +84,6 @@ model User {
   id           String     @id @default(uuid())
   email        String     @unique
   password     String
-  refreshToken String?
   verifyCode   String?
   role         UserRole   @default(CANDIDATE)
   status       UserStatus @default(PENDING)
@@ -70,12 +92,45 @@ model User {
   profile      Profile?
 
   // Relations
-  cvs          Cv[]
-  jobs         Job[]             // Only for RECRUITER
-  applications JobApplication[]
-  bookmarks    Bookmark[]
+  cvs             Cv[]
+  jobs             Job[]             // Only for RECRUITER
+  applications     JobApplication[]
+  bookmarks        Bookmark[]
+  company          Company?          @relation(fields: [companyId], references: [id])
+  companyId        String?
+  ownedCompanies   Company[]         @relation("CompanyOwner")
+  notifications    Notification[]
+  savedSearches    SavedSearch[]
+  refreshTokens    RefreshToken[]
 
   @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// Company Module
+// ─────────────────────────────────────────────
+
+model Company {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  logoUrl     String?
+  description String?
+  website     String?
+  industry    String?
+  size        CompanySize?
+  address     String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  owner       User         @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  recruiters  User[]
+  jobs        Job[]
+
+  @@map("companies")
 }
 
 model Profile {
@@ -103,6 +158,7 @@ model Cv {
   id          String   @id @default(uuid())
   title       String
   summary     String?
+  fileUrl     String?
   status      CvStatus @default(DRAFT)
   publishedAt DateTime?
   createdAt   DateTime @default(now())
@@ -168,6 +224,23 @@ model Skill {
 }
 
 // ─────────────────────────────────────────────
+// Category Module
+// ─────────────────────────────────────────────
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  jobs Job[]
+
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────────
 // Job Module
 // ─────────────────────────────────────────────
 
@@ -175,10 +248,11 @@ model Job {
   id          String    @id @default(uuid())
   title       String
   description String
-  company     String
   location    String
   jobType     JobType   @default(FULL_TIME)
+  level       JobLevel?
   status      JobStatus @default(DRAFT)
+  viewCount   Int       @default(0)
   salaryMin   Int?
   salaryMax   Int?
   currency    String    @default("VND")
@@ -192,6 +266,10 @@ model Job {
   // Relations
   postedBy     User             @relation(fields: [postedById], references: [id], onDelete: Cascade)
   postedById   String
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId    String
+  category     Category?        @relation(fields: [categoryId], references: [id])
+  categoryId   String?
   applications JobApplication[]
   bookmarks    Bookmark[]
 
@@ -237,4 +315,61 @@ model Bookmark {
 
   @@unique([userId, jobId]) // One bookmark per user per job
   @@map("bookmarks")
+}
+
+// ─────────────────────────────────────────────
+// Notification Module
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// Job Alert Module
+// ─────────────────────────────────────────────
+
+model SavedSearch {
+  id         String    @id @default(uuid())
+  keyword    String?
+  location   String?
+  categoryId String?
+  jobType    JobType?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@map("saved_searches")
+}
+
+// ─────────────────────────────────────────────
+// Refresh Token (multi-device sessions)
+// ─────────────────────────────────────────────
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@map("refresh_tokens")
 }

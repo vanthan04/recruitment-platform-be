@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CvController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("../../../auth/presentation/security/guards/jwt-auth.guard");
 const roles_guard_1 = require("../../../../common/guards/roles.guard");
@@ -27,8 +28,11 @@ const publish_cv_use_case_1 = require("../../application/use-cases/publish-cv.us
 const get_cv_use_case_1 = require("../../application/use-cases/get-cv.use-case");
 const list_my_cvs_use_case_1 = require("../../application/use-cases/list-my-cvs.use-case");
 const delete_cv_use_case_1 = require("../../application/use-cases/delete-cv.use-case");
+const upload_cv_file_use_case_1 = require("../../application/use-cases/upload-cv-file.use-case");
+const export_cv_pdf_use_case_1 = require("../../application/use-cases/export-cv-pdf.use-case");
 const create_cv_dto_1 = require("../dtos/create-cv.dto");
 const update_cv_dto_1 = require("../dtos/update-cv.dto");
+const MAX_CV_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 let CvController = class CvController {
     createCvUseCase;
     updateCvUseCase;
@@ -36,13 +40,17 @@ let CvController = class CvController {
     getCvUseCase;
     listMyCvsUseCase;
     deleteCvUseCase;
-    constructor(createCvUseCase, updateCvUseCase, publishCvUseCase, getCvUseCase, listMyCvsUseCase, deleteCvUseCase) {
+    uploadCvFileUseCase;
+    exportCvPdfUseCase;
+    constructor(createCvUseCase, updateCvUseCase, publishCvUseCase, getCvUseCase, listMyCvsUseCase, deleteCvUseCase, uploadCvFileUseCase, exportCvPdfUseCase) {
         this.createCvUseCase = createCvUseCase;
         this.updateCvUseCase = updateCvUseCase;
         this.publishCvUseCase = publishCvUseCase;
         this.getCvUseCase = getCvUseCase;
         this.listMyCvsUseCase = listMyCvsUseCase;
         this.deleteCvUseCase = deleteCvUseCase;
+        this.uploadCvFileUseCase = uploadCvFileUseCase;
+        this.exportCvPdfUseCase = exportCvPdfUseCase;
     }
     async create(userId, dto) {
         const result = await this.createCvUseCase.execute(userId, {
@@ -94,6 +102,18 @@ let CvController = class CvController {
     }
     async delete(userId, cvId) {
         await this.deleteCvUseCase.execute(userId, cvId);
+    }
+    async uploadFile(userId, cvId, file) {
+        const result = await this.uploadCvFileUseCase.execute(userId, cvId, file);
+        return api_response_1.ApiResponse.ok(result, 'CV file uploaded successfully');
+    }
+    async exportPdf(cvId, res) {
+        const { buffer, fileName } = await this.exportCvPdfUseCase.execute(cvId);
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+        });
+        res.send(buffer);
     }
 };
 exports.CvController = CvController;
@@ -156,6 +176,31 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], CvController.prototype, "delete", null);
+__decorate([
+    (0, common_1.Post)(':id/upload'),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.CANDIDATE),
+    (0, swagger_1.ApiOperation)({ summary: 'Upload a ready-made CV file (PDF/DOC/DOCX)' }),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiBody)({
+        schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+    }),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', { limits: { fileSize: MAX_CV_FILE_SIZE_BYTES } })),
+    __param(0, (0, get_me_decorator_1.GetMe)('id')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], CvController.prototype, "uploadFile", null);
+__decorate([
+    (0, common_1.Get)(':id/export'),
+    (0, swagger_1.ApiOperation)({ summary: 'Export CV as PDF' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], CvController.prototype, "exportPdf", null);
 exports.CvController = CvController = __decorate([
     (0, swagger_1.ApiTags)('cvs'),
     (0, swagger_1.ApiBearerAuth)(),
@@ -166,6 +211,8 @@ exports.CvController = CvController = __decorate([
         publish_cv_use_case_1.PublishCvUseCase,
         get_cv_use_case_1.GetCvUseCase,
         list_my_cvs_use_case_1.ListMyCvsUseCase,
-        delete_cv_use_case_1.DeleteCvUseCase])
+        delete_cv_use_case_1.DeleteCvUseCase,
+        upload_cv_file_use_case_1.UploadCvFileUseCase,
+        export_cv_pdf_use_case_1.ExportCvPdfUseCase])
 ], CvController);
 //# sourceMappingURL=cv.controller.js.map

@@ -1,6 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
+import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
 import { RegisterUseCase } from '@/modules/auth/application/use-cases/register.use-case';
@@ -15,6 +16,7 @@ import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-passwor
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
 export declare class AuthService {
     private readonly userRepository;
+    private readonly refreshTokenRepository;
     private readonly jwtService;
     private readonly configService;
     private readonly registerUseCase;
@@ -23,7 +25,7 @@ export declare class AuthService {
     private readonly forgotPasswordUseCase;
     private readonly resetPasswordUseCase;
     private readonly changePasswordUseCase;
-    constructor(userRepository: IUserRepository, jwtService: JwtService, configService: ConfigService, registerUseCase: RegisterUseCase, loginUseCase: LoginUseCase, verifyEmailUseCase: VerifyEmailUseCase, forgotPasswordUseCase: ForgotPasswordUseCase, resetPasswordUseCase: ResetPasswordUseCase, changePasswordUseCase: ChangePasswordUseCase);
+    constructor(userRepository: IUserRepository, refreshTokenRepository: IRefreshTokenRepositoryPort, jwtService: JwtService, configService: ConfigService, registerUseCase: RegisterUseCase, loginUseCase: LoginUseCase, verifyEmailUseCase: VerifyEmailUseCase, forgotPasswordUseCase: ForgotPasswordUseCase, resetPasswordUseCase: ResetPasswordUseCase, changePasswordUseCase: ChangePasswordUseCase);
     register(dto: RegisterRequestDto): Promise<{
         email: string;
     }>;
@@ -43,12 +45,14 @@ export declare class AuthService {
     changePassword(userId: string, dto: ChangePasswordDto): Promise<{
         message: string;
     }>;
-    logout(userId: string): Promise<void>;
+    logout(userId: string, refreshToken: string): Promise<void>;
+    logoutAll(userId: string): Promise<void>;
     refreshTokens(refreshToken: string): Promise<{
         access_token: string;
         refresh_token: string;
     }>;
-    updateRefreshToken(userId: string, refreshToken: string | null): Promise<void>;
+    private storeRefreshToken;
+    private hashToken;
     getTokens(userId: string, email: string, role: string): Promise<{
         access_token: string;
         refresh_token: string;

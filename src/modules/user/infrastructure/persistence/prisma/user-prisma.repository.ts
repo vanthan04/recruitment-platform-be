@@ -58,13 +58,6 @@ export class UserPrismaRepository
     return !!user;
   }
 
-  async updateRefreshToken(id: string, refreshToken: string | null): Promise<void> {
-    await this.prismaService.user.update({
-      where: { id },
-      data: { refreshToken },
-    });
-  }
-
   async save(data: Partial<User>): Promise<User> {
     if (data.id) {
       const updated = await this.prismaService.user.update({
@@ -72,7 +65,6 @@ export class UserPrismaRepository
         data: {
           email: data.email,
           password: data.password,
-          refreshToken: data.refreshToken,
           verifyCode: data.verifyCode,
           role: data.role as any,
           status: data.status as any,
@@ -108,7 +100,6 @@ export class UserPrismaRepository
       data: {
         email: data.email!,
         password: data.password!,
-        refreshToken: data.refreshToken,
         verifyCode: data.verifyCode,
         role: (data.role as any) || UserRole.CANDIDATE,
         status: (data.status as any) || UserStatus.PENDING,
@@ -152,6 +143,13 @@ export class UserPrismaRepository
       include: { profile: true },
     });
     return UserMapper.toDomain(user);
+  }
+
+  async updateCompanyId(userId: string, companyId: string | null): Promise<void> {
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { companyId },
+    });
   }
 
   async findAllPaginated(page: number, limit: number): Promise<{ users: User[]; total: number }> {

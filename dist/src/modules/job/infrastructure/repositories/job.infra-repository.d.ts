@@ -13,12 +13,17 @@ export declare class JobInfraRepository implements IJobRepository {
         jobType?: string;
         salaryMin?: number;
         salaryMax?: number;
+        companyId?: string;
+        categoryId?: string;
+        level?: string;
     }): Promise<{
         jobs: Job[];
         total: number;
     }>;
     findAllByRecruiter(recruiterId: string): Promise<Job[]>;
+    findExpiredOpenJobs(): Promise<Job[]>;
     save(job: Job): Promise<Job>;
     update(job: Job): Promise<Job>;
     delete(id: string): Promise<void>;
+    incrementViewCount(id: string): Promise<void>;
 }

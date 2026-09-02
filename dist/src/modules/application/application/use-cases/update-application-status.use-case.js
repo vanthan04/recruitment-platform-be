@@ -11,17 +11,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateApplicationStatusUseCase = void 0;
 const common_1 = require("@nestjs/common");
+const event_emitter_1 = require("@nestjs/event-emitter");
 const job_application_repository_1 = require("../../domain/repositories/job-application.repository");
 const job_repository_1 = require("../../../job/domain/repositories/job.repository");
 const domain_exception_1 = require("../../../../common/exceptions/domain.exception");
 const application_response_mapper_1 = require("../mappers/application-response.mapper");
 const application_status_vo_1 = require("../../domain/value-objects/application-status.vo");
+const application_status_changed_event_1 = require("../../infrastructure/events/application-status-changed.event");
 let UpdateApplicationStatusUseCase = class UpdateApplicationStatusUseCase {
     applicationRepository;
     jobRepository;
-    constructor(applicationRepository, jobRepository) {
+    eventEmitter;
+    constructor(applicationRepository, jobRepository, eventEmitter) {
         this.applicationRepository = applicationRepository;
         this.jobRepository = jobRepository;
+        this.eventEmitter = eventEmitter;
     }
     async execute(recruiterId, applicationId, status) {
         const application = await this.applicationRepository.findById(applicationId);
@@ -40,6 +44,7 @@ let UpdateApplicationStatusUseCase = class UpdateApplicationStatusUseCase {
             application.reject();
         }
         const updated = await this.applicationRepository.update(application);
+        this.eventEmitter.emit(application_status_changed_event_1.APPLICATION_STATUS_CHANGED_EVENT, new application_status_changed_event_1.ApplicationStatusChangedEvent(updated.id, updated.userId, job.id, job.title, updated.status));
         return application_response_mapper_1.ApplicationResponseMapper.toDto(updated);
     }
 };
@@ -47,6 +52,7 @@ exports.UpdateApplicationStatusUseCase = UpdateApplicationStatusUseCase;
 exports.UpdateApplicationStatusUseCase = UpdateApplicationStatusUseCase = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [job_application_repository_1.IJobApplicationRepository,
-        job_repository_1.IJobRepository])
+        job_repository_1.IJobRepository,
+        event_emitter_1.EventEmitter2])
 ], UpdateApplicationStatusUseCase);
 //# sourceMappingURL=update-application-status.use-case.js.map

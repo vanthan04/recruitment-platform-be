@@ -1,7 +1,7 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export abstract class BaseEntity {
-  id: string = uuidv4();
+  id: string = randomUUID();
   createdAt: Date = new Date();
   updatedAt: Date = new Date();
 }

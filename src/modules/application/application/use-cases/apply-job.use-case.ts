@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
@@ -8,6 +9,7 @@ import { CvDomainService } from '@/modules/cv/domain/domain-services/cv-domain.s
 import { EntityNotFoundException, DuplicateEntityException } from '@/common/exceptions/domain.exception';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
+import { JOB_APPLIED_EVENT, JobAppliedEvent } from '@/modules/application/infrastructure/events/job-applied.event';
 
 export interface ApplyJobInput {
   jobId: string;
@@ -21,6 +23,7 @@ export class ApplyJobUseCase {
     private readonly applicationRepository: IJobApplicationRepository,
     private readonly jobRepository: IJobRepository,
     private readonly cvRepository: ICvRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(userId: string, input: ApplyJobInput): Promise<ApplicationResponseDto> {
@@ -51,6 +54,12 @@ export class ApplyJobUseCase {
     });
 
     const saved = await this.applicationRepository.save(application);
+
+    this.eventEmitter.emit(
+      JOB_APPLIED_EVENT,
+      new JobAppliedEvent(saved.id, userId, input.jobId, input.cvId, job.postedById, job.title),
+    );
+
     return ApplicationResponseMapper.toDto(saved);
   }
 }

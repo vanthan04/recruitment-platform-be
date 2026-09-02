@@ -25,6 +25,8 @@ const apply_job_use_case_1 = require("../../application/use-cases/apply-job.use-
 const update_application_status_use_case_1 = require("../../application/use-cases/update-application-status.use-case");
 const list_my_applications_use_case_1 = require("../../application/use-cases/list-my-applications.use-case");
 const list_applications_by_job_use_case_1 = require("../../application/use-cases/list-applications-by-job.use-case");
+const withdraw_application_use_case_1 = require("../../application/use-cases/withdraw-application.use-case");
+const get_job_stats_use_case_1 = require("../../application/use-cases/get-job-stats.use-case");
 const apply_job_dto_1 = require("../dtos/apply-job.dto");
 const update_application_status_dto_1 = require("../dtos/update-application-status.dto");
 let JobApplicationController = class JobApplicationController {
@@ -32,11 +34,15 @@ let JobApplicationController = class JobApplicationController {
     updateStatusUseCase;
     listMyAppsUseCase;
     listByJobUseCase;
-    constructor(applyJobUseCase, updateStatusUseCase, listMyAppsUseCase, listByJobUseCase) {
+    withdrawApplicationUseCase;
+    getJobStatsUseCase;
+    constructor(applyJobUseCase, updateStatusUseCase, listMyAppsUseCase, listByJobUseCase, withdrawApplicationUseCase, getJobStatsUseCase) {
         this.applyJobUseCase = applyJobUseCase;
         this.updateStatusUseCase = updateStatusUseCase;
         this.listMyAppsUseCase = listMyAppsUseCase;
         this.listByJobUseCase = listByJobUseCase;
+        this.withdrawApplicationUseCase = withdrawApplicationUseCase;
+        this.getJobStatsUseCase = getJobStatsUseCase;
     }
     async apply(userId, dto) {
         const result = await this.applyJobUseCase.execute(userId, dto);
@@ -49,6 +55,14 @@ let JobApplicationController = class JobApplicationController {
     async listByJob(recruiterId, jobId) {
         const result = await this.listByJobUseCase.execute(recruiterId, jobId);
         return api_response_1.ApiResponse.ok(result, 'Applications retrieved successfully');
+    }
+    async getJobStats(recruiterId, jobId) {
+        const result = await this.getJobStatsUseCase.execute(recruiterId, jobId);
+        return api_response_1.ApiResponse.ok(result, 'Job stats retrieved successfully');
+    }
+    async withdraw(userId, id) {
+        const result = await this.withdrawApplicationUseCase.execute(userId, id);
+        return api_response_1.ApiResponse.ok(result, 'Application withdrawn successfully');
     }
     async updateStatus(recruiterId, id, dto) {
         const result = await this.updateStatusUseCase.execute(recruiterId, id, dto.status);
@@ -86,6 +100,26 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], JobApplicationController.prototype, "listByJob", null);
 __decorate([
+    (0, common_1.Get)('job/:jobId/stats'),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.RECRUITER),
+    (0, swagger_1.ApiOperation)({ summary: 'Get application stats + view count for a job (Recruiter owner only)' }),
+    __param(0, (0, get_me_decorator_1.GetMe)('id')),
+    __param(1, (0, common_1.Param)('jobId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], JobApplicationController.prototype, "getJobStats", null);
+__decorate([
+    (0, common_1.Patch)(':id/withdraw'),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.CANDIDATE),
+    (0, swagger_1.ApiOperation)({ summary: 'Withdraw a pending application (Candidate owner only)' }),
+    __param(0, (0, get_me_decorator_1.GetMe)('id')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], JobApplicationController.prototype, "withdraw", null);
+__decorate([
     (0, common_1.Patch)(':id/status'),
     (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.RECRUITER),
     (0, swagger_1.ApiOperation)({ summary: 'Update application status (Recruiter owner only)' }),
@@ -104,6 +138,8 @@ exports.JobApplicationController = JobApplicationController = __decorate([
     __metadata("design:paramtypes", [apply_job_use_case_1.ApplyJobUseCase,
         update_application_status_use_case_1.UpdateApplicationStatusUseCase,
         list_my_applications_use_case_1.ListMyApplicationsUseCase,
-        list_applications_by_job_use_case_1.ListApplicationsByJobUseCase])
+        list_applications_by_job_use_case_1.ListApplicationsByJobUseCase,
+        withdraw_application_use_case_1.WithdrawApplicationUseCase,
+        get_job_stats_use_case_1.GetJobStatsUseCase])
 ], JobApplicationController);
 //# sourceMappingURL=job-application.controller.js.map

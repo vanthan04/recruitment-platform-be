@@ -50,12 +50,6 @@ let UserPrismaRepository = class UserPrismaRepository extends base_prisma_reposi
         });
         return !!user;
     }
-    async updateRefreshToken(id, refreshToken) {
-        await this.prismaService.user.update({
-            where: { id },
-            data: { refreshToken },
-        });
-    }
     async save(data) {
         if (data.id) {
             const updated = await this.prismaService.user.update({
@@ -63,7 +57,6 @@ let UserPrismaRepository = class UserPrismaRepository extends base_prisma_reposi
                 data: {
                     email: data.email,
                     password: data.password,
-                    refreshToken: data.refreshToken,
                     verifyCode: data.verifyCode,
                     role: data.role,
                     status: data.status,
@@ -98,7 +91,6 @@ let UserPrismaRepository = class UserPrismaRepository extends base_prisma_reposi
             data: {
                 email: data.email,
                 password: data.password,
-                refreshToken: data.refreshToken,
                 verifyCode: data.verifyCode,
                 role: data.role || user_role_enum_1.UserRole.CANDIDATE,
                 status: data.status || user_status_enum_1.UserStatus.PENDING,
@@ -140,6 +132,12 @@ let UserPrismaRepository = class UserPrismaRepository extends base_prisma_reposi
             include: { profile: true },
         });
         return user_mapper_1.UserMapper.toDomain(user);
+    }
+    async updateCompanyId(userId, companyId) {
+        await this.prismaService.user.update({
+            where: { id: userId },
+            data: { companyId },
+        });
     }
     async findAllPaginated(page, limit) {
         const skip = (page - 1) * limit;

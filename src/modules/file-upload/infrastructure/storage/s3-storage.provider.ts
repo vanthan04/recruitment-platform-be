@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import * as path from 'path';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class S3StorageProvider implements IFileStorageProvider {
   async upload(file: Express.Multer.File, folder: string = 'general'): Promise<string> {
     try {
       const fileExtension = path.extname(file.originalname);
-      const fileName = `${uuidv4()}${fileExtension}`;
+      const fileName = `${randomUUID()}${fileExtension}`;
       const fileKey = `${folder}/${fileName}`;
 
       const command = new PutObjectCommand({

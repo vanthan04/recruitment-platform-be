@@ -10,6 +10,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 
 export class CreateJobDto {
   @ApiProperty({ example: 'Senior Node.js Developer' })
@@ -23,12 +24,6 @@ export class CreateJobDto {
   @IsNotEmpty()
   description: string;
 
-  @ApiProperty({ example: 'Tech Corp' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  company: string;
-
   @ApiProperty({ example: 'Ho Chi Minh City' })
   @IsString()
   @IsNotEmpty()
@@ -39,6 +34,16 @@ export class CreateJobDto {
   @IsEnum(JobType)
   @IsOptional()
   jobType?: JobType = JobType.FULL_TIME;
+
+  @ApiPropertyOptional({ enum: JobLevel })
+  @IsEnum(JobLevel)
+  @IsOptional()
+  level?: JobLevel;
+
+  @ApiPropertyOptional({ example: 'c1a2b3c4-...' })
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
 
   @ApiPropertyOptional({ example: 1000 })
   @IsInt()

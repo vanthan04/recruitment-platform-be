@@ -12,7 +12,7 @@ export class GetMyProfileUseCase {
     }
 
     // Usually you don't return the password or other sensitive data
-    const { password, refreshToken, verifyCode, ...safeUser } = user as any;
+    const { password, verifyCode, ...safeUser } = user as any;
     return safeUser;
   }
 }

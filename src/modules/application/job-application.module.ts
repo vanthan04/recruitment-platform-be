@@ -11,6 +11,8 @@ import { ApplyJobUseCase } from '@/modules/application/application/use-cases/app
 import { UpdateApplicationStatusUseCase } from '@/modules/application/application/use-cases/update-application-status.use-case';
 import { ListMyApplicationsUseCase } from '@/modules/application/application/use-cases/list-my-applications.use-case';
 import { ListApplicationsByJobUseCase } from '@/modules/application/application/use-cases/list-applications-by-job.use-case';
+import { WithdrawApplicationUseCase } from '@/modules/application/application/use-cases/withdraw-application.use-case';
+import { GetJobStatsUseCase } from '@/modules/application/application/use-cases/get-job-stats.use-case';
 
 @Module({
   imports: [JobModule, CvModule],
@@ -25,6 +27,8 @@ import { ListApplicationsByJobUseCase } from '@/modules/application/application/
     UpdateApplicationStatusUseCase,
     ListMyApplicationsUseCase,
     ListApplicationsByJobUseCase,
+    WithdrawApplicationUseCase,
+    GetJobStatsUseCase,
   ],
 })
 export class JobApplicationModule {}

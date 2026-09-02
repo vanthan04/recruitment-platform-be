@@ -50,4 +50,12 @@ export class JobApplicationPrismaRepository {
       data,
     });
   }
+
+  async countByJobIdGroupedByStatus(jobId: string) {
+    return this.prisma.jobApplication.groupBy({
+      by: ['status'],
+      where: { jobId },
+      _count: { _all: true },
+    });
+  }
 }

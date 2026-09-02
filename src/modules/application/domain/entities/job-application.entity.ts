@@ -29,6 +29,13 @@ export class JobApplication extends BaseEntity {
     this.status = ApplicationStatus.REJECTED;
   }
 
+  withdraw(): void {
+    if (this.status !== ApplicationStatus.PENDING) {
+      throw new BusinessRuleViolationException('Only pending applications can be withdrawn');
+    }
+    this.status = ApplicationStatus.WITHDRAWN;
+  }
+
   isPending(): boolean {
     return this.status === ApplicationStatus.PENDING;
   }

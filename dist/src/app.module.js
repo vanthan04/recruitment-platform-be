@@ -11,15 +11,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
 const config_1 = require("@nestjs/config");
+const schedule_1 = require("@nestjs/schedule");
+const event_emitter_1 = require("@nestjs/event-emitter");
+const throttler_1 = require("@nestjs/throttler");
 const auth_module_1 = require("./modules/auth/auth.module");
 const user_module_1 = require("./modules/user/user.module");
 const prisma_module_1 = require("./modules/prisma/prisma.module");
 const file_upload_module_1 = require("./modules/file-upload/file-upload.module");
+const company_module_1 = require("./modules/company/company.module");
+const category_module_1 = require("./modules/category/category.module");
 const cv_module_1 = require("./modules/cv/cv.module");
 const job_module_1 = require("./modules/job/job.module");
 const job_application_module_1 = require("./modules/application/job-application.module");
 const bookmark_module_1 = require("./modules/bookmark/bookmark.module");
+const notification_module_1 = require("./modules/notification/notification.module");
+const job_alert_module_1 = require("./modules/job-alert/job-alert.module");
 const env_validation_1 = require("./common/config/env.validation");
 const app_config_1 = __importDefault(require("./common/config/app.config"));
 let AppModule = class AppModule {
@@ -33,6 +41,9 @@ exports.AppModule = AppModule = __decorate([
                 validationSchema: env_validation_1.envValidationSchema,
                 load: [app_config_1.default],
             }),
+            schedule_1.ScheduleModule.forRoot(),
+            event_emitter_1.EventEmitterModule.forRoot(),
+            throttler_1.ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
             prisma_module_1.PrismaModule.forRoot({
                 log: ['query', 'info', 'warn', 'error'],
                 errorFormat: 'pretty',
@@ -40,13 +51,22 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             user_module_1.UserModule,
             file_upload_module_1.FileUploadModule,
+            company_module_1.CompanyModule,
+            category_module_1.CategoryModule,
             cv_module_1.CvModule,
             job_module_1.JobModule,
             job_application_module_1.JobApplicationModule,
             bookmark_module_1.BookmarkModule,
+            notification_module_1.NotificationModule,
+            job_alert_module_1.JobAlertModule,
         ],
         controllers: [],
-        providers: [],
+        providers: [
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

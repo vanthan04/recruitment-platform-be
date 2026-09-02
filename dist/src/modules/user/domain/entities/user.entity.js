@@ -5,10 +5,10 @@ const base_entity_1 = require("../../../../common/domain/base.entity");
 class User extends base_entity_1.BaseEntity {
     email;
     password;
-    refreshToken;
     verifyCode;
     role;
     status;
+    companyId;
     profile;
     constructor(partial) {
         super();

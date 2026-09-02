@@ -28,6 +28,7 @@ let AuthUserAdapter = class AuthUserAdapter {
     }
     async save(data) {
         return this.userRepository.save({
+            id: data.id,
             email: data.email,
             password: data.password,
             verifyCode: data.verifyCode,
@@ -37,9 +38,6 @@ let AuthUserAdapter = class AuthUserAdapter {
                 fullName: data.fullName
             } : undefined
         });
-    }
-    async updateRefreshToken(id, refreshToken) {
-        return this.userRepository.updateRefreshToken(id, refreshToken);
     }
     async findByVerifyCode(code) {
         return this.userRepository.findByVerifyCode(code);

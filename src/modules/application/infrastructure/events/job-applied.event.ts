@@ -1,5 +1,7 @@
+export const JOB_APPLIED_EVENT = 'job.applied';
+
 export class JobAppliedEvent {
-  readonly eventType = 'job.applied';
+  readonly eventType = JOB_APPLIED_EVENT;
   readonly occurredAt: Date;
 
   constructor(
@@ -7,6 +9,8 @@ export class JobAppliedEvent {
     public readonly userId: string,
     public readonly jobId: string,
     public readonly cvId: string,
+    public readonly recruiterId: string,
+    public readonly jobTitle: string,
   ) {
     this.occurredAt = new Date();
   }
@@ -18,6 +22,8 @@ export class JobAppliedEvent {
       userId: this.userId,
       jobId: this.jobId,
       cvId: this.cvId,
+      recruiterId: this.recruiterId,
+      jobTitle: this.jobTitle,
       occurredAt: this.occurredAt.toISOString(),
     };
   }

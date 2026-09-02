@@ -6,5 +6,6 @@ var ApplicationStatus;
     ApplicationStatus["PENDING"] = "PENDING";
     ApplicationStatus["ACCEPTED"] = "ACCEPTED";
     ApplicationStatus["REJECTED"] = "REJECTED";
+    ApplicationStatus["WITHDRAWN"] = "WITHDRAWN";
 })(ApplicationStatus || (exports.ApplicationStatus = ApplicationStatus = {}));
 //# sourceMappingURL=application-status.vo.js.map

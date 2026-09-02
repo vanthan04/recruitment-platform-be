@@ -10,6 +10,7 @@ export declare class CvPrismaRepository {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.CvStatus;
         title: string;
+        fileUrl: string | null;
         publishedAt: Date | null;
         deletedAt: Date | null;
     } | null>;
@@ -43,8 +44,8 @@ export declare class CvPrismaRepository {
             createdAt: Date;
             updatedAt: Date;
             name: string;
-            cvId: string;
             level: string | null;
+            cvId: string;
         }[];
     } & {
         summary: string | null;
@@ -54,6 +55,7 @@ export declare class CvPrismaRepository {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.CvStatus;
         title: string;
+        fileUrl: string | null;
         publishedAt: Date | null;
         deletedAt: Date | null;
     }) | null>;
@@ -87,8 +89,8 @@ export declare class CvPrismaRepository {
             createdAt: Date;
             updatedAt: Date;
             name: string;
-            cvId: string;
             level: string | null;
+            cvId: string;
         }[];
     } & {
         summary: string | null;
@@ -98,6 +100,7 @@ export declare class CvPrismaRepository {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.CvStatus;
         title: string;
+        fileUrl: string | null;
         publishedAt: Date | null;
         deletedAt: Date | null;
     })[]>;
@@ -131,8 +134,8 @@ export declare class CvPrismaRepository {
             createdAt: Date;
             updatedAt: Date;
             name: string;
-            cvId: string;
             level: string | null;
+            cvId: string;
         }[];
     } & {
         summary: string | null;
@@ -142,6 +145,7 @@ export declare class CvPrismaRepository {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.CvStatus;
         title: string;
+        fileUrl: string | null;
         publishedAt: Date | null;
         deletedAt: Date | null;
     }>;
@@ -175,8 +179,8 @@ export declare class CvPrismaRepository {
             createdAt: Date;
             updatedAt: Date;
             name: string;
-            cvId: string;
             level: string | null;
+            cvId: string;
         }[];
     } & {
         summary: string | null;
@@ -186,6 +190,7 @@ export declare class CvPrismaRepository {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.CvStatus;
         title: string;
+        fileUrl: string | null;
         publishedAt: Date | null;
         deletedAt: Date | null;
     }>;
@@ -197,6 +202,7 @@ export declare class CvPrismaRepository {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.CvStatus;
         title: string;
+        fileUrl: string | null;
         publishedAt: Date | null;
         deletedAt: Date | null;
     }>;
@@ -208,6 +214,7 @@ export declare class CvPrismaRepository {
         updatedAt: Date;
         status: import("@prisma/client").$Enums.CvStatus;
         title: string;
+        fileUrl: string | null;
         publishedAt: Date | null;
         deletedAt: Date | null;
     }>;

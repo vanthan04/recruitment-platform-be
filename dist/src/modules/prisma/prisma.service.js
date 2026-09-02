@@ -15,10 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PrismaService = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
+const adapter_pg_1 = require("@prisma/adapter-pg");
 let PrismaService = class PrismaService extends client_1.PrismaClient {
     options;
     constructor(options) {
-        super(options);
+        const adapter = new adapter_pg_1.PrismaPg({ connectionString: process.env.DATABASE_URL });
+        super({ ...options, adapter });
         this.options = options;
     }
     async onModuleInit() {

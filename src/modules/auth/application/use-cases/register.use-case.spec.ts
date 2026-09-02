@@ -1,0 +1,67 @@
+import { ConflictException } from '@nestjs/common';
+import { RegisterUseCase } from '@/modules/auth/application/use-cases/register.use-case';
+import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
+import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
+import { UserRole } from '@/common/enums/user-role.enum';
+
+describe('RegisterUseCase', () => {
+  let useCase: RegisterUseCase;
+  let userRepository: jest.Mocked<IAuthUserRepositoryPort>;
+  let mailService: jest.Mocked<IAuthMailServicePort>;
+
+  beforeEach(() => {
+    userRepository = {
+      findById: jest.fn(),
+      findByEmail: jest.fn(),
+      existsByEmail: jest.fn(),
+      save: jest.fn(),
+      findByVerifyCode: jest.fn(),
+    };
+    mailService = {
+      sendEmail: jest.fn().mockResolvedValue(undefined),
+    };
+    useCase = new RegisterUseCase(userRepository, mailService);
+  });
+
+  it('throws ConflictException when the email is already registered', async () => {
+    userRepository.existsByEmail.mockResolvedValue(true);
+
+    await expect(
+      useCase.execute({
+        email: 'taken@test.com',
+        password: 'password123',
+        fullName: 'Taken User',
+        role: UserRole.CANDIDATE,
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(userRepository.save).not.toHaveBeenCalled();
+    expect(mailService.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('creates the user with a hashed password and sends a verification email', async () => {
+    userRepository.existsByEmail.mockResolvedValue(false);
+    userRepository.save.mockResolvedValue({
+      id: 'user-1',
+      email: 'new@test.com',
+    } as any);
+
+    const result = await useCase.execute({
+      email: 'new@test.com',
+      password: 'password123',
+      fullName: 'New User',
+      role: UserRole.CANDIDATE,
+    });
+
+    expect(result).toEqual({ email: 'new@test.com' });
+
+    const saveArgs = userRepository.save.mock.calls[0][0];
+    expect(saveArgs.email).toBe('new@test.com');
+    expect(saveArgs.password).not.toBe('password123'); // must be hashed
+    expect(saveArgs.verifyCode).toEqual(expect.any(String));
+
+    expect(mailService.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'new@test.com' }),
+    );
+  });
+});

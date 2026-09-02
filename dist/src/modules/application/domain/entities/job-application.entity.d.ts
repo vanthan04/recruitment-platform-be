@@ -9,5 +9,6 @@ export declare class JobApplication extends BaseEntity {
     constructor(partial: Partial<JobApplication>);
     accept(): void;
     reject(): void;
+    withdraw(): void;
     isPending(): boolean;
 }

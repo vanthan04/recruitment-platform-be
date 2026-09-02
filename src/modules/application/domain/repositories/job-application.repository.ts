@@ -7,4 +7,5 @@ export abstract class IJobApplicationRepository {
   abstract findAllByUserId(userId: string): Promise<JobApplication[]>;
   abstract save(application: JobApplication): Promise<JobApplication>;
   abstract update(application: JobApplication): Promise<JobApplication>;
+  abstract countByJobIdGroupedByStatus(jobId: string): Promise<Record<string, number>>;
 }

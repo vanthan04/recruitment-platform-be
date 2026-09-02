@@ -6,6 +6,7 @@ export class CvResponseDto {
   id: string;
   title: string;
   summary: string | null;
+  fileUrl: string | null;
   status: string;
   publishedAt: Date | null;
   createdAt: Date;

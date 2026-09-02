@@ -16,7 +16,7 @@ export class AdminListUsersUseCase {
     );
 
     const data = users.map(user => {
-      const { password, refreshToken, ...safeUser } = user as any;
+      const { password, ...safeUser } = user as any;
       return safeUser;
     });
 

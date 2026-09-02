@@ -16,10 +16,10 @@ export declare class UserPrismaRepository extends BasePrismaRepository<Prisma.Us
     findById(id: string): Promise<User | null>;
     findByIdWithProfile(id: string): Promise<User | null>;
     existsByEmail(email: string): Promise<boolean>;
-    updateRefreshToken(id: string, refreshToken: string | null): Promise<void>;
     save(data: Partial<User>): Promise<User>;
     updateProfile(userId: string, profile: Partial<User['profile']>): Promise<void>;
     findByVerifyCode(code: string): Promise<User | null>;
+    updateCompanyId(userId: string, companyId: string | null): Promise<void>;
     findAllPaginated(page: number, limit: number): Promise<{
         users: User[];
         total: number;

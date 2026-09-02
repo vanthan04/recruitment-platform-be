@@ -23,7 +23,7 @@ let AdminListUsersUseCase = class AdminListUsersUseCase {
         const normalized = (0, pagination_util_1.normalizePagination)({ page, limit });
         const { users, total } = await this.userRepository.findAllPaginated(normalized.page, normalized.limit);
         const data = users.map(user => {
-            const { password, refreshToken, ...safeUser } = user;
+            const { password, ...safeUser } = user;
             return safeUser;
         });
         const paginationInfo = (0, pagination_util_1.getPaginationInfo)({

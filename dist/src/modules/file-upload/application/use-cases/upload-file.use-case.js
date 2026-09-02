@@ -12,16 +12,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadFileUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const file_storage_provider_interface_1 = require("../../domain/providers/file-storage.provider.interface");
+const DEFAULT_ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 let UploadFileUseCase = class UploadFileUseCase {
     storageProvider;
     constructor(storageProvider) {
         this.storageProvider = storageProvider;
     }
-    async execute(file, folder) {
+    async execute(file, folder, allowedMimeTypes = DEFAULT_ALLOWED_MIME_TYPES) {
         if (!file) {
             throw new common_1.BadRequestException('FILE_NOT_FOUND');
         }
-        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         if (!allowedMimeTypes.includes(file.mimetype)) {
             throw new common_1.BadRequestException('INVALID_FILE_TYPE');
         }

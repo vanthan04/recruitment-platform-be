@@ -46,7 +46,7 @@ exports.S3StorageProvider = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const client_s3_1 = require("@aws-sdk/client-s3");
-const uuid_1 = require("uuid");
+const crypto_1 = require("crypto");
 const path = __importStar(require("path"));
 let S3StorageProvider = class S3StorageProvider {
     configService;
@@ -70,7 +70,7 @@ let S3StorageProvider = class S3StorageProvider {
     async upload(file, folder = 'general') {
         try {
             const fileExtension = path.extname(file.originalname);
-            const fileName = `${(0, uuid_1.v4)()}${fileExtension}`;
+            const fileName = `${(0, crypto_1.randomUUID)()}${fileExtension}`;
             const fileKey = `${folder}/${fileName}`;
             const command = new client_s3_1.PutObjectCommand({
                 Bucket: this.bucketName,

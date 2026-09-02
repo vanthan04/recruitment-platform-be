@@ -43,10 +43,10 @@ export declare class JobApplicationPrismaRepository {
             updatedAt: Date;
             email: string;
             password: string;
-            refreshToken: string | null;
             verifyCode: string | null;
             role: import("@prisma/client").$Enums.UserRole;
             status: import("@prisma/client").$Enums.UserStatus;
+            companyId: string | null;
         };
         cv: {
             summary: string | null;
@@ -56,6 +56,7 @@ export declare class JobApplicationPrismaRepository {
             updatedAt: Date;
             status: import("@prisma/client").$Enums.CvStatus;
             title: string;
+            fileUrl: string | null;
             publishedAt: Date | null;
             deletedAt: Date | null;
         };
@@ -76,11 +77,13 @@ export declare class JobApplicationPrismaRepository {
             createdAt: Date;
             updatedAt: Date;
             status: import("@prisma/client").$Enums.JobStatus;
+            companyId: string;
             title: string;
             deletedAt: Date | null;
-            company: string;
             location: string;
             jobType: import("@prisma/client").$Enums.JobType;
+            level: import("@prisma/client").$Enums.JobLevel | null;
+            viewCount: number;
             salaryMin: number | null;
             salaryMax: number | null;
             currency: string;
@@ -88,6 +91,7 @@ export declare class JobApplicationPrismaRepository {
             benefits: string | null;
             expiresAt: Date | null;
             postedById: string;
+            categoryId: string | null;
         };
     } & {
         userId: string;
@@ -119,4 +123,9 @@ export declare class JobApplicationPrismaRepository {
         jobId: string;
         cvId: string;
     }>;
+    countByJobIdGroupedByStatus(jobId: string): Promise<(import("@prisma/client").Prisma.PickEnumerable<import("@prisma/client").Prisma.JobApplicationGroupByOutputType, "status"[]> & {
+        _count: {
+            _all: number;
+        };
+    })[]>;
 }

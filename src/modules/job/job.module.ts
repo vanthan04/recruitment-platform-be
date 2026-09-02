@@ -3,6 +3,8 @@ import { JobController } from '@/modules/job/presentation/controllers/job.contro
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { JobInfraRepository } from '@/modules/job/infrastructure/repositories/job.infra-repository';
 import { JobPrismaRepository } from '@/modules/job/infrastructure/persistence/prisma/job-prisma.repository';
+import { UserModule } from '@/modules/user/user.module';
+import { CategoryModule } from '@/modules/category/category.module';
 
 // Use Cases
 import { CreateJobUseCase } from '@/modules/job/application/use-cases/create-job.use-case';
@@ -10,8 +12,12 @@ import { UpdateJobUseCase } from '@/modules/job/application/use-cases/update-job
 import { ListJobsUseCase } from '@/modules/job/application/use-cases/list-jobs.use-case';
 import { GetJobUseCase } from '@/modules/job/application/use-cases/get-job.use-case';
 import { DeleteJobUseCase } from '@/modules/job/application/use-cases/delete-job.use-case';
+import { CloseJobUseCase } from '@/modules/job/application/use-cases/close-job.use-case';
+import { ReopenJobUseCase } from '@/modules/job/application/use-cases/reopen-job.use-case';
+import { CloseExpiredJobsCron } from '@/modules/job/application/jobs/close-expired-jobs.cron';
 
 @Module({
+  imports: [UserModule, CategoryModule],
   controllers: [JobController],
   providers: [
     JobPrismaRepository,
@@ -24,6 +30,9 @@ import { DeleteJobUseCase } from '@/modules/job/application/use-cases/delete-job
     ListJobsUseCase,
     GetJobUseCase,
     DeleteJobUseCase,
+    CloseJobUseCase,
+    ReopenJobUseCase,
+    CloseExpiredJobsCron,
   ],
   exports: [IJobRepository],
 })

@@ -20,6 +20,8 @@ import { ApplyJobUseCase } from '@/modules/application/application/use-cases/app
 import { UpdateApplicationStatusUseCase } from '@/modules/application/application/use-cases/update-application-status.use-case';
 import { ListMyApplicationsUseCase } from '@/modules/application/application/use-cases/list-my-applications.use-case';
 import { ListApplicationsByJobUseCase } from '@/modules/application/application/use-cases/list-applications-by-job.use-case';
+import { WithdrawApplicationUseCase } from '@/modules/application/application/use-cases/withdraw-application.use-case';
+import { GetJobStatsUseCase } from '@/modules/application/application/use-cases/get-job-stats.use-case';
 
 import { ApplyJobDto } from '@/modules/application/presentation/dtos/apply-job.dto';
 import { UpdateApplicationStatusDto } from '@/modules/application/presentation/dtos/update-application-status.dto';
@@ -34,6 +36,8 @@ export class JobApplicationController {
     private readonly updateStatusUseCase: UpdateApplicationStatusUseCase,
     private readonly listMyAppsUseCase: ListMyApplicationsUseCase,
     private readonly listByJobUseCase: ListApplicationsByJobUseCase,
+    private readonly withdrawApplicationUseCase: WithdrawApplicationUseCase,
+    private readonly getJobStatsUseCase: GetJobStatsUseCase,
   ) {}
 
   @Post()
@@ -58,6 +62,22 @@ export class JobApplicationController {
   async listByJob(@GetMe('id') recruiterId: string, @Param('jobId') jobId: string) {
     const result = await this.listByJobUseCase.execute(recruiterId, jobId);
     return ApiResponse.ok(result, 'Applications retrieved successfully');
+  }
+
+  @Get('job/:jobId/stats')
+  @Roles(UserRole.RECRUITER)
+  @ApiOperation({ summary: 'Get application stats + view count for a job (Recruiter owner only)' })
+  async getJobStats(@GetMe('id') recruiterId: string, @Param('jobId') jobId: string) {
+    const result = await this.getJobStatsUseCase.execute(recruiterId, jobId);
+    return ApiResponse.ok(result, 'Job stats retrieved successfully');
+  }
+
+  @Patch(':id/withdraw')
+  @Roles(UserRole.CANDIDATE)
+  @ApiOperation({ summary: 'Withdraw a pending application (Candidate owner only)' })
+  async withdraw(@GetMe('id') userId: string, @Param('id') id: string) {
+    const result = await this.withdrawApplicationUseCase.execute(userId, id);
+    return ApiResponse.ok(result, 'Application withdrawn successfully');
   }
 
   @Patch(':id/status')

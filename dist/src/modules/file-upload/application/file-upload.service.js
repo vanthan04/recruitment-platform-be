@@ -17,8 +17,8 @@ let FileUploadService = class FileUploadService {
     constructor(uploadFileUseCase) {
         this.uploadFileUseCase = uploadFileUseCase;
     }
-    async uploadFile(file, folder) {
-        return this.uploadFileUseCase.execute(file, folder);
+    async uploadFile(file, folder, allowedMimeTypes) {
+        return this.uploadFileUseCase.execute(file, folder, allowedMimeTypes);
     }
 };
 exports.FileUploadService = FileUploadService;

@@ -46,16 +46,19 @@ exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
+const crypto = __importStar(require("crypto"));
 const user_repository_1 = require("../../user/domain/repositories/user.repository");
+const refresh_token_repository_port_1 = require("./ports/refresh-token-repository.port");
 const register_use_case_1 = require("./use-cases/register.use-case");
 const login_use_case_1 = require("./use-cases/login.use-case");
 const verify_email_use_case_1 = require("./use-cases/verify-email.use-case");
 const forgot_password_use_case_1 = require("./use-cases/forgot-password.use-case");
 const reset_password_use_case_1 = require("./use-cases/reset-password.use-case");
 const change_password_use_case_1 = require("./use-cases/change-password.use-case");
-const bcrypt = __importStar(require("bcrypt"));
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 let AuthService = class AuthService {
     userRepository;
+    refreshTokenRepository;
     jwtService;
     configService;
     registerUseCase;
@@ -64,8 +67,9 @@ let AuthService = class AuthService {
     forgotPasswordUseCase;
     resetPasswordUseCase;
     changePasswordUseCase;
-    constructor(userRepository, jwtService, configService, registerUseCase, loginUseCase, verifyEmailUseCase, forgotPasswordUseCase, resetPasswordUseCase, changePasswordUseCase) {
+    constructor(userRepository, refreshTokenRepository, jwtService, configService, registerUseCase, loginUseCase, verifyEmailUseCase, forgotPasswordUseCase, resetPasswordUseCase, changePasswordUseCase) {
         this.userRepository = userRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.jwtService = jwtService;
         this.configService = configService;
         this.registerUseCase = registerUseCase;
@@ -81,7 +85,7 @@ let AuthService = class AuthService {
     async login(dto) {
         const user = await this.loginUseCase.execute(dto);
         const tokens = await this.getTokens(user.id, user.email, user.role);
-        await this.updateRefreshToken(user.id, tokens.refresh_token);
+        await this.storeRefreshToken(user.id, tokens.refresh_token);
         return tokens;
     }
     async verifyEmail(dto) {
@@ -96,36 +100,44 @@ let AuthService = class AuthService {
     async changePassword(userId, dto) {
         return this.changePasswordUseCase.execute(userId, dto);
     }
-    async logout(userId) {
-        return this.userRepository.updateRefreshToken(userId, null);
+    async logout(userId, refreshToken) {
+        await this.refreshTokenRepository.revokeByHash(userId, this.hashToken(refreshToken));
+    }
+    async logoutAll(userId) {
+        await this.refreshTokenRepository.revokeAllForUser(userId);
     }
     async refreshTokens(refreshToken) {
+        let payload;
         try {
-            const payload = await this.jwtService.verifyAsync(refreshToken, {
+            payload = await this.jwtService.verifyAsync(refreshToken, {
                 secret: this.configService.get('JWT_REFRESH_SECRET'),
             });
-            const userId = payload.sub;
-            const user = await this.userRepository.findById(userId);
-            if (!user || !user.refreshToken) {
-                throw new common_1.ForbiddenException('Access Denied');
-            }
-            const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
-            if (!refreshTokenMatches) {
-                throw new common_1.ForbiddenException('Access Denied');
-            }
-            const tokens = await this.getTokens(user.id, user.email, user.role);
-            await this.updateRefreshToken(user.id, tokens.refresh_token);
-            return tokens;
         }
-        catch (e) {
+        catch {
             throw new common_1.ForbiddenException('Invalid Refresh Token');
         }
+        const userId = payload.sub;
+        const tokenHash = this.hashToken(refreshToken);
+        const stored = await this.refreshTokenRepository.findValidByHash(tokenHash);
+        if (!stored || stored.userId !== userId) {
+            throw new common_1.ForbiddenException('Access Denied');
+        }
+        const user = await this.userRepository.findById(userId);
+        if (!user) {
+            throw new common_1.ForbiddenException('Access Denied');
+        }
+        await this.refreshTokenRepository.revokeByHash(userId, tokenHash);
+        const tokens = await this.getTokens(user.id, user.email, user.role);
+        await this.storeRefreshToken(user.id, tokens.refresh_token);
+        return tokens;
     }
-    async updateRefreshToken(userId, refreshToken) {
-        const hashedRefreshToken = refreshToken
-            ? await bcrypt.hash(refreshToken, 10)
-            : null;
-        await this.userRepository.updateRefreshToken(userId, hashedRefreshToken);
+    async storeRefreshToken(userId, refreshToken) {
+        const tokenHash = this.hashToken(refreshToken);
+        const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+        await this.refreshTokenRepository.create(userId, tokenHash, expiresAt);
+    }
+    hashToken(token) {
+        return crypto.createHash('sha256').update(token).digest('hex');
     }
     async getTokens(userId, email, role) {
         const [accessToken, refreshToken] = await Promise.all([
@@ -141,6 +153,7 @@ let AuthService = class AuthService {
                 sub: userId,
                 email,
                 role,
+                jti: crypto.randomUUID(),
             }, {
                 secret: this.configService.get('JWT_REFRESH_SECRET'),
                 expiresIn: '7d',
@@ -159,6 +172,7 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [user_repository_1.IUserRepository,
+        refresh_token_repository_port_1.IRefreshTokenRepositoryPort,
         jwt_1.JwtService,
         config_1.ConfigService,
         register_use_case_1.RegisterUseCase,

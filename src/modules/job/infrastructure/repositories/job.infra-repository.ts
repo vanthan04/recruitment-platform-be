@@ -22,6 +22,9 @@ export class JobInfraRepository implements IJobRepository {
     jobType?: string;
     salaryMin?: number;
     salaryMax?: number;
+    companyId?: string;
+    categoryId?: string;
+    level?: string;
   }): Promise<{ jobs: Job[]; total: number }> {
     const skip = (params.page - 1) * params.limit;
     const where: Prisma.JobWhereInput = {
@@ -33,7 +36,7 @@ export class JobInfraRepository implements IJobRepository {
       where.OR = [
         { title: { contains: params.keyword, mode: 'insensitive' } },
         { description: { contains: params.keyword, mode: 'insensitive' } },
-        { company: { contains: params.keyword, mode: 'insensitive' } },
+        { company: { name: { contains: params.keyword, mode: 'insensitive' } } },
       ];
     }
 
@@ -53,6 +56,18 @@ export class JobInfraRepository implements IJobRepository {
       where.salaryMin = { lte: params.salaryMax };
     }
 
+    if (params.companyId) {
+      where.companyId = params.companyId;
+    }
+
+    if (params.categoryId) {
+      where.categoryId = params.categoryId;
+    }
+
+    if (params.level) {
+      where.level = params.level as any;
+    }
+
     const { jobs: raws, total } = await this.jobPrisma.findAllPaginated({
       skip,
       take: params.limit,
@@ -70,6 +85,11 @@ export class JobInfraRepository implements IJobRepository {
     return raws.map((r) => JobMapper.toDomain(r)!);
   }
 
+  async findExpiredOpenJobs(): Promise<Job[]> {
+    const raws = await this.jobPrisma.findExpiredOpen();
+    return raws.map((r) => JobMapper.toDomain(r)!);
+  }
+
   async save(job: Job): Promise<Job> {
     const data = JobMapper.toPersistence(job);
     const raw = await this.jobPrisma.create(data);
@@ -84,5 +104,9 @@ export class JobInfraRepository implements IJobRepository {
 
   async delete(id: string): Promise<void> {
     await this.jobPrisma.delete(id);
+  }
+
+  async incrementViewCount(id: string): Promise<void> {
+    await this.jobPrisma.incrementViewCount(id);
   }
 }

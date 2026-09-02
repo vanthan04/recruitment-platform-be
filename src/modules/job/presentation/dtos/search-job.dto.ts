@@ -7,6 +7,7 @@ import {
   Min,
 } from 'class-validator';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { PageOptionsDto } from '@/common/dtos/page-options.dto';
 import { Type } from 'class-transformer';
 
@@ -39,4 +40,19 @@ export class SearchJobDto extends PageOptionsDto {
   @Min(0)
   @IsOptional()
   salaryMax?: number;
+
+  @ApiPropertyOptional({ example: 'c1a2b3c4-...' })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
+
+  @ApiPropertyOptional({ example: 'c1a2b3c4-...' })
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
+
+  @ApiPropertyOptional({ enum: JobLevel })
+  @IsEnum(JobLevel)
+  @IsOptional()
+  level?: JobLevel;
 }

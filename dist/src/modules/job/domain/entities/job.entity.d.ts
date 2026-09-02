@@ -1,14 +1,30 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { JobStatus } from '@/modules/job/domain/value-objects/job-status.vo';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
+export interface CompanySummary {
+    id: string;
+    name: string;
+    logoUrl: string | null;
+}
+export interface CategorySummary {
+    id: string;
+    name: string;
+    slug: string;
+}
 export declare class Job extends BaseEntity {
     title: string;
     description: string;
-    company: string;
+    companyId: string;
+    company?: CompanySummary | null;
+    categoryId: string | null;
+    category?: CategorySummary | null;
     location: string;
     jobType: JobType;
+    level: JobLevel | null;
     status: JobStatus;
+    viewCount: number;
     salary: SalaryRange;
     requirements: string | null;
     benefits: string | null;
@@ -28,9 +44,10 @@ export declare class Job extends BaseEntity {
     updateDetails(data: {
         title?: string;
         description?: string;
-        company?: string;
         location?: string;
         jobType?: JobType;
+        level?: JobLevel | null;
+        categoryId?: string | null;
         requirements?: string;
         benefits?: string;
         salaryMin?: number;

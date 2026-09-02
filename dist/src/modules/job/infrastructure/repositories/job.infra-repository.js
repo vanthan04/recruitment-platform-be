@@ -32,7 +32,7 @@ let JobInfraRepository = class JobInfraRepository {
             where.OR = [
                 { title: { contains: params.keyword, mode: 'insensitive' } },
                 { description: { contains: params.keyword, mode: 'insensitive' } },
-                { company: { contains: params.keyword, mode: 'insensitive' } },
+                { company: { name: { contains: params.keyword, mode: 'insensitive' } } },
             ];
         }
         if (params.location) {
@@ -46,6 +46,15 @@ let JobInfraRepository = class JobInfraRepository {
         }
         if (params.salaryMax !== undefined) {
             where.salaryMin = { lte: params.salaryMax };
+        }
+        if (params.companyId) {
+            where.companyId = params.companyId;
+        }
+        if (params.categoryId) {
+            where.categoryId = params.categoryId;
+        }
+        if (params.level) {
+            where.level = params.level;
         }
         const { jobs: raws, total } = await this.jobPrisma.findAllPaginated({
             skip,
@@ -61,6 +70,10 @@ let JobInfraRepository = class JobInfraRepository {
         const raws = await this.jobPrisma.findAllByRecruiter(recruiterId);
         return raws.map((r) => job_mapper_1.JobMapper.toDomain(r));
     }
+    async findExpiredOpenJobs() {
+        const raws = await this.jobPrisma.findExpiredOpen();
+        return raws.map((r) => job_mapper_1.JobMapper.toDomain(r));
+    }
     async save(job) {
         const data = job_mapper_1.JobMapper.toPersistence(job);
         const raw = await this.jobPrisma.create(data);
@@ -73,6 +86,9 @@ let JobInfraRepository = class JobInfraRepository {
     }
     async delete(id) {
         await this.jobPrisma.delete(id);
+    }
+    async incrementViewCount(id) {
+        await this.jobPrisma.incrementViewCount(id);
     }
 };
 exports.JobInfraRepository = JobInfraRepository;

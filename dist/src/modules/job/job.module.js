@@ -12,16 +12,22 @@ const job_controller_1 = require("./presentation/controllers/job.controller");
 const job_repository_1 = require("./domain/repositories/job.repository");
 const job_infra_repository_1 = require("./infrastructure/repositories/job.infra-repository");
 const job_prisma_repository_1 = require("./infrastructure/persistence/prisma/job-prisma.repository");
+const user_module_1 = require("../user/user.module");
+const category_module_1 = require("../category/category.module");
 const create_job_use_case_1 = require("./application/use-cases/create-job.use-case");
 const update_job_use_case_1 = require("./application/use-cases/update-job.use-case");
 const list_jobs_use_case_1 = require("./application/use-cases/list-jobs.use-case");
 const get_job_use_case_1 = require("./application/use-cases/get-job.use-case");
 const delete_job_use_case_1 = require("./application/use-cases/delete-job.use-case");
+const close_job_use_case_1 = require("./application/use-cases/close-job.use-case");
+const reopen_job_use_case_1 = require("./application/use-cases/reopen-job.use-case");
+const close_expired_jobs_cron_1 = require("./application/jobs/close-expired-jobs.cron");
 let JobModule = class JobModule {
 };
 exports.JobModule = JobModule;
 exports.JobModule = JobModule = __decorate([
     (0, common_1.Module)({
+        imports: [user_module_1.UserModule, category_module_1.CategoryModule],
         controllers: [job_controller_1.JobController],
         providers: [
             job_prisma_repository_1.JobPrismaRepository,
@@ -34,6 +40,9 @@ exports.JobModule = JobModule = __decorate([
             list_jobs_use_case_1.ListJobsUseCase,
             get_job_use_case_1.GetJobUseCase,
             delete_job_use_case_1.DeleteJobUseCase,
+            close_job_use_case_1.CloseJobUseCase,
+            reopen_job_use_case_1.ReopenJobUseCase,
+            close_expired_jobs_cron_1.CloseExpiredJobsCron,
         ],
         exports: [job_repository_1.IJobRepository],
     })

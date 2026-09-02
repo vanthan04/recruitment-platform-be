@@ -27,6 +27,12 @@ class JobApplication extends base_entity_1.BaseEntity {
         }
         this.status = application_status_vo_1.ApplicationStatus.REJECTED;
     }
+    withdraw() {
+        if (this.status !== application_status_vo_1.ApplicationStatus.PENDING) {
+            throw new domain_exception_1.BusinessRuleViolationException('Only pending applications can be withdrawn');
+        }
+        this.status = application_status_vo_1.ApplicationStatus.WITHDRAWN;
+    }
     isPending() {
         return this.status === application_status_vo_1.ApplicationStatus.PENDING;
     }

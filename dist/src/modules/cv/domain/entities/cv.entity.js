@@ -7,6 +7,7 @@ const domain_exception_1 = require("../../../../common/exceptions/domain.excepti
 class Cv extends base_entity_1.BaseEntity {
     title;
     summary;
+    fileUrl;
     status;
     publishedAt;
     deletedAt;
@@ -18,6 +19,7 @@ class Cv extends base_entity_1.BaseEntity {
         super();
         Object.assign(this, partial);
         this.status = partial.status ?? cv_status_vo_1.CvStatus.DRAFT;
+        this.fileUrl = partial.fileUrl ?? null;
         this.experiences = partial.experiences ?? [];
         this.educations = partial.educations ?? [];
         this.skills = partial.skills ?? [];
@@ -92,6 +94,9 @@ class Cv extends base_entity_1.BaseEntity {
     }
     updateSummary(summary) {
         this.summary = summary?.trim() ?? null;
+    }
+    attachFile(fileUrl) {
+        this.fileUrl = fileUrl;
     }
 }
 exports.Cv = Cv;

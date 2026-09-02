@@ -24,8 +24,10 @@ const reset_password_use_case_1 = require("./application/use-cases/reset-passwor
 const change_password_use_case_1 = require("./application/use-cases/change-password.use-case");
 const auth_user_repository_port_1 = require("./application/ports/auth-user-repository.port");
 const auth_mail_service_port_1 = require("./application/ports/auth-mail-service.port");
+const refresh_token_repository_port_1 = require("./application/ports/refresh-token-repository.port");
 const user_repository_adapter_1 = require("./infrastructure/adapters/user-repository.adapter");
 const mail_service_adapter_1 = require("./infrastructure/adapters/mail-service.adapter");
+const refresh_token_prisma_repository_1 = require("./infrastructure/persistence/refresh-token-prisma.repository");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -61,6 +63,10 @@ exports.AuthModule = AuthModule = __decorate([
             {
                 provide: auth_mail_service_port_1.IAuthMailServicePort,
                 useClass: mail_service_adapter_1.AuthMailAdapter,
+            },
+            {
+                provide: refresh_token_repository_port_1.IRefreshTokenRepositoryPort,
+                useClass: refresh_token_prisma_repository_1.RefreshTokenPrismaRepository,
             },
         ],
         exports: [auth_service_1.AuthService],

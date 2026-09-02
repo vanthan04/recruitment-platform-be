@@ -5,6 +5,7 @@ class CvResponseDto {
     id;
     title;
     summary;
+    fileUrl;
     status;
     publishedAt;
     createdAt;

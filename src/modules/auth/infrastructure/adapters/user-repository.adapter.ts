@@ -21,7 +21,11 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
 
   async save(data: CreateUserOptions): Promise<User> {
     // Adapter mapping logically: Auth's "fullName" -> User Module's "profile.fullName"
+    // `id` must be forwarded — its absence silently turned every update (verify
+    // email, change/reset password) into an INSERT, colliding on the unique
+    // email constraint instead of updating the existing row.
     return this.userRepository.save({
+      id: data.id,
       email: data.email,
       password: data.password,
       verifyCode: data.verifyCode,
@@ -31,10 +35,6 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
         fullName: data.fullName
       } as any : undefined
     });
-  }
-
-  async updateRefreshToken(id: string, refreshToken: string | null): Promise<void> {
-    return this.userRepository.updateRefreshToken(id, refreshToken);
   }
 
   async findByVerifyCode(code: string): Promise<User | null> {

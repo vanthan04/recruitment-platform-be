@@ -9,10 +9,15 @@ const domain_exception_1 = require("../../../../common/exceptions/domain.excepti
 class Job extends base_entity_1.BaseEntity {
     title;
     description;
+    companyId;
     company;
+    categoryId;
+    category;
     location;
     jobType;
+    level;
     status;
+    viewCount;
     salary;
     requirements;
     benefits;
@@ -24,6 +29,9 @@ class Job extends base_entity_1.BaseEntity {
         Object.assign(this, partial);
         this.status = partial.status ?? job_status_vo_1.JobStatus.DRAFT;
         this.jobType = partial.jobType ?? job_type_vo_1.JobType.FULL_TIME;
+        this.level = partial.level ?? null;
+        this.categoryId = partial.categoryId ?? null;
+        this.viewCount = partial.viewCount ?? 0;
         this.deletedAt = partial.deletedAt ?? null;
     }
     open() {
@@ -75,12 +83,14 @@ class Job extends base_entity_1.BaseEntity {
             this.title = data.title;
         if (data.description)
             this.description = data.description;
-        if (data.company)
-            this.company = data.company;
         if (data.location)
             this.location = data.location;
         if (data.jobType)
             this.jobType = data.jobType;
+        if (data.level !== undefined)
+            this.level = data.level;
+        if (data.categoryId !== undefined)
+            this.categoryId = data.categoryId;
         if (data.requirements !== undefined)
             this.requirements = data.requirements;
         if (data.benefits !== undefined)

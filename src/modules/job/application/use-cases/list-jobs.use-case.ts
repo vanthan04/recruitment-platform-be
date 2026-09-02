@@ -11,6 +11,9 @@ export interface ListJobsInput {
   jobType?: string;
   salaryMin?: number;
   salaryMax?: number;
+  companyId?: string;
+  categoryId?: string;
+  level?: string;
 }
 
 @Injectable()

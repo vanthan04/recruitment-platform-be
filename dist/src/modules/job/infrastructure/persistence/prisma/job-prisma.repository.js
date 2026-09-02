@@ -17,9 +17,20 @@ let JobPrismaRepository = class JobPrismaRepository {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    companySelect = {
+        select: { id: true, name: true, logoUrl: true },
+    };
+    categorySelect = {
+        select: { id: true, name: true, slug: true },
+    };
+    relationIncludes = {
+        company: this.companySelect,
+        category: this.categorySelect,
+    };
     async findById(id) {
         return this.prisma.job.findFirst({
             where: { id, deletedAt: null },
+            include: this.relationIncludes,
         });
     }
     async findAllPaginated(params) {
@@ -29,6 +40,7 @@ let JobPrismaRepository = class JobPrismaRepository {
                 take: params.take,
                 where: params.where,
                 orderBy: params.orderBy || { createdAt: 'desc' },
+                include: this.relationIncludes,
             }),
             this.prisma.job.count({ where: params.where }),
         ]);
@@ -38,19 +50,36 @@ let JobPrismaRepository = class JobPrismaRepository {
         return this.prisma.job.findMany({
             where: { postedById: recruiterId, deletedAt: null },
             orderBy: { createdAt: 'desc' },
+            include: this.relationIncludes,
+        });
+    }
+    async findExpiredOpen() {
+        return this.prisma.job.findMany({
+            where: {
+                status: 'OPEN',
+                deletedAt: null,
+                expiresAt: { lt: new Date() },
+            },
         });
     }
     async create(data) {
-        return this.prisma.job.create({ data });
+        return this.prisma.job.create({ data, include: this.relationIncludes });
     }
     async update(id, data) {
         return this.prisma.job.update({
             where: { id },
             data,
+            include: this.relationIncludes,
         });
     }
     async delete(id) {
         return this.prisma.job.delete({ where: { id } });
+    }
+    async incrementViewCount(id) {
+        await this.prisma.job.update({
+            where: { id },
+            data: { viewCount: { increment: 1 } },
+        });
     }
 };
 exports.JobPrismaRepository = JobPrismaRepository;

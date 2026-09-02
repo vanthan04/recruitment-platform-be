@@ -24,6 +24,8 @@ import { UpdateJobUseCase } from '@/modules/job/application/use-cases/update-job
 import { ListJobsUseCase } from '@/modules/job/application/use-cases/list-jobs.use-case';
 import { GetJobUseCase } from '@/modules/job/application/use-cases/get-job.use-case';
 import { DeleteJobUseCase } from '@/modules/job/application/use-cases/delete-job.use-case';
+import { CloseJobUseCase } from '@/modules/job/application/use-cases/close-job.use-case';
+import { ReopenJobUseCase } from '@/modules/job/application/use-cases/reopen-job.use-case';
 
 import { CreateJobDto } from '@/modules/job/presentation/dtos/create-job.dto';
 import { UpdateJobDto } from '@/modules/job/presentation/dtos/update-job.dto';
@@ -38,6 +40,8 @@ export class JobController {
     private readonly listJobsUseCase: ListJobsUseCase,
     private readonly getJobUseCase: GetJobUseCase,
     private readonly deleteJobUseCase: DeleteJobUseCase,
+    private readonly closeJobUseCase: CloseJobUseCase,
+    private readonly reopenJobUseCase: ReopenJobUseCase,
   ) {}
 
   @Post()
@@ -61,6 +65,9 @@ export class JobController {
       jobType: query.jobType,
       salaryMin: query.salaryMin,
       salaryMax: query.salaryMax,
+      companyId: query.companyId,
+      categoryId: query.categoryId,
+      level: query.level,
     });
     return ApiResponse.ok(result.jobs, 'Jobs retrieved successfully', {
       total: result.total,
@@ -98,5 +105,25 @@ export class JobController {
   @ApiOperation({ summary: 'Delete job (Recruiter owner only)' })
   async delete(@GetMe('id') recruiterId: string, @Param('id') jobId: string) {
     await this.deleteJobUseCase.execute(recruiterId, jobId);
+  }
+
+  @Patch(':id/close')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @ApiOperation({ summary: 'Close job, stop accepting applications (Recruiter owner only)' })
+  async close(@GetMe('id') recruiterId: string, @Param('id') jobId: string) {
+    const result = await this.closeJobUseCase.execute(recruiterId, jobId);
+    return ApiResponse.ok(result, 'Job closed successfully');
+  }
+
+  @Patch(':id/reopen')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.RECRUITER)
+  @ApiOperation({ summary: 'Reopen a closed job (Recruiter owner only)' })
+  async reopen(@GetMe('id') recruiterId: string, @Param('id') jobId: string) {
+    const result = await this.reopenJobUseCase.execute(recruiterId, jobId);
+    return ApiResponse.ok(result, 'Job reopened successfully');
   }
 }

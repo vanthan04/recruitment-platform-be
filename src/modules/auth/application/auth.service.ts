@@ -1,7 +1,9 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
+import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
 import { RegisterUseCase } from '@/modules/auth/application/use-cases/register.use-case';
@@ -14,11 +16,14 @@ import { VerifyEmailDto } from '@/modules/auth/presentation/dtos/verify-email.dt
 import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-password.dto';
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
-import * as bcrypt from 'bcrypt';
+
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // matches the 7d expiresIn below
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userRepository: IUserRepository,
+    private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly registerUseCase: RegisterUseCase,
@@ -37,7 +42,7 @@ export class AuthService {
     const user = await this.loginUseCase.execute(dto);
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
-    await this.updateRefreshToken(user.id, tokens.refresh_token);
+    await this.storeRefreshToken(user.id, tokens.refresh_token);
 
     return tokens;
   }
@@ -58,45 +63,56 @@ export class AuthService {
     return this.changePasswordUseCase.execute(userId, dto);
   }
 
-  async logout(userId: string) {
-    return this.userRepository.updateRefreshToken(userId, null);
+  /** Logout this device only — revokes just the session tied to the given refresh token. */
+  async logout(userId: string, refreshToken: string) {
+    await this.refreshTokenRepository.revokeByHash(userId, this.hashToken(refreshToken));
+  }
+
+  /** Logout everywhere — revokes every active session for the user. */
+  async logoutAll(userId: string) {
+    await this.refreshTokenRepository.revokeAllForUser(userId);
   }
 
   async refreshTokens(refreshToken: string) {
+    let payload: any;
     try {
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
-      const userId = payload.sub;
-
-      const user = await this.userRepository.findById(userId);
-      if (!user || !user.refreshToken) {
-        throw new ForbiddenException('Access Denied');
-      }
-
-      const refreshTokenMatches = await bcrypt.compare(
-        refreshToken,
-        user.refreshToken,
-      );
-      if (!refreshTokenMatches) {
-        throw new ForbiddenException('Access Denied');
-      }
-
-      const tokens = await this.getTokens(user.id, user.email, user.role);
-      await this.updateRefreshToken(user.id, tokens.refresh_token);
-
-      return tokens;
-    } catch (e) {
+    } catch {
       throw new ForbiddenException('Invalid Refresh Token');
     }
+
+    const userId = payload.sub;
+    const tokenHash = this.hashToken(refreshToken);
+
+    const stored = await this.refreshTokenRepository.findValidByHash(tokenHash);
+    if (!stored || stored.userId !== userId) {
+      throw new ForbiddenException('Access Denied');
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new ForbiddenException('Access Denied');
+    }
+
+    // Rotate: the old refresh token is single-use — revoke it before issuing a new pair.
+    await this.refreshTokenRepository.revokeByHash(userId, tokenHash);
+
+    const tokens = await this.getTokens(user.id, user.email, user.role);
+    await this.storeRefreshToken(user.id, tokens.refresh_token);
+
+    return tokens;
   }
 
-  async updateRefreshToken(userId: string, refreshToken: string | null) {
-    const hashedRefreshToken = refreshToken 
-      ? await bcrypt.hash(refreshToken, 10) 
-      : null;
-    
-    await this.userRepository.updateRefreshToken(userId, hashedRefreshToken);
+  private async storeRefreshToken(userId: string, refreshToken: string) {
+    const tokenHash = this.hashToken(refreshToken);
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+    await this.refreshTokenRepository.create(userId, tokenHash, expiresAt);
+  }
+
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   async getTokens(userId: string, email: string, role: string) {
@@ -117,6 +133,10 @@ export class AuthService {
           sub: userId,
           email,
           role,
+          // Random jti guarantees a unique token even when issued within the same
+          // second for the same user (e.g. logging in from two devices at once) —
+          // JWTs are otherwise a deterministic function of payload + secret.
+          jti: crypto.randomUUID(),
         },
         {
           secret: this.configService.get<string>('JWT_REFRESH_SECRET'),

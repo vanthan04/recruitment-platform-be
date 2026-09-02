@@ -9,11 +9,16 @@ export declare abstract class IJobRepository {
         jobType?: string;
         salaryMin?: number;
         salaryMax?: number;
+        companyId?: string;
+        categoryId?: string;
+        level?: string;
     }): Promise<{
         jobs: Job[];
         total: number;
     }>;
     abstract findAllByRecruiter(recruiterId: string): Promise<Job[]>;
+    abstract findExpiredOpenJobs(): Promise<Job[]>;
+    abstract incrementViewCount(id: string): Promise<void>;
     abstract save(job: Job): Promise<Job>;
     abstract update(job: Job): Promise<Job>;
     abstract delete(id: string): Promise<void>;

@@ -15,11 +15,13 @@ export declare class BookmarkPrismaRepository {
             createdAt: Date;
             updatedAt: Date;
             status: import("@prisma/client").$Enums.JobStatus;
+            companyId: string;
             title: string;
             deletedAt: Date | null;
-            company: string;
             location: string;
             jobType: import("@prisma/client").$Enums.JobType;
+            level: import("@prisma/client").$Enums.JobLevel | null;
+            viewCount: number;
             salaryMin: number | null;
             salaryMax: number | null;
             currency: string;
@@ -27,6 +29,7 @@ export declare class BookmarkPrismaRepository {
             benefits: string | null;
             expiresAt: Date | null;
             postedById: string;
+            categoryId: string | null;
         };
     } & {
         userId: string;

@@ -20,7 +20,8 @@ export declare class AuthController {
     forgotPassword(dto: ForgotPasswordDto): Promise<import("../../../../common/dtos/response.dto").ResponseDto<null>>;
     resetPassword(dto: ResetPasswordDto): Promise<import("../../../../common/dtos/response.dto").ResponseDto<null>>;
     changePassword(req: any, dto: ChangePasswordDto): Promise<import("../../../../common/dtos/response.dto").ResponseDto<null>>;
-    logout(req: any): Promise<import("../../../../common/dtos/response.dto").ResponseDto<null>>;
+    logout(req: any, dto: RefreshTokenDto): Promise<import("../../../../common/dtos/response.dto").ResponseDto<null>>;
+    logoutAll(req: any): Promise<import("../../../../common/dtos/response.dto").ResponseDto<null>>;
     refresh(dto: RefreshTokenDto): Promise<import("../../../../common/dtos/response.dto").ResponseDto<{
         access_token: string;
         refresh_token: string;

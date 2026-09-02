@@ -57,6 +57,13 @@ let JobApplicationPrismaRepository = class JobApplicationPrismaRepository {
             data,
         });
     }
+    async countByJobIdGroupedByStatus(jobId) {
+        return this.prisma.jobApplication.groupBy({
+            by: ['status'],
+            where: { jobId },
+            _count: { _all: true },
+        });
+    }
 };
 exports.JobApplicationPrismaRepository = JobApplicationPrismaRepository;
 exports.JobApplicationPrismaRepository = JobApplicationPrismaRepository = __decorate([

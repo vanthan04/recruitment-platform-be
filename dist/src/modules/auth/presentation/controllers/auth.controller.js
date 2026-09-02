@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
 const auth_service_1 = require("../../application/auth.service");
 const register_request_dto_1 = require("../dtos/register-request.dto");
 const login_request_dto_1 = require("../dtos/login-request.dto");
@@ -51,12 +52,16 @@ let AuthController = class AuthController {
         return api_response_1.ApiResponse.ok(null, result.message);
     }
     async changePassword(req, dto) {
-        const result = await this.authService.changePassword(req.user.userId, dto);
+        const result = await this.authService.changePassword(req.user.id, dto);
         return api_response_1.ApiResponse.ok(null, result.message);
     }
-    async logout(req) {
-        await this.authService.logout(req.user.userId);
+    async logout(req, dto) {
+        await this.authService.logout(req.user.id, dto.refreshToken);
         return api_response_1.ApiResponse.ok(null, 'Đăng xuất thành công');
+    }
+    async logoutAll(req) {
+        await this.authService.logoutAll(req.user.id);
+        return api_response_1.ApiResponse.ok(null, 'Đăng xuất khỏi tất cả thiết bị thành công');
     }
     async refresh(dto) {
         const result = await this.authService.refreshTokens(dto.refreshToken);
@@ -66,6 +71,7 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('register'),
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Register a new user' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -75,6 +81,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('login'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Login user' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -93,6 +100,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('forgot-password'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Request password reset' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -123,12 +131,23 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('logout'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    (0, swagger_1.ApiOperation)({ summary: 'Logout user' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Logout current device (revokes the given refresh token)' }),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, refresh_token_dto_1.RefreshTokenDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "logout", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Post)('logout-all'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Logout from all devices (revokes every active session)' }),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], AuthController.prototype, "logout", null);
+], AuthController.prototype, "logoutAll", null);
 __decorate([
     (0, common_1.Post)('refresh'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

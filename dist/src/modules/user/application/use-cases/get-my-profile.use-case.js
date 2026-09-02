@@ -22,7 +22,7 @@ let GetMyProfileUseCase = class GetMyProfileUseCase {
         if (!user) {
             throw new common_1.NotFoundException('Người dùng không tồn tại');
         }
-        const { password, refreshToken, verifyCode, ...safeUser } = user;
+        const { password, verifyCode, ...safeUser } = user;
         return safeUser;
     }
 };

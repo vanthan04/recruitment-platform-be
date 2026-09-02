@@ -19,6 +19,7 @@ const swagger_1 = require("@nestjs/swagger");
 const file_upload_service_1 = require("../../application/file-upload.service");
 const api_response_1 = require("../../../../common/dtos/api-response");
 const jwt_auth_guard_1 = require("../../../auth/presentation/security/guards/jwt-auth.guard");
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 let FileUploadController = class FileUploadController {
     fileUploadService;
     constructor(fileUploadService) {
@@ -52,7 +53,7 @@ __decorate([
             },
         },
     }),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } })),
     __param(0, (0, common_1.UploadedFile)()),
     __param(1, (0, common_1.Body)('folder')),
     __metadata("design:type", Function),

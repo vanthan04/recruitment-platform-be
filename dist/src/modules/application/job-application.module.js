@@ -18,6 +18,8 @@ const apply_job_use_case_1 = require("./application/use-cases/apply-job.use-case
 const update_application_status_use_case_1 = require("./application/use-cases/update-application-status.use-case");
 const list_my_applications_use_case_1 = require("./application/use-cases/list-my-applications.use-case");
 const list_applications_by_job_use_case_1 = require("./application/use-cases/list-applications-by-job.use-case");
+const withdraw_application_use_case_1 = require("./application/use-cases/withdraw-application.use-case");
+const get_job_stats_use_case_1 = require("./application/use-cases/get-job-stats.use-case");
 let JobApplicationModule = class JobApplicationModule {
 };
 exports.JobApplicationModule = JobApplicationModule;
@@ -35,6 +37,8 @@ exports.JobApplicationModule = JobApplicationModule = __decorate([
             update_application_status_use_case_1.UpdateApplicationStatusUseCase,
             list_my_applications_use_case_1.ListMyApplicationsUseCase,
             list_applications_by_job_use_case_1.ListApplicationsByJobUseCase,
+            withdraw_application_use_case_1.WithdrawApplicationUseCase,
+            get_job_stats_use_case_1.GetJobStatsUseCase,
         ],
     })
 ], JobApplicationModule);

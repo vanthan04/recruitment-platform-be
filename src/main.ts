@@ -10,6 +10,13 @@ async function bootstrap() {
   // Set Global Prefix (Mapped from context-path: /api/v1)
   app.setGlobalPrefix('api/v1');
 
+  // CORS — restrict to configured origin(s) in production; open by default for local dev
+  const corsOrigin = process.env.CORS_ORIGIN;
+  app.enableCors({
+    origin: corsOrigin ? corsOrigin.split(',').map((o) => o.trim()) : true,
+    credentials: true,
+  });
+
   // Swagger Configuration
   const config = new DocumentBuilder()
     .setTitle('Job Portal API')

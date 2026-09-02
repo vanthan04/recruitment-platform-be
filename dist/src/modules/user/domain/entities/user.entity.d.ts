@@ -5,10 +5,10 @@ import { Profile } from '@/modules/user/domain/entities/profile.entity';
 export declare class User extends BaseEntity {
     email: string;
     password?: string;
-    refreshToken?: string;
     verifyCode?: string;
     role: UserRole;
     status: UserStatus;
+    companyId?: string | null;
     profile?: Profile;
     constructor(partial: Partial<User>);
 }

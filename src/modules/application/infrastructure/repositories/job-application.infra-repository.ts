@@ -39,4 +39,12 @@ export class JobApplicationInfraRepository implements IJobApplicationRepository 
     const raw = await this.applicationPrisma.update(application.id, data);
     return JobApplicationMapper.toDomain(raw)!;
   }
+
+  async countByJobIdGroupedByStatus(jobId: string): Promise<Record<string, number>> {
+    const groups = await this.applicationPrisma.countByJobIdGroupedByStatus(jobId);
+    return groups.reduce<Record<string, number>>((acc, g) => {
+      acc[g.status] = g._count._all;
+      return acc;
+    }, {});
+  }
 }

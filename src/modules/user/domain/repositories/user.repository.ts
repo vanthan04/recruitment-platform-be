@@ -7,7 +7,7 @@ export abstract class IUserRepository {
   abstract existsByEmail(email: string): Promise<boolean>;
   abstract save(user: Partial<User>): Promise<User>;
   abstract updateProfile(userId: string, profile: Partial<User['profile']>): Promise<void>;
-  abstract updateRefreshToken(id: string, refreshToken: string | null): Promise<void>;
   abstract findByVerifyCode(code: string): Promise<User | null>;
   abstract findAllPaginated(page: number, limit: number): Promise<{ users: User[]; total: number }>;
+  abstract updateCompanyId(userId: string, companyId: string | null): Promise<void>;
 }

@@ -1,18 +1,23 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JobAppliedEvent = void 0;
+exports.JobAppliedEvent = exports.JOB_APPLIED_EVENT = void 0;
+exports.JOB_APPLIED_EVENT = 'job.applied';
 class JobAppliedEvent {
     applicationId;
     userId;
     jobId;
     cvId;
-    eventType = 'job.applied';
+    recruiterId;
+    jobTitle;
+    eventType = exports.JOB_APPLIED_EVENT;
     occurredAt;
-    constructor(applicationId, userId, jobId, cvId) {
+    constructor(applicationId, userId, jobId, cvId, recruiterId, jobTitle) {
         this.applicationId = applicationId;
         this.userId = userId;
         this.jobId = jobId;
         this.cvId = cvId;
+        this.recruiterId = recruiterId;
+        this.jobTitle = jobTitle;
         this.occurredAt = new Date();
     }
     toPayload() {
@@ -22,6 +27,8 @@ class JobAppliedEvent {
             userId: this.userId,
             jobId: this.jobId,
             cvId: this.cvId,
+            recruiterId: this.recruiterId,
+            jobTitle: this.jobTitle,
             occurredAt: this.occurredAt.toISOString(),
         };
     }

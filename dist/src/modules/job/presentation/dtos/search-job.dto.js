@@ -13,6 +13,7 @@ exports.SearchJobDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 const job_type_vo_1 = require("../../domain/value-objects/job-type.vo");
+const job_level_vo_1 = require("../../domain/value-objects/job-level.vo");
 const page_options_dto_1 = require("../../../../common/dtos/page-options.dto");
 const class_transformer_1 = require("class-transformer");
 class SearchJobDto extends page_options_dto_1.PageOptionsDto {
@@ -21,6 +22,9 @@ class SearchJobDto extends page_options_dto_1.PageOptionsDto {
     jobType;
     salaryMin;
     salaryMax;
+    companyId;
+    categoryId;
+    level;
 }
 exports.SearchJobDto = SearchJobDto;
 __decorate([
@@ -57,4 +61,22 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], SearchJobDto.prototype, "salaryMax", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'c1a2b3c4-...' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], SearchJobDto.prototype, "companyId", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'c1a2b3c4-...' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], SearchJobDto.prototype, "categoryId", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: job_level_vo_1.JobLevel }),
+    (0, class_validator_1.IsEnum)(job_level_vo_1.JobLevel),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], SearchJobDto.prototype, "level", void 0);
 //# sourceMappingURL=search-job.dto.js.map

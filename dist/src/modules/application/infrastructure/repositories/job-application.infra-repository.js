@@ -44,6 +44,13 @@ let JobApplicationInfraRepository = class JobApplicationInfraRepository {
         const raw = await this.applicationPrisma.update(application.id, data);
         return job_application_mapper_1.JobApplicationMapper.toDomain(raw);
     }
+    async countByJobIdGroupedByStatus(jobId) {
+        const groups = await this.applicationPrisma.countByJobIdGroupedByStatus(jobId);
+        return groups.reduce((acc, g) => {
+            acc[g.status] = g._count._all;
+            return acc;
+        }, {});
+    }
 };
 exports.JobApplicationInfraRepository = JobApplicationInfraRepository;
 exports.JobApplicationInfraRepository = JobApplicationInfraRepository = __decorate([

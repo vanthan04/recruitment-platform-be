@@ -10,4 +10,5 @@ export declare class JobApplicationInfraRepository implements IJobApplicationRep
     findAllByUserId(userId: string): Promise<JobApplication[]>;
     save(application: JobApplication): Promise<JobApplication>;
     update(application: JobApplication): Promise<JobApplication>;
+    countByJobIdGroupedByStatus(jobId: string): Promise<Record<string, number>>;
 }

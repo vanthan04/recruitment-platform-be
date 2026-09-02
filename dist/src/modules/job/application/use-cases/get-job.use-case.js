@@ -8,14 +8,16 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var GetJobUseCase_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetJobUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const job_repository_1 = require("../../domain/repositories/job.repository");
 const domain_exception_1 = require("../../../../common/exceptions/domain.exception");
 const job_response_mapper_1 = require("../mappers/job-response.mapper");
-let GetJobUseCase = class GetJobUseCase {
+let GetJobUseCase = GetJobUseCase_1 = class GetJobUseCase {
     jobRepository;
+    logger = new common_1.Logger(GetJobUseCase_1.name);
     constructor(jobRepository) {
         this.jobRepository = jobRepository;
     }
@@ -24,11 +26,14 @@ let GetJobUseCase = class GetJobUseCase {
         if (!job) {
             throw new domain_exception_1.EntityNotFoundException('Job', jobId);
         }
+        this.jobRepository
+            .incrementViewCount(jobId)
+            .catch((err) => this.logger.error('Failed to increment job view count', err));
         return job_response_mapper_1.JobResponseMapper.toDto(job);
     }
 };
 exports.GetJobUseCase = GetJobUseCase;
-exports.GetJobUseCase = GetJobUseCase = __decorate([
+exports.GetJobUseCase = GetJobUseCase = GetJobUseCase_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [job_repository_1.IJobRepository])
 ], GetJobUseCase);

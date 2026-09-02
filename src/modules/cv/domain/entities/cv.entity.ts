@@ -16,6 +16,7 @@ import {
 export class Cv extends BaseEntity {
   title: string;
   summary: string | null;
+  fileUrl: string | null;
   status: CvStatus;
   publishedAt: Date | null;
   deletedAt: Date | null;
@@ -29,6 +30,7 @@ export class Cv extends BaseEntity {
     super();
     Object.assign(this, partial);
     this.status = partial.status ?? CvStatus.DRAFT;
+    this.fileUrl = partial.fileUrl ?? null;
     this.experiences = partial.experiences ?? [];
     this.educations = partial.educations ?? [];
     this.skills = partial.skills ?? [];
@@ -148,5 +150,9 @@ export class Cv extends BaseEntity {
 
   updateSummary(summary: string | null): void {
     this.summary = summary?.trim() ?? null;
+  }
+
+  attachFile(fileUrl: string): void {
+    this.fileUrl = fileUrl;
   }
 }

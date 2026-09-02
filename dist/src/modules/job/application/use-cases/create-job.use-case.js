@@ -12,22 +12,38 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateJobUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const job_repository_1 = require("../../domain/repositories/job.repository");
+const user_repository_1 = require("../../../user/domain/repositories/user.repository");
+const category_repository_1 = require("../../../category/domain/repositories/category.repository");
 const job_entity_1 = require("../../domain/entities/job.entity");
 const job_type_vo_1 = require("../../domain/value-objects/job-type.vo");
 const salary_range_vo_1 = require("../../domain/value-objects/salary-range.vo");
 const job_response_mapper_1 = require("../mappers/job-response.mapper");
+const domain_exception_1 = require("../../../../common/exceptions/domain.exception");
 let CreateJobUseCase = class CreateJobUseCase {
     jobRepository;
-    constructor(jobRepository) {
+    userRepository;
+    categoryRepository;
+    constructor(jobRepository, userRepository, categoryRepository) {
         this.jobRepository = jobRepository;
+        this.userRepository = userRepository;
+        this.categoryRepository = categoryRepository;
     }
     async execute(recruiterId, input) {
+        const recruiter = await this.userRepository.findById(recruiterId);
+        if (!recruiter?.companyId) {
+            throw new domain_exception_1.BusinessRuleViolationException('You must create a company profile before posting a job');
+        }
+        if (input.categoryId && !(await this.categoryRepository.findById(input.categoryId))) {
+            throw new domain_exception_1.EntityNotFoundException('Category', input.categoryId);
+        }
         const job = new job_entity_1.Job({
             title: input.title,
             description: input.description,
-            company: input.company,
+            companyId: recruiter.companyId,
+            categoryId: input.categoryId ?? null,
             location: input.location,
             jobType: input.jobType ?? job_type_vo_1.JobType.FULL_TIME,
+            level: input.level ?? null,
             salary: new salary_range_vo_1.SalaryRange(input.salaryMin ?? null, input.salaryMax ?? null, input.currency ?? 'VND'),
             requirements: input.requirements ?? null,
             benefits: input.benefits ?? null,
@@ -42,6 +58,8 @@ let CreateJobUseCase = class CreateJobUseCase {
 exports.CreateJobUseCase = CreateJobUseCase;
 exports.CreateJobUseCase = CreateJobUseCase = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [job_repository_1.IJobRepository])
+    __metadata("design:paramtypes", [job_repository_1.IJobRepository,
+        user_repository_1.IUserRepository,
+        category_repository_1.ICategoryRepository])
 ], CreateJobUseCase);
 //# sourceMappingURL=create-job.use-case.js.map

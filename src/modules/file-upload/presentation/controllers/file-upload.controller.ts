@@ -12,6 +12,8 @@ import { FileUploadService } from '../../application/file-upload.service';
 import { ApiResponse } from '@/common/dtos/api-response';
 import { JwtAuthGuard } from '@/modules/auth/presentation/security/guards/jwt-auth.guard';
 
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+
 @ApiTags('files')
 @Controller('files')
 export class FileUploadController {
@@ -38,7 +40,7 @@ export class FileUploadController {
       },
     },
   })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body('folder') folder?: string,

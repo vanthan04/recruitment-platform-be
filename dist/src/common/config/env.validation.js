@@ -39,6 +39,7 @@ exports.envValidationSchema = Joi.object({
     PORT: Joi.number().default(8080),
     API_PREFIX: Joi.string().default('api/v1'),
     DATABASE_URL: Joi.string().required(),
+    CORS_ORIGIN: Joi.string().optional(),
     JWT_SECRET: Joi.string().required(),
     JWT_EXPIRATION: Joi.string().required(),
     JWT_REFRESH_SECRET: Joi.string().required(),

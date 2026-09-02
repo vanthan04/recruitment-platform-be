@@ -11,10 +11,19 @@ class JobMapper {
             id: raw.id,
             title: raw.title,
             description: raw.description,
-            company: raw.company,
+            companyId: raw.companyId,
+            company: raw.company
+                ? { id: raw.company.id, name: raw.company.name, logoUrl: raw.company.logoUrl }
+                : undefined,
+            categoryId: raw.categoryId,
+            category: raw.category
+                ? { id: raw.category.id, name: raw.category.name, slug: raw.category.slug }
+                : undefined,
             location: raw.location,
             jobType: raw.jobType,
+            level: raw.level,
             status: raw.status,
+            viewCount: raw.viewCount,
             salary: new salary_range_vo_1.SalaryRange(raw.salaryMin, raw.salaryMax, raw.currency),
             requirements: raw.requirements,
             benefits: raw.benefits,
@@ -29,9 +38,11 @@ class JobMapper {
         return {
             title: job.title,
             description: job.description,
-            company: job.company,
+            companyId: job.companyId,
+            categoryId: job.categoryId,
             location: job.location,
             jobType: job.jobType,
+            level: job.level,
             status: job.status,
             salaryMin: job.salary?.min,
             salaryMax: job.salary?.max,

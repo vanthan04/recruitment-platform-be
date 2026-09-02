@@ -1,11 +1,32 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { JobStatus } from '@/modules/job/domain/value-objects/job-status.vo';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
 import {
   BusinessRuleViolationException,
   UnauthorizedDomainException,
 } from '@/common/exceptions/domain.exception';
+
+/**
+ * Lightweight read-only snapshot of the owning Company, attached when the
+ * infrastructure layer joins the relation. Not part of Job's own persistence.
+ */
+export interface CompanySummary {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+}
+
+/**
+ * Lightweight read-only snapshot of the assigned Category, attached when the
+ * infrastructure layer joins the relation. Not part of Job's own persistence.
+ */
+export interface CategorySummary {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 /**
  * Job entity — aggregate root.
@@ -15,10 +36,15 @@ import {
 export class Job extends BaseEntity {
   title: string;
   description: string;
-  company: string;
+  companyId: string;
+  company?: CompanySummary | null;
+  categoryId: string | null;
+  category?: CategorySummary | null;
   location: string;
   jobType: JobType;
+  level: JobLevel | null;
   status: JobStatus;
+  viewCount: number;
   salary: SalaryRange;
   requirements: string | null;
   benefits: string | null;
@@ -31,6 +57,9 @@ export class Job extends BaseEntity {
     Object.assign(this, partial);
     this.status = partial.status ?? JobStatus.DRAFT;
     this.jobType = partial.jobType ?? JobType.FULL_TIME;
+    this.level = partial.level ?? null;
+    this.categoryId = partial.categoryId ?? null;
+    this.viewCount = partial.viewCount ?? 0;
     this.deletedAt = partial.deletedAt ?? null;
   }
 
@@ -93,9 +122,10 @@ export class Job extends BaseEntity {
   updateDetails(data: {
     title?: string;
     description?: string;
-    company?: string;
     location?: string;
     jobType?: JobType;
+    level?: JobLevel | null;
+    categoryId?: string | null;
     requirements?: string;
     benefits?: string;
     salaryMin?: number;
@@ -105,9 +135,10 @@ export class Job extends BaseEntity {
   }): void {
     if (data.title) this.title = data.title;
     if (data.description) this.description = data.description;
-    if (data.company) this.company = data.company;
     if (data.location) this.location = data.location;
     if (data.jobType) this.jobType = data.jobType;
+    if (data.level !== undefined) this.level = data.level;
+    if (data.categoryId !== undefined) this.categoryId = data.categoryId;
     if (data.requirements !== undefined) this.requirements = data.requirements;
     if (data.benefits !== undefined) this.benefits = data.benefits;
     if (data.expiresAt !== undefined) this.expiresAt = data.expiresAt;

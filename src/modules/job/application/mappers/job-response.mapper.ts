@@ -10,10 +10,15 @@ export class JobResponseMapper {
     dto.id = job.id;
     dto.title = job.title;
     dto.description = job.description;
-    dto.company = job.company;
+    dto.companyId = job.companyId;
+    dto.company = job.company ?? null;
+    dto.categoryId = job.categoryId;
+    dto.category = job.category ?? null;
     dto.location = job.location;
     dto.jobType = job.jobType;
+    dto.level = job.level;
     dto.status = job.status;
+    dto.viewCount = job.viewCount;
     dto.salaryMin = job.salary?.min ?? null;
     dto.salaryMax = job.salary?.max ?? null;
     dto.currency = job.salary?.currency ?? 'VND';

@@ -8,6 +8,11 @@ const http_exception_filter_1 = require("./common/filters/http-exception.filter"
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.setGlobalPrefix('api/v1');
+    const corsOrigin = process.env.CORS_ORIGIN;
+    app.enableCors({
+        origin: corsOrigin ? corsOrigin.split(',').map((o) => o.trim()) : true,
+        credentials: true,
+    });
     const config = new swagger_1.DocumentBuilder()
         .setTitle('Job Portal API')
         .setDescription('The TopCV Clone Job Portal Backend API documentation')

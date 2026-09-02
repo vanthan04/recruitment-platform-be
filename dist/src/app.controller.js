@@ -8,13 +8,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const api_response_1 = require("./common/dtos/api-response");
-const mail_service_1 = require("@/modules/mail/mail.service");
+const mail_service_port_1 = require("./modules/mail/domain/ports/mail.service.port");
 let AppController = class AppController {
     mailService;
     constructor(mailService) {
@@ -36,6 +35,6 @@ __decorate([
 exports.AppController = AppController = __decorate([
     (0, swagger_1.ApiTags)('app'),
     (0, common_1.Controller)('healthcheck'),
-    __metadata("design:paramtypes", [typeof (_a = typeof mail_service_1.MailService !== "undefined" && mail_service_1.MailService) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [mail_service_port_1.IMailService])
 ], AppController);
 //# sourceMappingURL=app.controller.js.map

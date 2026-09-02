@@ -19,8 +19,10 @@ import { ChangePasswordUseCase } from '@/modules/auth/application/use-cases/chan
 // Ports & Adapters
 import { IAuthUserRepositoryPort } from './application/ports/auth-user-repository.port';
 import { IAuthMailServicePort } from './application/ports/auth-mail-service.port';
+import { IRefreshTokenRepositoryPort } from './application/ports/refresh-token-repository.port';
 import { AuthUserAdapter } from './infrastructure/adapters/user-repository.adapter';
 import { AuthMailAdapter } from './infrastructure/adapters/mail-service.adapter';
+import { RefreshTokenPrismaRepository } from './infrastructure/persistence/refresh-token-prisma.repository';
 
 @Module({
   imports: [
@@ -53,6 +55,10 @@ import { AuthMailAdapter } from './infrastructure/adapters/mail-service.adapter'
     {
       provide: IAuthMailServicePort,
       useClass: AuthMailAdapter,
+    },
+    {
+      provide: IRefreshTokenRepositoryPort,
+      useClass: RefreshTokenPrismaRepository,
     },
   ],
   exports: [AuthService],

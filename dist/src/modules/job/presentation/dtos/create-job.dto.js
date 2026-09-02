@@ -13,12 +13,14 @@ exports.CreateJobDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 const job_type_vo_1 = require("../../domain/value-objects/job-type.vo");
+const job_level_vo_1 = require("../../domain/value-objects/job-level.vo");
 class CreateJobDto {
     title;
     description;
-    company;
     location;
     jobType = job_type_vo_1.JobType.FULL_TIME;
+    level;
+    categoryId;
     salaryMin;
     salaryMax;
     currency = 'VND';
@@ -41,13 +43,6 @@ __decorate([
     __metadata("design:type", String)
 ], CreateJobDto.prototype, "description", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'Tech Corp' }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MaxLength)(200),
-    __metadata("design:type", String)
-], CreateJobDto.prototype, "company", void 0);
-__decorate([
     (0, swagger_1.ApiProperty)({ example: 'Ho Chi Minh City' }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -60,6 +55,18 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateJobDto.prototype, "jobType", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: job_level_vo_1.JobLevel }),
+    (0, class_validator_1.IsEnum)(job_level_vo_1.JobLevel),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateJobDto.prototype, "level", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'c1a2b3c4-...' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateJobDto.prototype, "categoryId", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ example: 1000 }),
     (0, class_validator_1.IsInt)(),

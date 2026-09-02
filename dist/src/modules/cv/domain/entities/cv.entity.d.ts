@@ -6,6 +6,7 @@ import { Skill } from '@/modules/cv/domain/entities/skill.entity';
 export declare class Cv extends BaseEntity {
     title: string;
     summary: string | null;
+    fileUrl: string | null;
     status: CvStatus;
     publishedAt: Date | null;
     deletedAt: Date | null;
@@ -28,4 +29,5 @@ export declare class Cv extends BaseEntity {
     removeSkill(skillId: string): void;
     updateTitle(title: string): void;
     updateSummary(summary: string | null): void;
+    attachFile(fileUrl: string): void;
 }

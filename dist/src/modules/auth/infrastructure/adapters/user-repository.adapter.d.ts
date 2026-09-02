@@ -8,6 +8,5 @@ export declare class AuthUserAdapter implements IAuthUserRepositoryPort {
     findByEmail(email: string): Promise<User | null>;
     existsByEmail(email: string): Promise<boolean>;
     save(data: CreateUserOptions): Promise<User>;
-    updateRefreshToken(id: string, refreshToken: string | null): Promise<void>;
     findByVerifyCode(code: string): Promise<User | null>;
 }

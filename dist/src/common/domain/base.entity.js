@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseEntity = void 0;
-const uuid_1 = require("uuid");
+const crypto_1 = require("crypto");
 class BaseEntity {
-    id = (0, uuid_1.v4)();
+    id = (0, crypto_1.randomUUID)();
     createdAt = new Date();
     updatedAt = new Date();
 }
