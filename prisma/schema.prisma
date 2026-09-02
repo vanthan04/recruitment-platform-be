@@ -173,6 +173,7 @@ model Cv {
   skills       Skill[]
   applications JobApplication[]
 
+  @@index([userId])
   @@map("cvs")
 }
 
@@ -273,6 +274,9 @@ model Job {
   applications JobApplication[]
   bookmarks    Bookmark[]
 
+  @@index([postedById])
+  @@index([companyId])
+  @@index([categoryId])
   @@map("jobs")
 }
 
@@ -296,6 +300,7 @@ model JobApplication {
   cvId   String
 
   @@unique([userId, jobId]) // One application per user per job
+  @@index([jobId])
   @@map("job_applications")
 }
 
@@ -314,6 +319,7 @@ model Bookmark {
   jobId  String
 
   @@unique([userId, jobId]) // One bookmark per user per job
+  @@index([jobId])
   @@map("bookmarks")
 }
 
@@ -334,6 +340,7 @@ model Notification {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
+  @@index([userId])
   @@map("notifications")
 }
 
@@ -353,6 +360,7 @@ model SavedSearch {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
+  @@index([userId])
   @@map("saved_searches")
 }
 
@@ -371,5 +379,6 @@ model RefreshToken {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
+  @@index([userId])
   @@map("refresh_tokens")
 }
