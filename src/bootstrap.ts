@@ -5,6 +5,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from '@/app.module';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
@@ -16,7 +17,11 @@ import { ChatIoAdapter } from '@/common/adapters/socket-io.adapter';
  * so the two never drift apart.
  */
 export async function createHttpApp(): Promise<INestApplication> {
-  const app = await NestFactory.create(AppModule);
+  // bufferLogs holds Nest's bootstrap-phase logs (module init, route
+  // mapping, ...) until useLogger below swaps in the pino-backed logger,
+  // so they're emitted as structured JSON too instead of the default logger.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
 
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
@@ -48,7 +53,9 @@ export async function createHttpApp(): Promise<INestApplication> {
     }),
   );
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  // Resolved via DI (rather than `new GlobalExceptionFilter()`) so it gets
+  // the injected PinoLogger.
+  app.useGlobalFilters(app.get(GlobalExceptionFilter));
 
   return app;
 }
@@ -59,5 +66,9 @@ export async function createHttpApp(): Promise<INestApplication> {
  * that only need to resolve a service/CommandBus and run it.
  */
 export async function createAppContext(): Promise<INestApplicationContext> {
-  return NestFactory.createApplicationContext(AppModule);
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    bufferLogs: true,
+  });
+  app.useLogger(app.get(Logger));
+  return app;
 }

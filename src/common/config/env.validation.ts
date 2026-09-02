@@ -5,6 +5,9 @@ export const envValidationSchema = Joi.object({
   API_PREFIX: Joi.string().default('api/v1'),
   DATABASE_URL: Joi.string().required(),
   CORS_ORIGIN: Joi.string().optional(),
+  LOG_LEVEL: Joi.string()
+    .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
+    .optional(),
 
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRATION: Joi.string().required(),

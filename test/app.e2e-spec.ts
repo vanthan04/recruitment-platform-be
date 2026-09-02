@@ -42,7 +42,7 @@ describe('Job portal core flow (e2e)', () => {
         transform: true,
       }),
     );
-    app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalFilters(app.get(GlobalExceptionFilter));
     await app.init();
   });
 

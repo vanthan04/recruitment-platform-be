@@ -3,8 +3,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
 import { RateLimitModule } from '@/common/rate-limit/rate-limit.module';
 import { DynamoThrottlerStorage } from '@/common/rate-limit/dynamo-throttler-storage.service';
+import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
+import { buildLoggerOptions } from '@/common/config/logger.config';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UserModule } from '@/modules/user/user.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
@@ -25,6 +28,7 @@ import appConfig from '@/common/config/app.config';
 
 @Module({
   imports: [
+    LoggerModule.forRoot(buildLoggerOptions()),
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: envValidationSchema,
@@ -64,6 +68,7 @@ import appConfig from '@/common/config/app.config';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    GlobalExceptionFilter,
   ],
 })
 export class AppModule {}
