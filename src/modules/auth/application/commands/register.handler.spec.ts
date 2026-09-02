@@ -1,11 +1,11 @@
 import { ConflictException } from '@nestjs/common';
-import { RegisterUseCase } from '@/modules/auth/application/use-cases/register.use-case';
+import { RegisterHandler } from '@/modules/auth/application/commands/register.command';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
 import { UserRole } from '@/common/enums/user-role.enum';
 
-describe('RegisterUseCase', () => {
-  let useCase: RegisterUseCase;
+describe('RegisterHandler', () => {
+  let handler: RegisterHandler;
   let userRepository: jest.Mocked<IAuthUserRepositoryPort>;
   let mailService: jest.Mocked<IAuthMailServicePort>;
 
@@ -20,19 +20,21 @@ describe('RegisterUseCase', () => {
     mailService = {
       sendEmail: jest.fn().mockResolvedValue(undefined),
     };
-    useCase = new RegisterUseCase(userRepository, mailService);
+    handler = new RegisterHandler(userRepository, mailService);
   });
 
   it('throws ConflictException when the email is already registered', async () => {
     userRepository.existsByEmail.mockResolvedValue(true);
 
     await expect(
-      useCase.execute({
-        email: 'taken@test.com',
-        password: 'password123',
-        fullName: 'Taken User',
-        role: UserRole.CANDIDATE,
-      }),
+      handler.execute({
+        dto: {
+          email: 'taken@test.com',
+          password: 'password123',
+          fullName: 'Taken User',
+          role: UserRole.CANDIDATE,
+        },
+      } as any),
     ).rejects.toThrow(ConflictException);
 
     expect(userRepository.save).not.toHaveBeenCalled();
@@ -46,12 +48,14 @@ describe('RegisterUseCase', () => {
       email: 'new@test.com',
     } as any);
 
-    const result = await useCase.execute({
-      email: 'new@test.com',
-      password: 'password123',
-      fullName: 'New User',
-      role: UserRole.CANDIDATE,
-    });
+    const result = await handler.execute({
+      dto: {
+        email: 'new@test.com',
+        password: 'password123',
+        fullName: 'New User',
+        role: UserRole.CANDIDATE,
+      },
+    } as any);
 
     expect(result).toEqual({ email: 'new@test.com' });
 

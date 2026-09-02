@@ -1,10 +1,10 @@
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { LoginUseCase } from '@/modules/auth/application/use-cases/login.use-case';
+import { LoginHandler } from '@/modules/auth/application/queries/login.query';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 
-describe('LoginUseCase', () => {
-  let useCase: LoginUseCase;
+describe('LoginHandler', () => {
+  let handler: LoginHandler;
   let userRepository: jest.Mocked<IAuthUserRepositoryPort>;
 
   beforeEach(() => {
@@ -15,14 +15,14 @@ describe('LoginUseCase', () => {
       save: jest.fn(),
       findByVerifyCode: jest.fn(),
     };
-    useCase = new LoginUseCase(userRepository);
+    handler = new LoginHandler(userRepository);
   });
 
   it('throws UnauthorizedException when the user does not exist', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({ email: 'nouser@test.com', password: 'password123' }),
+      handler.execute({ dto: { email: 'nouser@test.com', password: 'password123' } } as any),
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -34,7 +34,7 @@ describe('LoginUseCase', () => {
     } as any);
 
     await expect(
-      useCase.execute({ email: 'user@test.com', password: 'wrong-password' }),
+      handler.execute({ dto: { email: 'user@test.com', password: 'wrong-password' } } as any),
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -46,10 +46,9 @@ describe('LoginUseCase', () => {
     };
     userRepository.findByEmail.mockResolvedValue(storedUser as any);
 
-    const result = await useCase.execute({
-      email: 'user@test.com',
-      password: 'correct-password',
-    });
+    const result = await handler.execute({
+      dto: { email: 'user@test.com', password: 'correct-password' },
+    } as any);
 
     expect(result).toBe(storedUser);
   });

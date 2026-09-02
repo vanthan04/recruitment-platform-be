@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -8,13 +9,13 @@ import { UserModule } from '@/modules/user/user.module';
 import { MailModule } from '@/modules/mail/mail.module';
 import { JwtStrategy } from '@/modules/auth/presentation/security/strategies/jwt.strategy';
 
-// Use Cases
-import { RegisterUseCase } from '@/modules/auth/application/use-cases/register.use-case';
-import { LoginUseCase } from '@/modules/auth/application/use-cases/login.use-case';
-import { VerifyEmailUseCase } from '@/modules/auth/application/use-cases/verify-email.use-case';
-import { ForgotPasswordUseCase } from '@/modules/auth/application/use-cases/forgot-password.use-case';
-import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset-password.use-case';
-import { ChangePasswordUseCase } from '@/modules/auth/application/use-cases/change-password.use-case';
+// Handlers
+import { RegisterHandler } from '@/modules/auth/application/commands/register.command';
+import { LoginHandler } from '@/modules/auth/application/queries/login.query';
+import { VerifyEmailHandler } from '@/modules/auth/application/commands/verify-email.command';
+import { ForgotPasswordHandler } from '@/modules/auth/application/commands/forgot-password.command';
+import { ResetPasswordHandler } from '@/modules/auth/application/commands/reset-password.command';
+import { ChangePasswordHandler } from '@/modules/auth/application/commands/change-password.command';
 
 // Ports & Adapters
 import { IAuthUserRepositoryPort } from './application/ports/auth-user-repository.port';
@@ -26,6 +27,7 @@ import { RefreshTokenPrismaRepository } from './infrastructure/persistence/refre
 
 @Module({
   imports: [
+    CqrsModule,
     UserModule,
     MailModule,
     PassportModule,
@@ -42,12 +44,12 @@ import { RefreshTokenPrismaRepository } from './infrastructure/persistence/refre
   providers: [
     AuthService,
     JwtStrategy,
-    RegisterUseCase,
-    LoginUseCase,
-    VerifyEmailUseCase,
-    ForgotPasswordUseCase,
-    ResetPasswordUseCase,
-    ChangePasswordUseCase,
+    RegisterHandler,
+    LoginHandler,
+    VerifyEmailHandler,
+    ForgotPasswordHandler,
+    ResetPasswordHandler,
+    ChangePasswordHandler,
     {
       provide: IAuthUserRepositoryPort,
       useClass: AuthUserAdapter,
@@ -63,4 +65,4 @@ import { RefreshTokenPrismaRepository } from './infrastructure/persistence/refre
   ],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}

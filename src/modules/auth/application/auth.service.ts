@@ -1,17 +1,18 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import * as crypto from 'crypto';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
-import { RegisterUseCase } from '@/modules/auth/application/use-cases/register.use-case';
-import { LoginUseCase } from '@/modules/auth/application/use-cases/login.use-case';
-import { VerifyEmailUseCase } from '@/modules/auth/application/use-cases/verify-email.use-case';
-import { ForgotPasswordUseCase } from '@/modules/auth/application/use-cases/forgot-password.use-case';
-import { ResetPasswordUseCase } from '@/modules/auth/application/use-cases/reset-password.use-case';
-import { ChangePasswordUseCase } from '@/modules/auth/application/use-cases/change-password.use-case';
+import { RegisterCommand } from '@/modules/auth/application/commands/register.command';
+import { LoginQuery } from '@/modules/auth/application/queries/login.query';
+import { VerifyEmailCommand } from '@/modules/auth/application/commands/verify-email.command';
+import { ForgotPasswordCommand } from '@/modules/auth/application/commands/forgot-password.command';
+import { ResetPasswordCommand } from '@/modules/auth/application/commands/reset-password.command';
+import { ChangePasswordCommand } from '@/modules/auth/application/commands/change-password.command';
 import { VerifyEmailDto } from '@/modules/auth/presentation/dtos/verify-email.dto';
 import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-password.dto';
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
@@ -26,20 +27,16 @@ export class AuthService {
     private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly registerUseCase: RegisterUseCase,
-    private readonly loginUseCase: LoginUseCase,
-    private readonly verifyEmailUseCase: VerifyEmailUseCase,
-    private readonly forgotPasswordUseCase: ForgotPasswordUseCase,
-    private readonly resetPasswordUseCase: ResetPasswordUseCase,
-    private readonly changePasswordUseCase: ChangePasswordUseCase,
-  ) { }
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   async register(dto: RegisterRequestDto) {
-    return this.registerUseCase.execute(dto);
+    return this.commandBus.execute(new RegisterCommand(dto));
   }
 
   async login(dto: LoginRequestDto) {
-    const user = await this.loginUseCase.execute(dto);
+    const user = await this.queryBus.execute(new LoginQuery(dto));
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refresh_token);
@@ -48,19 +45,19 @@ export class AuthService {
   }
 
   async verifyEmail(dto: VerifyEmailDto) {
-    return this.verifyEmailUseCase.execute(dto);
+    return this.commandBus.execute(new VerifyEmailCommand(dto));
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
-    return this.forgotPasswordUseCase.execute(dto);
+    return this.commandBus.execute(new ForgotPasswordCommand(dto));
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    return this.resetPasswordUseCase.execute(dto);
+    return this.commandBus.execute(new ResetPasswordCommand(dto));
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
-    return this.changePasswordUseCase.execute(userId, dto);
+    return this.commandBus.execute(new ChangePasswordCommand(userId, dto));
   }
 
   /** Logout this device only — revokes just the session tied to the given refresh token. */

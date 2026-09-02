@@ -1,19 +1,24 @@
 import { Injectable, ConflictException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
-import { IAuthUserRepositoryPort } from '../ports/auth-user-repository.port';
-import { IAuthMailServicePort } from '../ports/auth-mail-service.port';
-import { UserRole } from '@/common/enums/user-role.enum';
+import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
+import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import * as bcrypt from 'bcrypt';
 
+export class RegisterCommand {
+  constructor(public readonly dto: RegisterRequestDto) {}
+}
+
 @Injectable()
-export class RegisterUseCase {
+@CommandHandler(RegisterCommand)
+export class RegisterHandler implements ICommandHandler<RegisterCommand, { email: string }> {
   constructor(
     private readonly userRepository: IAuthUserRepositoryPort,
     private readonly mailService: IAuthMailServicePort,
-  ) { }
+  ) {}
 
-  async execute(dto: RegisterRequestDto) {
+  async execute({ dto }: RegisterCommand): Promise<{ email: string }> {
     const isExisted = await this.userRepository.existsByEmail(dto.email);
     if (isExisted) {
       throw new ConflictException('EMAIL_ALREADY_EXISTS');
@@ -33,7 +38,6 @@ export class RegisterUseCase {
       status: UserStatus.PENDING,
     });
 
-    // Send Real Email
     await this.mailService.sendEmail({
       to: dto.email,
       subject: 'Xác thực tài khoản của bạn',

@@ -1,13 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { IAuthUserRepositoryPort } from '../ports/auth-user-repository.port';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
 import * as bcrypt from 'bcrypt';
 
+export class ResetPasswordCommand {
+  constructor(public readonly dto: ResetPasswordDto) {}
+}
+
 @Injectable()
-export class ResetPasswordUseCase {
+@CommandHandler(ResetPasswordCommand)
+export class ResetPasswordHandler
+  implements ICommandHandler<ResetPasswordCommand, { message: string }>
+{
   constructor(private readonly userRepository: IAuthUserRepositoryPort) {}
 
-  async execute(dto: ResetPasswordDto) {
+  async execute({ dto }: ResetPasswordCommand): Promise<{ message: string }> {
     const user = await this.userRepository.findByVerifyCode(dto.code);
     if (!user) {
       throw new NotFoundException('Mã xác thực không hợp lệ hoặc đã hết hạn');
@@ -15,7 +23,7 @@ export class ResetPasswordUseCase {
 
     const salt = await bcrypt.genSalt();
     user.password = await bcrypt.hash(dto.newPassword, salt);
-    user.verifyCode = undefined; // Clear code after successful reset
+    user.verifyCode = undefined;
 
     await this.userRepository.save(user);
 
