@@ -39,9 +39,22 @@ outputs — you'll need the EC2 instance ID and ECR repository name below.
 The infra repo's Terraform creates one SecureString parameter per
 sensitive env var under `/recruitment-platform/prod/`:
 
-`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `MAIL_HOST`,
-`MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM`, `PORT`, `API_PREFIX`,
-`S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
+`DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRATION`, `JWT_REFRESH_SECRET`,
+`JWT_REFRESH_EXPIRATION`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`,
+`MAIL_PASS`, `MAIL_FROM`, `PORT`, `API_PREFIX`, `S3_REGION`, `S3_BUCKET`,
+`S3_ACCESS_KEY`, `S3_SECRET_KEY`.
+
+`JWT_EXPIRATION` and `JWT_REFRESH_EXPIRATION` are both required by
+`env.validation.ts` (no default) — the container fails to boot without
+them, so don't skip these two when provisioning the path above.
+
+Also set `CORS_ORIGIN` (comma-separated allowed origins, e.g. the
+frontend's production domain) under the same path. It's the one entry
+here that isn't strictly required — `env.validation.ts` allows it to be
+omitted — but omitting it makes both the HTTP CORS policy (`bootstrap.ts`)
+and the Socket.IO CORS policy (`socket-io.adapter.ts`) reflect *any*
+origin while still allowing credentials, which is fine for local dev but
+not something you want left on by default in production.
 
 `scripts/deploy-remote.sh` reads every parameter under that path at
 deploy time and passes each as a `-e KEY=VALUE` flag to `docker run` — so

@@ -14,6 +14,13 @@ export async function createHttpApp(): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
 
+  // Runs OnModuleDestroy hooks (e.g. PrismaService.$disconnect) on
+  // SIGTERM/SIGINT. Docker sends SIGTERM on every `docker stop` —
+  // deploy-remote.sh does this on every deploy — so without this, a
+  // redeploy on the long-lived EC2 container drops in-flight requests and
+  // DB/WebSocket connections ungracefully instead of draining them.
+  app.enableShutdownHooks();
+
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
 
