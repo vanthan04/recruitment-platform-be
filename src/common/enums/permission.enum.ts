@@ -6,6 +6,7 @@ export enum Permission {
   JOB_CREATE = 'job:create',
   JOB_UPDATE = 'job:update',
   JOB_DELETE = 'job:delete',
+  JOB_READ_OWN = 'job:read:own',
 
   COMPANY_CREATE = 'company:create',
   COMPANY_UPDATE = 'company:update',

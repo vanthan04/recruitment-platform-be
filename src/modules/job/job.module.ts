@@ -22,6 +22,7 @@ import { ReopenJobHandler } from '@/modules/job/application/commands/reopen-job.
 import { CloseExpiredJobsHandler } from '@/modules/job/application/commands/close-expired-jobs.command';
 import { GetJobHandler } from '@/modules/job/application/queries/get-job.query';
 import { ListJobsHandler } from '@/modules/job/application/queries/list-jobs.query';
+import { ListMyJobsHandler } from '@/modules/job/application/queries/list-my-jobs.query';
 
 @Module({
   imports: [CqrsModule, UserModule, CategoryModule, CompanyModule],
@@ -52,6 +53,7 @@ import { ListJobsHandler } from '@/modules/job/application/queries/list-jobs.que
     CloseExpiredJobsHandler,
     GetJobHandler,
     ListJobsHandler,
+    ListMyJobsHandler,
   ],
   exports: [IJobRepository],
 })

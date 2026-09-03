@@ -18,7 +18,12 @@ export abstract class IJobRepository {
     categoryId?: string;
     level?: string;
   }): Promise<{ jobs: Job[]; total: number }>;
-  abstract findAllByRecruiter(recruiterId: string): Promise<Job[]>;
+  abstract findAllByRecruiterPaginated(params: {
+    recruiterId: string;
+    page: number;
+    limit: number;
+    status?: string;
+  }): Promise<{ jobs: Job[]; total: number }>;
   abstract findExpiredOpenJobs(): Promise<Job[]>;
   abstract incrementViewCount(id: string): Promise<void>;
   abstract save(job: Job): Promise<Job>;

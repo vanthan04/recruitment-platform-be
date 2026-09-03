@@ -17,6 +17,7 @@ const PERMISSIONS = [
   { name: 'job:create', description: 'Create a job posting' },
   { name: 'job:update', description: 'Update a job posting (incl. close/reopen)' },
   { name: 'job:delete', description: 'Delete a job posting' },
+  { name: 'job:read:own', description: 'List own job postings, any status' },
   // company
   { name: 'company:create', description: 'Create a company' },
   { name: 'company:update', description: 'Update a company' },
@@ -74,6 +75,7 @@ const ROLE_PERMISSIONS: Record<(typeof ROLES)[number]['name'], string[]> = {
     'job:create',
     'job:update',
     'job:delete',
+    'job:read:own',
     'company:create',
     'company:update',
     'company:delete',

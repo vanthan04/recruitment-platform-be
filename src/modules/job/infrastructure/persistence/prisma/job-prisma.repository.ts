@@ -35,13 +35,6 @@ export class JobPrismaRepository {
     return { jobs, total };
   }
 
-  async findAllByRecruiter(recruiterId: string) {
-    return this.prisma.job.findMany({
-      where: { postedById: recruiterId, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
   async findExpiredOpen() {
     return this.prisma.job.findMany({
       where: {

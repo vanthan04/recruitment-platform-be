@@ -27,10 +27,12 @@ import { CloseJobCommand } from '@/modules/job/application/commands/close-job.co
 import { ReopenJobCommand } from '@/modules/job/application/commands/reopen-job.command';
 import { GetJobQuery } from '@/modules/job/application/queries/get-job.query';
 import { ListJobsQuery } from '@/modules/job/application/queries/list-jobs.query';
+import { ListMyJobsQuery } from '@/modules/job/application/queries/list-my-jobs.query';
 
 import { CreateJobDto } from '@/modules/job/presentation/dtos/create-job.dto';
 import { UpdateJobDto } from '@/modules/job/presentation/dtos/update-job.dto';
 import { SearchJobDto } from '@/modules/job/presentation/dtos/search-job.dto';
+import { ListMyJobsDto } from '@/modules/job/presentation/dtos/list-my-jobs.dto';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -70,6 +72,31 @@ export class JobController {
       }),
     );
     return ApiResponse.ok(result.jobs, 'Jobs retrieved successfully', {
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+    });
+  }
+
+  @Get('mine')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermissions(Permission.JOB_READ_OWN)
+  @ApiOperation({
+    summary: "List current recruiter's own jobs, any status (Recruiter only)",
+  })
+  async listMine(
+    @GetMe('id') recruiterId: string,
+    @Query() query: ListMyJobsDto,
+  ) {
+    const result = await this.queryBus.execute(
+      new ListMyJobsQuery(recruiterId, {
+        page: query.page ?? 1,
+        limit: query.limit ?? 10,
+        status: query.status,
+      }),
+    );
+    return ApiResponse.ok(result.jobs, 'My jobs retrieved successfully', {
       total: result.total,
       page: result.page,
       limit: result.limit,

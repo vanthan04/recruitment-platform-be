@@ -95,9 +95,31 @@ export class JobInfraRepository implements IJobRepository {
     return { jobs, total };
   }
 
-  async findAllByRecruiter(recruiterId: string): Promise<Job[]> {
-    const raws = await this.jobPrisma.findAllByRecruiter(recruiterId);
-    return this.attachSummaries(raws.map((r) => JobMapper.toDomain(r)!));
+  async findAllByRecruiterPaginated(params: {
+    recruiterId: string;
+    page: number;
+    limit: number;
+    status?: string;
+  }): Promise<{ jobs: Job[]; total: number }> {
+    const skip = (params.page - 1) * params.limit;
+    const where: Prisma.JobWhereInput = {
+      postedById: params.recruiterId,
+      deletedAt: null,
+    };
+    if (params.status) {
+      where.status = params.status as any;
+    }
+
+    const { jobs: raws, total } = await this.jobPrisma.findAllPaginated({
+      skip,
+      take: params.limit,
+      where,
+    });
+
+    const jobs = await this.attachSummaries(
+      raws.map((r) => JobMapper.toDomain(r)!),
+    );
+    return { jobs, total };
   }
 
   async findExpiredOpenJobs(): Promise<Job[]> {
