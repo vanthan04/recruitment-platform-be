@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      # ~80 pre-existing @typescript-eslint/no-unsafe-* violations across the
+      # codebase (never enforced) — report only, don't block on it yet.
+      - run: npx eslint "{src,apps,libs,test}/**/*.ts"
+        continue-on-error: true
+      - run: npm run build
+      - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: recruitment_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:password@localhost:5432/recruitment_platform?schema=public
+      JWT_SECRET: ci-test-secret
+      JWT_EXPIRATION: "900000"
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+      JWT_REFRESH_EXPIRATION: "7d"
+      MAIL_HOST: smtp.example.com
+      MAIL_PORT: "587"
+      MAIL_USER: ci@example.com
+      MAIL_PASS: ci-dummy-password
+      MAIL_FROM: ci@example.com
+      S3_REGION: ap-southeast-1
+      S3_BUCKET: ci-dummy-bucket
+      S3_ACCESS_KEY: ci-dummy-key
+      S3_SECRET_KEY: ci-dummy-secret
+      RATE_LIMIT_TABLE: rate-limit-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run test:e2e

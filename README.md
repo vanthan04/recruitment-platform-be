@@ -122,8 +122,10 @@ Create a `.env` file in the project root:
 
 ```bash
 npm install
+docker compose up -d   # starts a local Postgres matching .env.example
 npx prisma generate
-npx prisma db push   # this project uses `db push`, not migrations — no prisma/migrations folder
+npx prisma migrate deploy
+npm run db:seed        # seeds RBAC roles/permissions
 ```
 
 ### Running
