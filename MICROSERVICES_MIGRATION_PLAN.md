@@ -1,6 +1,8 @@
 # Kế hoạch tách Microservices (gRPC + CQRS)
 
-> Đây là **kế hoạch**, chưa implement. Việc tách monolith hiện tại (đang chạy tốt, đã qua P1-P8, có test) thành microservices là thay đổi kiến trúc lớn, rủi ro cao nếu làm big-bang — tài liệu này đề xuất lộ trình theo từng bước nhỏ, có thể dừng ở bất kỳ phase nào mà vẫn có giá trị.
+> Đây là **kế hoạch** cho phần gRPC/tách service vật lý — **chưa implement**. Việc tách monolith hiện tại (đang chạy tốt, đã qua P1-P10, có test) thành microservices là thay đổi kiến trúc lớn, rủi ro cao nếu làm big-bang — tài liệu này đề xuất lộ trình theo từng bước nhỏ, có thể dừng ở bất kỳ phase nào mà vẫn có giá trị.
+>
+> **Cập nhật 2026-09-03**: Phase 1 (CQRS hoá bên trong monolith, mục 8 bên dưới) **đã xong** — toàn bộ 16 module business đã dùng `Command`/`Query` + `Handler` qua `@nestjs/cqrs`, không còn use-case class kiểu cũ (xem [ROADMAP.md](ROADMAP.md) P11, [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) mục 2). Backend cũng đã đổi cách deploy sang AWS Lambda (API Gateway + EventBridge Scheduler cho cron) — đây là thay đổi hạ tầng độc lập với kế hoạch tách service này, nhưng đáng chú ý vì 2 cron job giờ đã là 2 Lambda riêng biệt (`src/handlers/`), một bước nhỏ tình cờ đi đúng hướng "ranh giới vật lý tách rời" mà phase 3 trở đi của tài liệu này nhắm tới.
 >
 > Hợp đồng HTTP hiện tại với FE (xem [API_GUIDE.md](API_GUIDE.md)) **không đổi** trong suốt quá trình này — FE luôn gọi 1 origin duy nhất qua API Gateway, không cần biết đằng sau có bao nhiêu service.
 
@@ -185,8 +187,8 @@ Nguyên tắc: mỗi phase đứng độc lập, dừng ở phase nào cũng có
 
 | Phase | Việc làm | Rủi ro | Có thể test bằng |
 |---|---|---|---|
-| **0** | Thêm API Gateway module đứng trước monolith hiện tại (passthrough, chưa đổi gì bên trong) | Rất thấp | Test suite hiện tại (41 test) chạy y nguyên |
-| **1** | Refactor use-case → Command/Query + Handler (`@nestjs/cqrs`) **bên trong monolith** | Thấp (behavior-preserving) | Test suite hiện tại + viết thêm test cho handler |
+| **0** | Thêm API Gateway module đứng trước monolith hiện tại (passthrough, chưa đổi gì bên trong) | Rất thấp | **Chưa làm** — Test suite hiện tại (85 unit test / 14 suite + 2 file e2e) chạy y nguyên |
+| **1** | Refactor use-case → Command/Query + Handler (`@nestjs/cqrs`) **bên trong monolith** | Thấp (behavior-preserving) | ✅ **Đã xong** — 44 command + 25 query, toàn bộ module business |
 | **2** | Định nghĩa `.proto` cho từng bounded context, dựng gRPC method **trong cùng process** gọi thẳng CommandBus/QueryBus (chưa tách deploy) | Thấp | Gọi thử qua gRPC client nội bộ, so kết quả với HTTP |
 | **3** | Tách vật lý service **rủi ro thấp nhất trước**: Mail Service, Files Service (ít service khác phụ thuộc đồng bộ vào chúng) | Trung bình — bắt đầu có network call thật, cần retry/timeout | Gọi qua gRPC thật giữa 2 process, đo latency |
 | **4** | Tách Companies Service, Categories Service (nhỏ, ít ghi) | Trung bình | |

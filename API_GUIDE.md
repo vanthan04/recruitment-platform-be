@@ -28,9 +28,9 @@ thì về mặt kỹ thuật **không sai** (mọi entry đều fallback về c�
 1. **Đừng set các env `*_SERVICE_URL` riêng lẻ trỏ sang origin khác nhau** — hiện tại chưa có service nào deploy tách riêng, set khác nhau sẽ gọi nhầm chỗ và lỗi CORS/404.
 2. **Danh sách `ServiceName` đang thiếu domain** so với API thật — resource root hiện có đầy đủ là:
 
-   `auth`, `users`, `admin/users`, `companies`, `categories`, `jobs`, `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`
+   `auth`, `users`, `admin/users`, `admin/roles`, `admin/permissions`, `companies`, `categories`, `jobs`, `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`, `conversations`, `messages`, `interviews`
 
-   Nếu muốn giữ pattern theo-domain, nên bổ sung đủ các key còn thiếu (`cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`) — tất cả đều fallback về `DEFAULT_ORIGIN` giống nhau.
+   Nếu muốn giữ pattern theo-domain, nên bổ sung đủ các key còn thiếu — tất cả đều fallback về `DEFAULT_ORIGIN` giống nhau.
 3. Đơn giản nhất cho giai đoạn hiện tại: chỉ cần **1 biến `BACKEND_URL`** + 1 hằng `API_PREFIX`, build URL kiểu `` `${BACKEND_URL}${API_PREFIX}/<resource>` ``. Không cần trừu tượng hoá theo service khi backend chưa thực sự tách. Khi nào backend tách microservices thật, sẽ có thông báo cụ thể domain nào chuyển sang origin nào.
 
 - Base URL: `http://localhost:8080/api/v1` (dev). Prefix `/api/v1` áp dụng cho mọi route.
@@ -59,9 +59,12 @@ thì về mặt kỹ thuật **không sai** (mọi entry đều fallback về c�
   "success": false,
   "message": "Job with id \"...\" not found",
   "code": "ENTITY_NOT_FOUND",
+  "metadata": { "requestId": "c3b1e2..." },
   "timestamp": "2026-09-02T04:26:07.504Z"
 }
 ```
+
+`metadata.requestId` chỉ xuất hiện ở response lỗi (không có ở response thành công, khác với `metadata` phân trang ở mục 3) — cùng giá trị với header response `x-request-id`. Hữu ích khi báo lỗi cho backend: gửi kèm `requestId` để tra đúng log.
 
 | HTTP status | `code` | Khi nào |
 |---|---|---|
@@ -124,6 +127,8 @@ Toàn bộ API giới hạn **60 request/60s theo IP**. Riêng `POST /auth/regis
 ### Roles
 
 `CANDIDATE` | `RECRUITER` | `ADMIN`. Một số endpoint yêu cầu role cụ thể — xem cột **Auth** ở từng bảng bên dưới.
+
+⚠️ Phân quyền thật sự chạy bằng **RBAC database-driven** (`PermissionGuard` tra bảng `role_permissions`), không hard-code role→endpoint trong code. Cột **Auth** trong tài liệu này ghi role *hiện đang* nắm permission đó theo seed mặc định — admin có thể đổi qua `PUT /admin/roles/:id/permissions` (mục 4.13) mà không cần deploy lại, nên trên thực tế một role có thể được cấp/rút quyền gọi 1 endpoint mà không khớp bảng dưới nữa. Nếu FE cần biết chính xác quyền hiện tại của user, gọi `GET /admin/roles/:id/permissions` (cần quyền admin) thay vì hard-code theo tài liệu này.
 
 ---
 
@@ -287,6 +292,31 @@ File đính kèm: upload qua `POST /files/upload` (folder `chat-attachments`) tr
 
 `NotificationType.NEW_MESSAGE` được tạo khi người nhận **không** đang có kết nối WebSocket nào (offline) — đang online thì chỉ nhận qua socket, không tạo notification trùng.
 
+### 4.12. Interview (`/interviews`)
+
+Recruiter đặt/dời/huỷ lịch phỏng vấn cho 1 `JobApplication`. Bắt buộc có ít nhất 1 trong 2 field `location`/`meetingLink` (recruiter tự dán link Meet/Zoom thủ công, hệ thống không tự sinh link). Candidate được gửi email ở cả 3 hành động.
+
+| Method & Path | Auth | Body / Ghi chú |
+|---|---|---|
+| `POST /interviews` | `RECRUITER` | `{ jobApplicationId, scheduledAt, location?, meetingLink?, note? }` — chỉ recruiter sở hữu job của application đó |
+| `PATCH /interviews/:id` | `RECRUITER` | Dời lịch — `scheduledAt` mới phải ở tương lai, interview chưa `CANCELLED` |
+| `PATCH /interviews/:id/cancel` | `RECRUITER` | Chỉ owner |
+| `GET /interviews/application/:applicationId` | `CANDIDATE`/`RECRUITER` | Candidate chủ đơn hoặc recruiter chủ job mới xem được |
+
+`InterviewStatus`: `SCHEDULED` → `RESCHEDULED` / `CANCELLED`. Không có in-app notification (`NotificationType`) cho interview, không đính kèm file `.ics` — chỉ gửi email.
+
+### 4.13. RBAC Admin (`/admin/roles`, `/admin/permissions`)
+
+Quản lý role → permission mapping (database-driven, đổi quyền không cần deploy lại code). Toàn bộ endpoint yêu cầu permission `role:permission:manage` (mặc định chỉ role `ADMIN` có).
+
+| Method & Path | Auth | Ghi chú |
+|---|---|---|
+| `GET /admin/roles` | `ADMIN` | Danh sách role |
+| `GET /admin/roles/:id` | `ADMIN` | Chi tiết 1 role |
+| `GET /admin/permissions` | `ADMIN` | Danh sách toàn bộ permission có trong hệ thống |
+| `GET /admin/roles/:id/permissions` | `ADMIN` | Danh sách permission hiện gán cho role |
+| `PUT /admin/roles/:id/permissions` | `ADMIN` | `{ permissionIds: string[] }` — **thay thế toàn bộ** danh sách permission của role (không phải merge); cache permission (TTL ~30s) sẽ tự invalidate sau khi đổi |
+
 ---
 
 ## 5. Enums tham khảo nhanh
@@ -306,6 +336,7 @@ File đính kèm: upload qua `POST /files/upload` (folder `chat-attachments`) tr
 | `ConversationStatus` | `ACTIVE`, `ARCHIVED` |
 | `MessageType` | `TEXT`, `IMAGE`, `FILE`, `SYSTEM` (chỉ server tạo, không nhận từ client) |
 | `ChatParticipantRole` | `CANDIDATE`, `RECRUITER` |
+| `InterviewStatus` | `SCHEDULED`, `RESCHEDULED`, `CANCELLED` |
 
 ---
 

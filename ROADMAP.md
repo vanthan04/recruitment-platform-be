@@ -1,6 +1,6 @@
 # Recruitment Platform — Roadmap phần còn thiếu (chỉ tính năng/code)
 
-> Infra/DevOps (Docker, CI/CD, deploy, seed automation) làm sau, không nằm trong roadmap này.
+> Infra/DevOps (Docker, CI/CD, seed automation) làm sau, không nằm trong roadmap này. **Ngoại lệ**: deploy đã chuyển sang AWS Lambda + EventBridge Scheduler (xem P11) — phần này landed trong code nên ghi lại ở đây dù ban đầu định để sau; Docker/CI/CD vẫn chưa có.
 > Xem kiến trúc & module hiện có tại [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md).
 
 Thứ tự phase là thứ tự nên làm (phase sau có thể phụ thuộc phase trước, đặc biệt P1 đổi schema `Job`).
@@ -129,14 +129,31 @@ Recruiter đặt/dời/huỷ lịch phỏng vấn cho 1 `JobApplication`; candid
 
 ---
 
+## P11 — CQRS toàn bộ + RBAC wiring + deploy AWS Lambda ✅ (đã implement, retroactive — không có trong roadmap gốc)
+
+**Ghi chú:** giống P9, phase này được thêm sau khi rà soát code (2026-09-03) — đã implement xong nhưng chưa từng liệt kê ở đây. Gồm cả phần "infra" mà đầu file ghi là "làm sau" — thực tế đã bắt đầu, ghi lại để roadmap khớp thực tế.
+
+- **CQRS hoá toàn bộ**: mọi use-case cũ (16 module) đã chuyển thành `Command`/`Query` + `Handler` qua `@nestjs/cqrs` (`CommandBus`/`QueryBus`) — không còn file `*.use-case.ts` nào trong `src/`. Đây cũng chính là Phase 1 trong [MICROSERVICES_MIGRATION_PLAN.md](MICROSERVICES_MIGRATION_PLAN.md).
+- **Exception per-module**: mọi module có `domain/exceptions/<module>.exceptions.ts` riêng, không còn raw NestJS exception (xem tech debt #3 phía dưới, đã đánh dấu done).
+- **RBAC wiring hoàn tất**: mọi controller đã gắn `@RequirePermissions` + `PermissionGuard`.
+- **Decouple thêm cho `job`/`company`/`chat`/`notification`** hướng tới microservice-readiness (port/adapter chặt hơn giữa các module này).
+- **Deploy chuyển sang AWS Lambda** (khác hẳn giả định "chạy Node server liên tục" ở phần Getting Started cũ):
+  - [src/lambda.ts](src/lambda.ts) — API Gateway → Lambda qua `@codegenie/serverless-express`.
+  - Cron cũ (`@nestjs/schedule`) bỏ hẳn — thay bằng AWS EventBridge Scheduler gọi 2 Lambda riêng trong [src/handlers/](src/handlers/) (`close-expired-jobs.handler.ts`, `job-alert-digest.handler.ts`), mỗi handler chỉ boot application context (không HTTP) rồi dispatch CQRS command có sẵn.
+  - Rate limit chuyển từ in-memory sang DynamoDB (`DynamoThrottlerStorage`, fail-open khi DynamoDB lỗi) — bắt buộc vì Lambda không có memory dùng chung giữa các invocation.
+  - Structured logging (`nestjs-pino`/`pino-http`) với `requestId` xuyên suốt access log/app log/error log, redact secret, healthcheck route loại khỏi access log.
+- **Việc dở dang phát hiện khi rà soát**: `AppController` (`/healthcheck`) hiện chưa được đăng ký vào `controllers` của `AppModule` — xem chi tiết ở [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md#4a-vận-hành-deploy-aws-lambda-logging-rate-limit). Nên fix trước khi dùng route này làm health check thật cho EventBridge/monitor.
+
+---
+
 ## Tech debt backlog (chưa xử lý)
 
 Ghi nhận để theo dõi, chưa sửa code lần này. Ưu tiên theo Impact/Risk/Effort (effort thấp = dễ làm trước):
 
 1. **Test coverage thấp (~4-5% file coverage)** — 9 module hoàn toàn không có `.spec.ts`: `bookmark`, `category`, `company`, `file-upload`, `job-alert`, `mail`, `notification`, `prisma`, `user`. Impact/Risk cao, effort trung bình — nên ưu tiên thêm spec cho use-case quan trọng (auth, application, job) trước khi phủ hết.
 2. **Không có CI/CD, Dockerfile, docker-compose** (ghi chú ở đầu file này là "làm sau" — liệt kê lại đây để không bị quên). Impact/Risk cao khi deploy, effort thấp-trung bình.
-3. **Exception xử lý không nhất quán** — `auth`, `user`, `file-upload` ném raw NestJS exception (`NotFoundException`, `UnauthorizedException`...) thay vì `DomainException` con như `job`/`cv`/`application`/`company` đang dùng. Impact trung bình, effort thấp.
-4. **6 file bypass `ConfigService`**, đọc thẳng `process.env`: [socket-io.adapter.ts](src/common/adapters/socket-io.adapter.ts), [jwt.strategy.ts](src/common/strategies/jwt.strategy.ts), `main.ts` (2 chỗ), [ws-auth.util.ts](src/modules/chat/infrastructure/gateways/ws-auth.util.ts), [prisma.service.ts](src/modules/prisma/prisma.service.ts) — bỏ qua schema Joi đã validate ở `env.validation.ts`. Impact thấp-trung bình, effort thấp.
+3. ~~**Exception xử lý không nhất quán**~~ ✅ **Đã fix** (rà soát 2026-09-03) — mọi module (kể cả `auth`, `user`, `file-upload`) giờ đều có exception riêng trong `domain/exceptions/<module>.exceptions.ts` kế thừa `DomainException` con, không còn ném raw NestJS exception nữa.
+4. **Nhiều file bypass `ConfigService`**, đọc thẳng `process.env`: [socket-io.adapter.ts](src/common/adapters/socket-io.adapter.ts), [jwt.strategy.ts](src/common/strategies/jwt.strategy.ts), `main.ts`, [ws-auth.util.ts](src/modules/chat/infrastructure/gateways/ws-auth.util.ts), [prisma.service.ts](src/modules/prisma/prisma.service.ts) — bỏ qua schema Joi đã validate ở `env.validation.ts`. (Ngoại lệ chấp nhận được, không tính vào đây: [logger.config.ts](src/common/config/logger.config.ts) và `bootstrap.ts` đọc `process.env` vì chạy trước khi Nest DI container tồn tại — không có `ConfigService` để dùng ở thời điểm đó.) Impact thấp-trung bình, effort thấp.
 5. **Trùng logic pagination/ownership-check** — chỉ 1 module dùng `pagination.util.ts` dùng chung, các module khác (`job`, `company`, `chat`, `notification`, `user`) tự viết `skip`/`take` riêng; ownership check (`x.userId !== userId`) lặp lại ở 7+ chỗ thay vì 1 helper `ensureOwner` dùng chung. Impact thấp, effort trung bình (refactor rải rác nhiều file).
 6. **Dependency version bất thường, cần xác nhận chủ đích**: `@prisma/*` ghim `^7.x`, `joi ^18`, `nodemailer ^8` — cao bất thường so với bản ổn định phổ biến (Prisma v5/v6, Joi v17, nodemailer v6). Nên xác nhận không phải version canary/gõ nhầm trước khi deploy production.
 7. **Dependency chết** — `@nestjs-modules/mailer` và `@aws-sdk/client-ses` có trong `package.json` nhưng không được import ở đâu trong `src/` (mail hiện chỉ dùng `nodemailer` thuần). Cân nhắc gỡ nếu không có kế hoạch dùng.
