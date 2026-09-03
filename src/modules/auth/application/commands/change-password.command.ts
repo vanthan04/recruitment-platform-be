@@ -43,7 +43,7 @@ export class ChangePasswordHandler implements ICommandHandler<
     await this.userRepository.save(user);
 
     return {
-      message: 'Đổi mật khẩu thành công',
+      message: 'Password changed successfully',
     };
   }
 }

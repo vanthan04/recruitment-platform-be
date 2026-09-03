@@ -5,6 +5,7 @@ import {
   OnModuleDestroy,
   Optional,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -17,9 +18,12 @@ export class PrismaService
     @Optional()
     @Inject('PRISMA_OPTIONS')
     private readonly options: any,
+    // Read as a plain parameter, not `this.configService` — it has to be
+    // available before `super()` runs, and `this` doesn't exist yet.
+    configService: ConfigService,
   ) {
     const adapter = new PrismaPg({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: configService.get<string>('DATABASE_URL'),
     });
     super({ ...options, adapter });
   }

@@ -35,14 +35,14 @@ export class EmailAlreadyRegisteredException extends DuplicateEntityException {
 
 export class InvalidCredentialsException extends UnauthorizedDomainException {
   constructor() {
-    super('Email hoặc mật khẩu không chính xác', 'AUTH_INVALID_CREDENTIALS');
+    super('Email or password is incorrect', 'AUTH_INVALID_CREDENTIALS');
     this.name = 'InvalidCredentialsException';
   }
 }
 
 export class InvalidOldPasswordException extends UnauthorizedDomainException {
   constructor() {
-    super('Mật khẩu cũ không chính xác', 'AUTH_INVALID_OLD_PASSWORD');
+    super('Old password is incorrect', 'AUTH_INVALID_OLD_PASSWORD');
     this.name = 'InvalidOldPasswordException';
   }
 }

@@ -29,7 +29,7 @@ export class VerifyEmailHandler implements ICommandHandler<
     await this.userRepository.save(user);
 
     return {
-      message: 'Xác thực tài khoản thành công',
+      message: 'Account verified successfully',
     };
   }
 }

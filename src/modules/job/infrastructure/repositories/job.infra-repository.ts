@@ -5,6 +5,7 @@ import { JobPrismaRepository } from '@/modules/job/infrastructure/persistence/pr
 import { JobMapper } from '@/modules/job/infrastructure/persistence/mappers/job.mapper';
 import { ICompanyLookupPort } from '@/modules/job/application/ports/company-lookup.port';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
+import { normalizePagination } from '@/common/utils/pagination.util';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -34,7 +35,7 @@ export class JobInfraRepository implements IJobRepository {
     categoryId?: string;
     level?: string;
   }): Promise<{ jobs: Job[]; total: number }> {
-    const skip = (params.page - 1) * params.limit;
+    const { skip, limit } = normalizePagination(params);
     const where: Prisma.JobWhereInput = {
       deletedAt: null,
       status: 'OPEN', // Only show open jobs in general search
@@ -85,7 +86,7 @@ export class JobInfraRepository implements IJobRepository {
 
     const { jobs: raws, total } = await this.jobPrisma.findAllPaginated({
       skip,
-      take: params.limit,
+      take: limit,
       where,
     });
 
@@ -101,7 +102,7 @@ export class JobInfraRepository implements IJobRepository {
     limit: number;
     status?: string;
   }): Promise<{ jobs: Job[]; total: number }> {
-    const skip = (params.page - 1) * params.limit;
+    const { skip, limit } = normalizePagination(params);
     const where: Prisma.JobWhereInput = {
       postedById: params.recruiterId,
       deletedAt: null,
@@ -112,7 +113,7 @@ export class JobInfraRepository implements IJobRepository {
 
     const { jobs: raws, total } = await this.jobPrisma.findAllPaginated({
       skip,
-      take: params.limit,
+      take: limit,
       where,
     });
 

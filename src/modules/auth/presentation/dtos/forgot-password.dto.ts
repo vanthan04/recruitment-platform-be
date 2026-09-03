@@ -4,9 +4,9 @@ import { IsEmail, IsNotEmpty } from 'class-validator';
 export class ForgotPasswordDto {
   @ApiProperty({
     example: 'user@example.com',
-    description: 'Email của tài khoản cần đổi mật khẩu',
+    description: 'Email of the account to reset the password for',
   })
-  @IsEmail({}, { message: 'Email không hợp lệ' })
-  @IsNotEmpty({ message: 'Email không được để trống' })
+  @IsEmail({}, { message: 'Invalid email' })
+  @IsNotEmpty({ message: 'Email must not be empty' })
   email: string;
 }

@@ -61,7 +61,7 @@ describe('UpdateProfileHandler', () => {
       phoneNumber: '0900000000',
     });
     expect(result).toEqual({
-      message: 'Cập nhật thông tin cá nhân thành công',
+      message: 'Profile updated successfully',
     });
   });
 });

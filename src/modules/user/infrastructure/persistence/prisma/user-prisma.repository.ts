@@ -7,6 +7,7 @@ import { User } from '@/modules/user/domain/entities/user.entity';
 import { UserMapper } from '@/modules/user/infrastructure/persistence/mappers/user.mapper';
 import { UserRole } from '@/common/enums/user-role.enum';
 import { UserStatus } from '@/common/enums/user-status.enum';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class UserPrismaRepository
@@ -172,11 +173,11 @@ export class UserPrismaRepository
     page: number,
     limit: number,
   ): Promise<{ users: User[]; total: number }> {
-    const skip = (page - 1) * limit;
+    const normalized = normalizePagination({ page, limit });
     const [users, total] = await Promise.all([
       this.prismaService.user.findMany({
-        skip,
-        take: limit,
+        skip: normalized.skip,
+        take: normalized.limit,
         include: { profile: true },
         orderBy: { createdAt: 'desc' },
       }),

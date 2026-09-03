@@ -35,7 +35,7 @@ export class UserAdminController {
 
   @Get()
   @RequirePermissions(Permission.USER_READ)
-  @ApiOperation({ summary: 'Lấy danh sách người dùng (Admin)' })
+  @ApiOperation({ summary: 'List users (Admin)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async listUsers(
@@ -45,7 +45,7 @@ export class UserAdminController {
     const result = await this.queryBus.execute(
       new AdminListUsersQuery(page, limit),
     );
-    return ApiResponse.ok(result.users, 'Lấy danh sách người dùng thành công', {
+    return ApiResponse.ok(result.users, 'User list retrieved successfully', {
       total: result.total,
       page: result.page,
       limit: result.limit,
@@ -55,7 +55,7 @@ export class UserAdminController {
   @Patch(':id')
   @RequirePermissions(Permission.USER_UPDATE)
   @ApiOperation({
-    summary: 'Cập nhật trạng thái hoặc quyền hạn người dùng (Admin)',
+    summary: "Update a user's status or role (Admin)",
   })
   async updateStatus(
     @Param('id') userId: string,

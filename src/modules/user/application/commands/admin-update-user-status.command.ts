@@ -38,7 +38,7 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
     await this.userRepository.save(user);
 
     return {
-      message: 'Cập nhật trạng thái người dùng thành công',
+      message: 'User status updated successfully',
     };
   }
 }

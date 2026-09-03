@@ -37,8 +37,8 @@ export async function authenticateSocket(
   const token = parseCookie(cookieHeader, ACCESS_TOKEN_COOKIE);
   if (!token) throw new Error('Missing access_token cookie');
 
-  const payload = await jwtService.verifyAsync(token, {
-    secret: process.env.JWT_SECRET,
-  });
+  // No explicit `secret` here — `jwtService` already carries the one
+  // `JwtModule.registerAsync` configured from `ConfigService` (see chat.module.ts).
+  const payload = await jwtService.verifyAsync(token);
   return { id: payload.sub, email: payload.email, role: payload.role };
 }

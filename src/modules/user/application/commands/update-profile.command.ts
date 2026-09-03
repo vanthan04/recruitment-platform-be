@@ -33,7 +33,7 @@ export class UpdateProfileHandler implements ICommandHandler<UpdateProfileComman
     await this.userRepository.updateProfile(userId, input);
 
     return {
-      message: 'Cập nhật thông tin cá nhân thành công',
+      message: 'Profile updated successfully',
     };
   }
 }

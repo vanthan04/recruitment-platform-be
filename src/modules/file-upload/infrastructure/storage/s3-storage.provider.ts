@@ -64,7 +64,7 @@ export class S3StorageProvider implements IFileStorageProvider {
       return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${fileKey}`;
     } catch (error) {
       throw new InternalServerErrorException(
-        'Lỗi khi upload lên S3: ' + error.message,
+        'Failed to upload to S3: ' + error.message,
       );
     }
   }
@@ -81,7 +81,7 @@ export class S3StorageProvider implements IFileStorageProvider {
         await this.s3Client.send(command);
       }
     } catch (error) {
-      this.logger.error(`Không thể xóa file trên S3: ${error.message}`);
+      this.logger.error(`Failed to delete file from S3: ${error.message}`);
     }
   }
 }

@@ -23,15 +23,15 @@ export class UserController {
 
   @Get('me')
   @RequirePermissions(Permission.PROFILE_READ_OWN)
-  @ApiOperation({ summary: 'Lấy thông tin profile cá nhân' })
+  @ApiOperation({ summary: 'Get own profile information' })
   async getMe(@GetMe('id') userId: string) {
     const result = await this.queryBus.execute(new GetMyProfileQuery(userId));
-    return ApiResponse.ok(result, 'Lấy thông tin profile thành công');
+    return ApiResponse.ok(result, 'Profile retrieved successfully');
   }
 
   @Patch('profile')
   @RequirePermissions(Permission.PROFILE_UPDATE_OWN)
-  @ApiOperation({ summary: 'Cập nhật thông tin profile cá nhân' })
+  @ApiOperation({ summary: 'Update own profile information' })
   async updateProfile(
     @GetMe('id') userId: string,
     @Body() dto: UpdateProfileDto,

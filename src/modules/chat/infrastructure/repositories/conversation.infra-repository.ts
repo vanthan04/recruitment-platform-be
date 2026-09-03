@@ -9,6 +9,7 @@ import { ConversationMember } from '@/modules/chat/domain/entities/conversation-
 import { ConversationPrismaRepository } from '@/modules/chat/infrastructure/persistence/prisma/conversation-prisma.repository';
 import { ConversationMapper } from '@/modules/chat/infrastructure/persistence/mappers/conversation.mapper';
 import { ConversationMemberMapper } from '@/modules/chat/infrastructure/persistence/mappers/conversation-member.mapper';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
@@ -84,7 +85,7 @@ export class ConversationInfraRepository implements IConversationRepository {
     page: number,
     limit: number,
   ): Promise<{ items: ConversationListRow[]; total: number }> {
-    const skip = (page - 1) * limit;
+    const { skip } = normalizePagination({ page, limit });
     const { conversations, total } =
       await this.conversationPrisma.findManyForUser(userId, skip, limit);
 

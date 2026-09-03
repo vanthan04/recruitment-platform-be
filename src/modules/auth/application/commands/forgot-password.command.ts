@@ -33,13 +33,13 @@ export class ForgotPasswordHandler implements ICommandHandler<
 
     await this.mailService.sendEmail({
       to: user.email,
-      subject: 'Yêu cầu khôi phục mật khẩu',
-      text: `Mã khôi phục mật khẩu của bạn là: ${resetCode}`,
-      html: `<b>Mã khôi phục mật khẩu của bạn là: ${resetCode}</b>`,
+      subject: 'Password recovery request',
+      text: `Your password recovery code is: ${resetCode}`,
+      html: `<b>Your password recovery code is: ${resetCode}</b>`,
     });
 
     return {
-      message: 'Mã khôi phục mật khẩu đã được gửi vào email của bạn',
+      message: 'A password recovery code has been sent to your email',
     };
   }
 }

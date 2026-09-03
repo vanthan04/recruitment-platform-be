@@ -3,6 +3,7 @@ import { INotificationRepository } from '@/modules/notification/domain/repositor
 import { Notification } from '@/modules/notification/domain/entities/notification.entity';
 import { NotificationPrismaRepository } from '@/modules/notification/infrastructure/persistence/prisma/notification-prisma.repository';
 import { NotificationMapper } from '@/modules/notification/infrastructure/persistence/mappers/notification.mapper';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class NotificationInfraRepository implements INotificationRepository {
@@ -20,9 +21,13 @@ export class NotificationInfraRepository implements INotificationRepository {
     page: number,
     limit: number,
   ): Promise<{ notifications: Notification[]; total: number }> {
-    const skip = (page - 1) * limit;
+    const normalized = normalizePagination({ page, limit });
     const { notifications: raws, total } =
-      await this.notificationPrisma.findAllByUserPaginated(userId, skip, limit);
+      await this.notificationPrisma.findAllByUserPaginated(
+        userId,
+        normalized.skip,
+        normalized.limit,
+      );
 
     return {
       notifications: raws.map((r) => NotificationMapper.toDomain(r)!),

@@ -3,6 +3,7 @@ import { ICompanyRepository } from '@/modules/company/domain/repositories/compan
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanyPrismaRepository } from '@/modules/company/infrastructure/persistence/prisma/company-prisma.repository';
 import { CompanyMapper } from '@/modules/company/infrastructure/persistence/mappers/company.mapper';
+import { normalizePagination } from '@/common/utils/pagination.util';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -34,7 +35,7 @@ export class CompanyInfraRepository implements ICompanyRepository {
     keyword?: string;
     industry?: string;
   }): Promise<{ companies: Company[]; total: number }> {
-    const skip = (params.page - 1) * params.limit;
+    const { skip, limit } = normalizePagination(params);
     const where: Prisma.CompanyWhereInput = { deletedAt: null };
 
     if (params.keyword) {
@@ -51,7 +52,7 @@ export class CompanyInfraRepository implements ICompanyRepository {
     const { companies: raws, total } =
       await this.companyPrisma.findAllPaginated({
         skip,
-        take: params.limit,
+        take: limit,
         where,
       });
 

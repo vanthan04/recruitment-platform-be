@@ -95,7 +95,7 @@ describe('AdminUpdateUserStatusHandler', () => {
     expect(user.status).toBe(UserStatus.BLOCKED);
     expect(user.role).toBe(UserRole.RECRUITER);
     expect(result).toEqual({
-      message: 'Cập nhật trạng thái người dùng thành công',
+      message: 'User status updated successfully',
     });
   });
 });

@@ -44,9 +44,9 @@ export class RegisterHandler implements ICommandHandler<
 
     await this.mailService.sendEmail({
       to: dto.email,
-      subject: 'Xác thực tài khoản của bạn',
-      text: `Mã xác thực của bạn là: ${verifyCode}`,
-      html: `<b>Mã xác thực của bạn là: ${verifyCode}</b>`,
+      subject: 'Verify your account',
+      text: `Your verification code is: ${verifyCode}`,
+      html: `<b>Your verification code is: ${verifyCode}</b>`,
     });
 
     return {

@@ -32,7 +32,7 @@ export class AuthController {
     const result = await this.authService.register(dto);
     return ApiResponse.ok(
       result,
-      'Tạo User thành công. Vui lòng check email để xác thực tài khoản',
+      'User created successfully. Please check your email to verify your account.',
     );
   }
 
@@ -42,7 +42,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login user' })
   async login(@Body() dto: LoginRequestDto) {
     const result = await this.authService.login(dto);
-    return ApiResponse.ok(result, 'Đăng nhập thành công');
+    return ApiResponse.ok(result, 'Logged in successfully');
   }
 
   @Post('verify')
@@ -87,7 +87,7 @@ export class AuthController {
   })
   async logout(@Req() req: any, @Body() dto: RefreshTokenDto) {
     await this.authService.logout(req.user.id, dto.refreshToken);
-    return ApiResponse.ok(null, 'Đăng xuất thành công');
+    return ApiResponse.ok(null, 'Logged out successfully');
   }
 
   @UseGuards(JwtAuthGuard)
@@ -98,7 +98,7 @@ export class AuthController {
   })
   async logoutAll(@Req() req: any) {
     await this.authService.logoutAll(req.user.id);
-    return ApiResponse.ok(null, 'Đăng xuất khỏi tất cả thiết bị thành công');
+    return ApiResponse.ok(null, 'Logged out from all devices successfully');
   }
 
   @Post('refresh')
@@ -106,6 +106,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh JWT tokens' })
   async refresh(@Body() dto: RefreshTokenDto) {
     const result = await this.authService.refreshTokens(dto.refreshToken);
-    return ApiResponse.ok(result, 'Làm mới token thành công');
+    return ApiResponse.ok(result, 'Token refreshed successfully');
   }
 }
