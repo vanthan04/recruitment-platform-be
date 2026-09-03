@@ -54,7 +54,6 @@ jobs:
       S3_BUCKET: ci-dummy-bucket
       S3_ACCESS_KEY: ci-dummy-key
       S3_SECRET_KEY: ci-dummy-secret
-      RATE_LIMIT_TABLE: rate-limit-ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

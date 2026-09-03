@@ -26,11 +26,4 @@ export const envValidationSchema = Joi.object({
   S3_ACCESS_KEY: Joi.string().required(),
   S3_SECRET_KEY: Joi.string().required(),
   S3_ENDPOINT: Joi.string().optional(),
-
-  // Distributed rate-limiting (DynamoDB-backed @nestjs/throttler storage — see
-  // src/common/rate-limit). AWS_REGION is populated automatically by the
-  // Lambda runtime; only needs to be set explicitly for local dev.
-  RATE_LIMIT_TABLE: Joi.string().required(),
-  AWS_REGION: Joi.string().optional(),
-  DYNAMODB_ENDPOINT: Joi.string().optional(),
 });

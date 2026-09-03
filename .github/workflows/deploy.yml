@@ -8,9 +8,11 @@ on:
 
 env:
   ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-  ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
-  ECS_SERVICE: ${{ vars.ECS_SERVICE }}
-  CONTAINER_NAME: recruitment-platform-be # must match the name in ecs-task-definition.json
+  EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+  CONTAINER_NAME: recruitment-platform-be
+  # Where the container's runtime env vars live in SSM Parameter Store —
+  # must match the path the infra repo's Terraform writes parameters to.
+  SSM_PARAM_PATH: /recruitment-platform/prod
 
 jobs:
   deploy:
@@ -24,9 +26,12 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          # Prefer OIDC over long-lived access keys once set up — see
-          # DEPLOY.md for the more secure alternative to the two secrets
-          # above (role-to-assume instead of access-key-id/secret).
+          # Narrow "deploy" credentials only — ECR push + SSM Run Command
+          # against this one instance. Provisioning the instance itself
+          # uses a separate, broader-permission credential set that lives
+          # in the recruitment-platform-infra repo, not here. Prefer OIDC
+          # (role-to-assume) over long-lived access keys once you're
+          # comfortable setting that up — see DEPLOY.md.
 
       - name: Login to Amazon ECR
         id: ecr-login
@@ -42,18 +47,39 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Render new task definition
-        id: render-task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: ecs-task-definition.json
-          container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
+      - name: Deploy via SSM Run Command
+        env:
+          IMAGE: ${{ steps.build-image.outputs.image }}
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          SCRIPT_B64=$(base64 -w0 scripts/deploy-remote.sh)
+          REMOTE_CMD="echo $SCRIPT_B64 | base64 -d | bash -s -- '$IMAGE' '$ECR_REGISTRY' '$AWS_REGION' '$SSM_PARAM_PATH' '$CONTAINER_NAME'"
 
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          service: ${{ env.ECS_SERVICE }}
-          wait-for-service-stability: true
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy ${{ github.sha }}" \
+            --parameters "{\"commands\":[$(jq -Rs . <<< "$REMOTE_CMD")]}" \
+            --query "Command.CommandId" --output text)
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" || true
+
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" \
+            --query "Status" --output text)
+
+          echo "--- stdout ---"
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" \
+            --query "StandardOutputContent" --output text
+          echo "--- stderr ---"
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" --instance-id "$EC2_INSTANCE_ID" \
+            --query "StandardErrorContent" --output text
+
+          if [ "$STATUS" != "Success" ]; then
+            echo "Deploy failed with status: $STATUS"
+            exit 1
+          fi

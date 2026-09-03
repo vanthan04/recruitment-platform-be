@@ -20,6 +20,7 @@ import { DeleteJobHandler } from '@/modules/job/application/commands/delete-job.
 import { CloseJobHandler } from '@/modules/job/application/commands/close-job.command';
 import { ReopenJobHandler } from '@/modules/job/application/commands/reopen-job.command';
 import { CloseExpiredJobsHandler } from '@/modules/job/application/commands/close-expired-jobs.command';
+import { CloseExpiredJobsCron } from '@/modules/job/application/jobs/close-expired-jobs.cron';
 import { GetJobHandler } from '@/modules/job/application/queries/get-job.query';
 import { ListJobsHandler } from '@/modules/job/application/queries/list-jobs.query';
 import { ListMyJobsHandler } from '@/modules/job/application/queries/list-my-jobs.query';
@@ -51,6 +52,7 @@ import { ListMyJobsHandler } from '@/modules/job/application/queries/list-my-job
     CloseJobHandler,
     ReopenJobHandler,
     CloseExpiredJobsHandler,
+    CloseExpiredJobsCron,
     GetJobHandler,
     ListJobsHandler,
     ListMyJobsHandler,

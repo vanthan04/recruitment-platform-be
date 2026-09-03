@@ -2,7 +2,9 @@
 
 > Đây là **kế hoạch** cho phần gRPC/tách service vật lý — **chưa implement**. Việc tách monolith hiện tại (đang chạy tốt, đã qua P1-P10, có test) thành microservices là thay đổi kiến trúc lớn, rủi ro cao nếu làm big-bang — tài liệu này đề xuất lộ trình theo từng bước nhỏ, có thể dừng ở bất kỳ phase nào mà vẫn có giá trị.
 >
-> **Cập nhật 2026-09-03**: Phase 1 (CQRS hoá bên trong monolith, mục 8 bên dưới) **đã xong** — toàn bộ 16 module business đã dùng `Command`/`Query` + `Handler` qua `@nestjs/cqrs`, không còn use-case class kiểu cũ (xem [ROADMAP.md](ROADMAP.md) P11, [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) mục 2). Backend cũng đã đổi cách deploy sang AWS Lambda (API Gateway + EventBridge Scheduler cho cron) — đây là thay đổi hạ tầng độc lập với kế hoạch tách service này, nhưng đáng chú ý vì 2 cron job giờ đã là 2 Lambda riêng biệt (`src/handlers/`), một bước nhỏ tình cờ đi đúng hướng "ranh giới vật lý tách rời" mà phase 3 trở đi của tài liệu này nhắm tới.
+> **Cập nhật 2026-09-03**: Phase 1 (CQRS hoá bên trong monolith, mục 8 bên dưới) **đã xong** — toàn bộ 16 module business đã dùng `Command`/`Query` + `Handler` qua `@nestjs/cqrs`, không còn use-case class kiểu cũ (xem [ROADMAP.md](ROADMAP.md) P11, [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) mục 2).
+>
+> **Cập nhật 2026-09-03 (2)**: Deploy target Lambda (P11) đã bị **revert** — WebSocket thật của module `chat` không sống được qua model mỗi-invocation-riêng của Lambda. Backend giờ chạy trên 1 AWS EC2 instance liên tục (xem `DEPLOY.md`), 2 cron job đã gộp lại vào cùng 1 process (`@nestjs/schedule`, không còn là 2 Lambda/`src/handlers/` riêng biệt). Ghi chú ở bản cập nhật trước về việc tách cron thành 2 Lambda "tình cờ đi đúng hướng ranh giới vật lý" **không còn đúng** — nếu phase 3+ của tài liệu này được triển khai thật, việc tách vật lý sẽ phải làm lại từ đầu, không kế thừa được gì từ giai đoạn Lambda.
 >
 > Hợp đồng HTTP hiện tại với FE (xem [API_GUIDE.md](API_GUIDE.md)) **không đổi** trong suốt quá trình này — FE luôn gọi 1 origin duy nhất qua API Gateway, không cần biết đằng sau có bao nhiêu service.
 

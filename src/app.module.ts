@@ -3,10 +3,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from '@/app.controller';
-import { RateLimitModule } from '@/common/rate-limit/rate-limit.module';
-import { DynamoThrottlerStorage } from '@/common/rate-limit/dynamo-throttler-storage.service';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
 import { buildLoggerOptions } from '@/common/config/logger.config';
 import { AuthModule } from '@/modules/auth/auth.module';
@@ -36,14 +35,8 @@ import appConfig from '@/common/config/app.config';
       load: [appConfig],
     }),
     EventEmitterModule.forRoot(),
-    ThrottlerModule.forRootAsync({
-      imports: [RateLimitModule],
-      inject: [DynamoThrottlerStorage],
-      useFactory: (storage: DynamoThrottlerStorage) => ({
-        throttlers: [{ ttl: 60000, limit: 60 }],
-        storage,
-      }),
-    }),
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     PrismaModule.forRoot({
       log: ['query', 'info', 'warn', 'error'],
       errorFormat: 'pretty',

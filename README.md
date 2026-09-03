@@ -31,10 +31,10 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 | Authorization | Database-driven RBAC (`PermissionGuard` + `@RequirePermissions`, see `permission` module) |
 | Validation | `class-validator` / `class-transformer` |
 | Events | `@nestjs/event-emitter` (in-process pub/sub for notifications) |
-| Scheduled jobs | AWS EventBridge Scheduler → dedicated Lambda handlers (`src/handlers/`) that dispatch a CQRS command — not an in-process cron |
-| Rate limiting | `@nestjs/throttler`, backed by a DynamoDB-based `ThrottlerStorage` (in-memory storage doesn't work across separate Lambda invocations) |
+| Scheduled jobs | `@nestjs/schedule` (`@Cron`) — in-process, one class per job under each module's `application/jobs/` |
+| Rate limiting | `@nestjs/throttler`, default in-memory `ThrottlerStorage` |
 | Logging | `nestjs-pino` / `pino-http` — structured JSON logs, one `requestId` tying together the access log line, every app log, and the error log for a request; secrets (passwords, tokens, auth headers/cookies) redacted; pretty-printed in dev, JSON in production |
-| Deployment | AWS Lambda behind API Gateway via `@codegenie/serverless-express` (`src/lambda.ts`); `src/main.ts` still runs the same app as a local HTTP server for dev |
+| Deployment | One always-on AWS EC2 instance running the Docker image — see [`DEPLOY.md`](DEPLOY.md) and the separate `recruitment-platform-infra` repo (Terraform) |
 | File storage | AWS S3 (`@aws-sdk/client-s3`) |
 | Mail | `nodemailer` |
 | PDF generation | `pdfkit` |
@@ -42,7 +42,7 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 | API docs | Swagger / OpenAPI (`@nestjs/swagger`) |
 | Testing | Jest (unit) + Supertest (e2e) |
 
-> Note: `uuid` ships a pure-ESM release in its latest major, which Jest's CommonJS test runner cannot `require()` — this project uses `crypto.randomUUID()` instead. `@nestjs/schedule` was dropped entirely (see "Scheduled jobs" above) once cron triggers moved to EventBridge, so this no longer applies to it.
+> Note: `uuid` ships a pure-ESM release in its latest major, which Jest's CommonJS test runner cannot `require()` — this project uses `crypto.randomUUID()` instead.
 
 ## Architecture
 
@@ -66,30 +66,27 @@ For a deeper module-by-module breakdown, see **[CODEBASE_SUMMARY.md](CODEBASE_SU
 ```
 src/
 ├── common/          # Shared base entity, exceptions, guards, filters, decorators, pagination,
-│                    # rate-limit/ (DynamoDB ThrottlerStorage), config/ (env validation, pino logger)
+│                    # config/ (env validation, pino logger)
 ├── modules/
 │   ├── auth/            # JWT auth, refresh-token sessions, email verification, password reset
 │   ├── user/             # Profile + admin user management
 │   ├── permission/        # Database-driven RBAC (roles/permissions/role_permissions), admin endpoints
 │   ├── company/          # Recruiter company profiles
 │   ├── category/         # Job categories (admin-managed taxonomy)
-│   ├── job/              # Job postings, search, lifecycle, view count
+│   ├── job/              # Job postings, search, lifecycle, view count, application/jobs/ (hourly close-expired-jobs cron)
 │   ├── cv/               # Structured CV, file upload, PDF export
 │   ├── application/      # Job applications (apply/withdraw/status/stats)
 │   ├── bookmark/         # Job bookmarks
 │   ├── notification/     # In-app notifications
-│   ├── job-alert/        # Saved searches; digest is sent by a scheduled Lambda handler, not a cron here
+│   ├── job-alert/        # Saved searches; application/jobs/ (daily digest cron)
 │   ├── file-upload/       # Generic S3 file upload
 │   ├── mail/             # Mail provider (Nodemailer)
 │   ├── chat/             # Realtime conversations/messages (Socket.IO gateway, presence)
 │   ├── interview/         # Interview scheduling (schedule/reschedule/cancel, email candidate)
 │   └── prisma/           # Shared PrismaService
-├── handlers/         # EventBridge Scheduler Lambda targets (close-expired-jobs, job-alert-digest) —
-│                    # boot a NestJS application context (no HTTP) and dispatch one CQRS command
 ├── bootstrap.ts      # Shared Nest app setup (helmet, prefix, validation pipe, Swagger, pino logger,
-│                    # exception filter) used by both entry points below
-├── main.ts           # Local server entry point (npm run start:dev / start:prod)
-└── lambda.ts         # AWS Lambda entry point — same app behind API Gateway via serverless-express
+│                    # exception filter) used by main.ts
+└── main.ts           # Server entry point (npm run start:dev / start:prod)
 ```
 
 ## Getting Started
@@ -114,9 +111,6 @@ Create a `.env` file in the project root:
 | `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | yes | File storage |
 | `S3_ENDPOINT` | no | Set for S3-compatible providers (e.g. MinIO, R2) |
 | `LOG_LEVEL` | no (default `debug` in dev, `info` in prod) | `fatal`/`error`/`warn`/`info`/`debug`/`trace`/`silent` |
-| `RATE_LIMIT_TABLE` | yes | DynamoDB table name backing the distributed rate limiter |
-| `AWS_REGION` | yes (when using AWS-backed rate limiting) | Region for the DynamoDB client |
-| `DYNAMODB_ENDPOINT` | no | Set to point at DynamoDB Local for local dev instead of real AWS |
 
 ### Installation
 
@@ -139,13 +133,17 @@ Once running, Swagger docs are at `http://localhost:8080/api/v1/docs`.
 
 ### Deployment
 
-Production runs on **AWS Lambda**, not a long-lived server:
+Production runs as a Docker container on a single always-on **AWS EC2**
+instance — the same `src/main.ts` entry point as local dev, just built
+via the `Dockerfile` and deployed by `.github/workflows/deploy.yml`. See
+[`DEPLOY.md`](DEPLOY.md) for the full setup, and the separate
+`recruitment-platform-infra` repo for the Terraform that provisions the
+instance, ECR repo, S3 uploads bucket, and SSM Parameter Store entries.
 
-- `src/lambda.ts` — API Gateway → Lambda → the same NestJS app (via `@codegenie/serverless-express`), reusing the Nest DI container across warm invocations.
-- `src/handlers/close-expired-jobs.handler.ts` / `src/handlers/job-alert-digest.handler.ts` — one Lambda each, triggered by an **EventBridge Scheduler** rule (`rate(1 hour)` and `cron(0 7 * * ? *)` respectively) instead of an in-process `@nestjs/schedule` cron. Each boots a bare Nest application context (no HTTP) and dispatches the same CQRS command the old cron used.
-- Rate limiting uses a DynamoDB-backed `ThrottlerStorage` (`RATE_LIMIT_TABLE`) since in-memory counters don't work across separate Lambda execution environments; it fails open (allows the request) if DynamoDB is unreachable.
-
-Local dev (`npm run start:dev` / `start:prod`) runs the exact same app as a normal HTTP server via `src/main.ts` — only the entry point differs, `src/bootstrap.ts` is shared.
+Scheduled jobs (`close-expired-jobs.cron.ts`, `job-alert-digest.cron.ts`)
+and rate limiting both rely on being one persistent process — no
+external coordination (DynamoDB, EventBridge) needed, unlike a
+Lambda-based deploy.
 
 ### Testing
 

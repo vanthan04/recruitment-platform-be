@@ -20,6 +20,7 @@ import { MailAdapter } from '@/modules/job-alert/infrastructure/adapters/mail.ad
 import { CreateSavedSearchHandler } from '@/modules/job-alert/application/commands/create-saved-search.command';
 import { DeleteSavedSearchHandler } from '@/modules/job-alert/application/commands/delete-saved-search.command';
 import { SendJobAlertDigestsHandler } from '@/modules/job-alert/application/commands/send-job-alert-digests.command';
+import { JobAlertDigestCron } from '@/modules/job-alert/application/jobs/job-alert-digest.cron';
 import { ListMySavedSearchesHandler } from '@/modules/job-alert/application/queries/list-my-saved-searches.query';
 
 @Module({
@@ -50,6 +51,7 @@ import { ListMySavedSearchesHandler } from '@/modules/job-alert/application/quer
     CreateSavedSearchHandler,
     DeleteSavedSearchHandler,
     SendJobAlertDigestsHandler,
+    JobAlertDigestCron,
     ListMySavedSearchesHandler,
   ],
 })
