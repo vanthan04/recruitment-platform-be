@@ -5,13 +5,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiResponse } from '@/common/dtos/api-response';
-import { IMailService } from '@/modules/mail/domain/ports/mail.service.port';
 
 @ApiTags('app')
 @Controller('healthcheck')
 export class AppController {
-  constructor(private readonly mailService: IMailService) {}
-
   @Get()
   @ApiOperation({ summary: 'Health check endpoint' })
   @SwaggerResponse({ status: 200, description: 'Service is up and running' })

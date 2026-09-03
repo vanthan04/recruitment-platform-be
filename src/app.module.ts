@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
+import { AppController } from '@/app.controller';
 import { RateLimitModule } from '@/common/rate-limit/rate-limit.module';
 import { DynamoThrottlerStorage } from '@/common/rate-limit/dynamo-throttler-storage.service';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
@@ -62,7 +63,7 @@ import appConfig from '@/common/config/app.config';
     ChatModule,
     InterviewModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,
