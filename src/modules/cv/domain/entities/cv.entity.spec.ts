@@ -1,8 +1,6 @@
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
-import { Experience } from '@/modules/cv/domain/entities/experience.entity';
-import { Skill } from '@/modules/cv/domain/entities/skill.entity';
 import { CvStatus } from '@/modules/cv/domain/value-objects/cv-status.vo';
-import { DateRange } from '@/modules/cv/domain/value-objects/date-range.vo';
+import { CvFileType } from '@/modules/cv/domain/value-objects/cv-file-type.vo';
 import {
   BusinessRuleViolationException,
   UnauthorizedDomainException,
@@ -11,50 +9,51 @@ import {
 function makeCv(overrides: Partial<Cv> = {}): Cv {
   return new Cv({
     title: 'My CV',
-    summary: null,
+    originalName: 'my-cv.pdf',
+    fileType: CvFileType.PDF,
+    mimeType: 'application/pdf',
+    fileSize: 12345,
+    fileKey: 'cvs/user-1/2026/09/cv-1.pdf',
     userId: 'user-1',
     ...overrides,
   });
 }
 
-function makeExperience(): Experience {
-  return new Experience({
-    company: 'Acme',
-    position: 'Engineer',
-    description: null,
-    dateRange: new DateRange(new Date('2020-01-01')),
-    cvId: 'cv-1',
-  });
-}
-
 describe('Cv entity', () => {
-  describe('publish', () => {
-    it('throws when the CV has no experience or education', () => {
+  it('defaults to PUBLISHED status on creation', () => {
+    const cv = makeCv();
+    expect(cv.status).toBe(CvStatus.PUBLISHED);
+  });
+
+  describe('publish / unpublish', () => {
+    it('throws when publishing an already-published CV', () => {
       const cv = makeCv();
       expect(() => cv.publish()).toThrow(BusinessRuleViolationException);
     });
 
-    it('publishes when the CV has at least one experience', () => {
-      const cv = makeCv({ experiences: [makeExperience()] });
-      cv.publish();
-      expect(cv.status).toBe(CvStatus.PUBLISHED);
-      expect(cv.publishedAt).toBeInstanceOf(Date);
+    it('unpublishes a published CV back to draft', () => {
+      const cv = makeCv();
+      cv.unpublish();
+      expect(cv.status).toBe(CvStatus.DRAFT);
     });
 
-    it('throws when publishing an already-published CV', () => {
-      const cv = makeCv({ experiences: [makeExperience()] });
+    it('publishes a draft CV', () => {
+      const cv = makeCv({ status: CvStatus.DRAFT });
       cv.publish();
-      expect(() => cv.publish()).toThrow(BusinessRuleViolationException);
+      expect(cv.status).toBe(CvStatus.PUBLISHED);
+    });
+
+    it('throws when unpublishing an already-draft CV', () => {
+      const cv = makeCv({ status: CvStatus.DRAFT });
+      expect(() => cv.unpublish()).toThrow(BusinessRuleViolationException);
     });
   });
 
   describe('softDelete', () => {
-    it('marks the CV as deleted and reverts it to draft', () => {
-      const cv = makeCv({ experiences: [makeExperience()] });
-      cv.publish();
+    it('marks the CV as deleted', () => {
+      const cv = makeCv();
       cv.softDelete();
       expect(cv.isDeleted).toBe(true);
-      expect(cv.status).toBe(CvStatus.DRAFT);
     });
 
     it('throws when deleting an already-deleted CV', () => {
@@ -75,26 +74,6 @@ describe('Cv entity', () => {
       expect(() => cv.ensureOwner('someone-else')).toThrow(
         UnauthorizedDomainException,
       );
-    });
-  });
-
-  describe('addSkill', () => {
-    it('adds a skill', () => {
-      const cv = makeCv();
-      cv.addSkill(
-        new Skill({ name: 'TypeScript', level: 'Advanced', cvId: 'cv-1' }),
-      );
-      expect(cv.skills).toHaveLength(1);
-    });
-
-    it('throws when adding a duplicate skill name (case-insensitive)', () => {
-      const cv = makeCv();
-      cv.addSkill(new Skill({ name: 'TypeScript', level: null, cvId: 'cv-1' }));
-      expect(() =>
-        cv.addSkill(
-          new Skill({ name: 'typescript', level: null, cvId: 'cv-1' }),
-        ),
-      ).toThrow(BusinessRuleViolationException);
     });
   });
 

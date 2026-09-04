@@ -3,15 +3,23 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
+import {
+  IFileStorageProvider,
+  SignedUrlOptions,
+  UploadBufferParams,
+} from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl as getS3SignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
+
+const DEFAULT_SIGNED_URL_EXPIRY_SECONDS = 300;
 
 @Injectable()
 export class S3StorageProvider implements IFileStorageProvider {
@@ -74,14 +82,56 @@ export class S3StorageProvider implements IFileStorageProvider {
       const fileKey =
         fileUrl.split(`${this.bucketName}/`)[1] || fileUrl.split('.com/')[1];
       if (fileKey) {
-        const command = new DeleteObjectCommand({
-          Bucket: this.bucketName,
-          Key: fileKey,
-        });
-        await this.s3Client.send(command);
+        await this.deleteByKey(fileKey);
       }
     } catch (error) {
       this.logger.error(`Failed to delete file from S3: ${error.message}`);
     }
+  }
+
+  async uploadBuffer({
+    key,
+    buffer,
+    mimeType,
+  }: UploadBufferParams): Promise<void> {
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: buffer,
+        ContentType: mimeType,
+      });
+      await this.s3Client.send(command);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to upload to S3: ' + error.message,
+      );
+    }
+  }
+
+  async deleteByKey(key: string): Promise<void> {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+      await this.s3Client.send(command);
+    } catch (error) {
+      this.logger.error(`Failed to delete S3 object ${key}: ${error.message}`);
+    }
+  }
+
+  async getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ResponseContentDisposition: options?.downloadFilename
+        ? `attachment; filename="${options.downloadFilename.replace(/"/g, '')}"`
+        : undefined,
+    });
+
+    return getS3SignedUrl(this.s3Client, command, {
+      expiresIn: options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_EXPIRY_SECONDS,
+    });
   }
 }

@@ -21,4 +21,10 @@ export default registerAs('config', () => ({
     pass: process.env.MAIL_PASS,
     from: process.env.MAIL_FROM,
   },
+  cv: {
+    maxFileSize: parseInt(
+      process.env.CV_MAX_FILE_SIZE || `${10 * 1024 * 1024}`,
+      10,
+    ),
+  },
 }));

@@ -17,11 +17,6 @@ export class CvInfraRepository implements ICvRepository {
     return CvMapper.toDomain(raw);
   }
 
-  async findByIdWithRelations(id: string): Promise<Cv | null> {
-    const raw = await this.cvPrisma.findByIdWithRelations(id);
-    return CvMapper.toDomain(raw);
-  }
-
   async findAllByUserId(userId: string): Promise<Cv[]> {
     const raws = await this.cvPrisma.findAllByUserId(userId);
     return raws.map((r: any) => CvMapper.toDomain(r)!);
@@ -29,47 +24,13 @@ export class CvInfraRepository implements ICvRepository {
 
   async save(cv: Cv): Promise<Cv> {
     const data = CvMapper.toPersistence(cv);
-
-    const createData: any = {
-      ...data,
-      experiences: {
-        create: cv.experiences.map(CvMapper.experienceToPersistence),
-      },
-      educations: {
-        create: cv.educations.map(CvMapper.educationToPersistence),
-      },
-      skills: {
-        create: cv.skills.map(CvMapper.skillToPersistence),
-      },
-    };
-
-    const raw = await this.cvPrisma.create(createData);
+    const raw = await this.cvPrisma.create(data);
     return CvMapper.toDomain(raw)!;
   }
 
   async update(cv: Cv): Promise<Cv> {
-    // Delete existing nested records and recreate (full replace strategy)
-    await Promise.all([
-      this.cvPrisma.deleteExperiencesByCvId(cv.id),
-      this.cvPrisma.deleteEducationsByCvId(cv.id),
-      this.cvPrisma.deleteSkillsByCvId(cv.id),
-    ]);
-
     const data = CvMapper.toPersistence(cv);
-    const updateData: any = {
-      ...data,
-      experiences: {
-        create: cv.experiences.map(CvMapper.experienceToPersistence),
-      },
-      educations: {
-        create: cv.educations.map(CvMapper.educationToPersistence),
-      },
-      skills: {
-        create: cv.skills.map(CvMapper.skillToPersistence),
-      },
-    };
-
-    const raw = await this.cvPrisma.update(cv.id, updateData);
+    const raw = await this.cvPrisma.update(cv.id, data);
     return CvMapper.toDomain(raw)!;
   }
 
@@ -79,5 +40,12 @@ export class CvInfraRepository implements ICvRepository {
 
   async softDelete(id: string): Promise<void> {
     await this.cvPrisma.softDelete(id);
+  }
+
+  async hasRecruiterAccess(
+    cvId: string,
+    recruiterId: string,
+  ): Promise<boolean> {
+    return this.cvPrisma.hasRecruiterAccess(cvId, recruiterId);
   }
 }

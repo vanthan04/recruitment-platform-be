@@ -26,16 +26,6 @@ export class CvAlreadyPublishedException extends BusinessRuleViolationException 
   }
 }
 
-export class CvMissingContentException extends BusinessRuleViolationException {
-  constructor() {
-    super(
-      'CV must have at least one experience or education to be published',
-      'CV_MISSING_CONTENT',
-    );
-    this.name = 'CvMissingContentException';
-  }
-}
-
 export class CvAlreadyDraftException extends BusinessRuleViolationException {
   constructor() {
     super('CV is already in draft', 'CV_ALREADY_DRAFT');
@@ -64,13 +54,13 @@ export class CvOwnershipException extends UnauthorizedDomainException {
   }
 }
 
-export class CvSkillAlreadyExistsException extends BusinessRuleViolationException {
-  constructor(skillName: string) {
+export class CvDownloadAccessDeniedException extends UnauthorizedDomainException {
+  constructor() {
     super(
-      `Skill "${skillName}" already exists in this CV`,
-      'CV_SKILL_DUPLICATE',
+      'You do not have access to download this CV',
+      'CV_DOWNLOAD_ACCESS_DENIED',
     );
-    this.name = 'CvSkillAlreadyExistsException';
+    this.name = 'CvDownloadAccessDeniedException';
   }
 }
 
@@ -98,5 +88,32 @@ export class CvDeletedForApplicationException extends BusinessRuleViolationExcep
       'CV_DELETED_NOT_USABLE_FOR_APPLICATION',
     );
     this.name = 'CvDeletedForApplicationException';
+  }
+}
+
+export class CvFileRequiredException extends BusinessRuleViolationException {
+  constructor() {
+    super('A CV file is required', 'CV_FILE_REQUIRED');
+    this.name = 'CvFileRequiredException';
+  }
+}
+
+export class CvInvalidFileTypeException extends BusinessRuleViolationException {
+  constructor(mimeType: string) {
+    super(
+      `Unsupported CV file type "${mimeType}". Only PDF, DOC, and DOCX are allowed`,
+      'CV_INVALID_FILE_TYPE',
+    );
+    this.name = 'CvInvalidFileTypeException';
+  }
+}
+
+export class CvFileTooLargeException extends BusinessRuleViolationException {
+  constructor(sizeBytes: number, maxSizeBytes: number) {
+    super(
+      `CV file (${sizeBytes} bytes) exceeds the maximum allowed size (${maxSizeBytes} bytes)`,
+      'CV_FILE_TOO_LARGE',
+    );
+    this.name = 'CvFileTooLargeException';
   }
 }

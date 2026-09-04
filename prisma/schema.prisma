@@ -33,6 +33,12 @@ enum CvStatus {
   PUBLISHED
 }
 
+enum CvFileType {
+  PDF
+  DOC
+  DOCX
+}
+
 enum JobStatus {
   DRAFT
   OPEN
@@ -60,6 +66,13 @@ enum CompanySize {
   SIZE_51_200
   SIZE_201_500
   SIZE_500_PLUS
+}
+
+enum CompanyType {
+  PRODUCT
+  OUTSOURCING
+  STARTUP
+  CONSULTING
 }
 
 enum JobLevel {
@@ -151,8 +164,13 @@ model RolePermission {
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
-  password     String
+  // Nullable — social-login users (Google/Facebook) never set one.
+  password     String?
   verifyCode   String?
+  // Social login linkage. Nullable/unique so a local account can later link
+  // one or both providers, and a provider id never resolves to two users.
+  googleId     String?    @unique
+  facebookId   String?    @unique
   // Legacy enum column, kept in sync with roleId by a DB trigger (see migration).
   // Application code still reads/writes this column so the existing auth flow
   // (JWT payload, register, admin role change) needs no changes. roleId/roleRef
@@ -198,7 +216,10 @@ model Company {
   website     String?
   industry    String?
   size        CompanySize?
+  companyType CompanyType?
   address     String?
+  province    String?
+  ward        String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   deletedAt   DateTime?
@@ -230,77 +251,34 @@ model Profile {
 }
 
 // ─────────────────────────────────────────────
-// CV Module
+// CV Module — file-only (upload/download), no CV builder.
 // ─────────────────────────────────────────────
 
 model Cv {
-  id          String   @id @default(uuid())
-  title       String
-  summary     String?
-  fileUrl     String?
-  status      CvStatus @default(DRAFT)
-  publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  id           String     @id @default(uuid())
+  title        String
 
-  // Relations
+  // Original file metadata (what the candidate sees / downloads as)
+  originalName String
+  fileType     CvFileType
+  mimeType     String
+  fileSize     Int?
+
+  // S3 object identifier — backend-generated, never derived from originalName
+  fileKey      String
+
+  status       CvStatus   @default(PUBLISHED)
+
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
-  experiences  Experience[]
-  educations   Education[]
-  skills       Skill[]
   applications JobApplication[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
 
   @@index([userId])
   @@map("cvs")
-}
-
-model Experience {
-  id          String    @id @default(uuid())
-  company     String
-  position    String
-  description String?
-  startDate   DateTime
-  endDate     DateTime?
-  isCurrent   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  cv   Cv     @relation(fields: [cvId], references: [id], onDelete: Cascade)
-  cvId String
-
-  @@map("experiences")
-}
-
-model Education {
-  id          String    @id @default(uuid())
-  school      String
-  degree      String
-  fieldOfStudy String?
-  description String?
-  startDate   DateTime
-  endDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  cv   Cv     @relation(fields: [cvId], references: [id], onDelete: Cascade)
-  cvId String
-
-  @@map("educations")
-}
-
-model Skill {
-  id        String   @id @default(uuid())
-  name      String
-  level     String?  // e.g. "Beginner", "Intermediate", "Advanced", "Expert"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  cv   Cv     @relation(fields: [cvId], references: [id], onDelete: Cascade)
-  cvId String
-
-  @@map("skills")
 }
 
 // ─────────────────────────────────────────────
@@ -488,6 +466,25 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────
+// OAuth login handoff (Google/Facebook)
+// ─────────────────────────────────────────────
+
+// Short-lived, single-use code the OAuth callback redirects the browser
+// with instead of the actual JWTs — keeps access/refresh tokens out of the
+// redirect URL (browser history, Referer headers, server logs). The
+// frontend exchanges it server-side for the real tokens within 60s.
+model OauthLoginCode {
+  id           String    @id @default(uuid())
+  codeHash     String    @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  @@map("oauth_login_codes")
 }
 
 // ─────────────────────────────────────────────

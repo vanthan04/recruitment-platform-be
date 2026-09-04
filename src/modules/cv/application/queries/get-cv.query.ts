@@ -15,7 +15,7 @@ export class GetCvHandler implements IQueryHandler<GetCvQuery, CvResponseDto> {
   constructor(private readonly cvRepository: ICvRepository) {}
 
   async execute({ cvId }: GetCvQuery): Promise<CvResponseDto> {
-    const cv = await this.cvRepository.findByIdWithRelations(cvId);
+    const cv = await this.cvRepository.findById(cvId);
     if (!cv) {
       throw new CvNotFoundException(cvId);
     }

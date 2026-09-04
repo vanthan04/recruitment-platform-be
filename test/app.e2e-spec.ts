@@ -142,30 +142,22 @@ describe('Job portal core flow (e2e)', () => {
     expect(candidateToken).toEqual(expect.any(String));
   });
 
-  it('creates and publishes a CV as the candidate', async () => {
+  it('uploads a CV file as the candidate', async () => {
+    // CV is file-only: creation is a multipart upload and requires a real
+    // storage backend (S3) to be reachable — this test needs valid
+    // S3_* env vars, unlike the rest of this suite which only needs the DB.
     const cvRes = await request(app.getHttpServer())
       .post('/api/v1/cvs')
       .set('Authorization', `Bearer ${candidateToken}`)
-      .send({
-        title: 'My E2E CV',
-        experiences: [
-          {
-            company: 'Acme',
-            position: 'Engineer',
-            startDate: '2020-01-01',
-            isCurrent: true,
-          },
-        ],
+      .field('title', 'My E2E CV')
+      .attach('file', Buffer.from('%PDF-1.4 fake e2e cv content'), {
+        filename: 'my-e2e-cv.pdf',
+        contentType: 'application/pdf',
       })
       .expect(201);
     cvId = cvRes.body.data.id;
-    expect(cvRes.body.data.status).toBe('DRAFT');
-
-    const publishRes = await request(app.getHttpServer())
-      .patch(`/api/v1/cvs/${cvId}/publish`)
-      .set('Authorization', `Bearer ${candidateToken}`)
-      .expect(200);
-    expect(publishRes.body.data.status).toBe('PUBLISHED');
+    expect(cvRes.body.data.status).toBe('PUBLISHED');
+    expect(cvRes.body.data.originalName).toBe('my-e2e-cv.pdf');
   });
 
   it('applies to the job as the candidate', async () => {

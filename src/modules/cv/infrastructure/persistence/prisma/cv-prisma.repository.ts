@@ -15,56 +15,25 @@ export class CvPrismaRepository {
     });
   }
 
-  async findByIdWithRelations(id: string) {
-    return this.prisma.cv.findFirst({
-      where: { id, deletedAt: null },
-      include: {
-        experiences: { orderBy: { startDate: 'desc' } },
-        educations: { orderBy: { startDate: 'desc' } },
-        skills: { orderBy: { name: 'asc' } },
-      },
-    });
-  }
-
   async findAllByUserId(userId: string) {
     return this.prisma.cv.findMany({
       where: { userId, deletedAt: null },
-      include: {
-        experiences: { orderBy: { startDate: 'desc' } },
-        educations: { orderBy: { startDate: 'desc' } },
-        skills: { orderBy: { name: 'asc' } },
-      },
       orderBy: { updatedAt: 'desc' },
     });
   }
 
   async create(data: any) {
-    return this.prisma.cv.create({
-      data,
-      include: {
-        experiences: true,
-        educations: true,
-        skills: true,
-      },
-    });
+    return this.prisma.cv.create({ data });
   }
 
   async update(id: string, data: any) {
-    return this.prisma.cv.update({
-      where: { id },
-      data,
-      include: {
-        experiences: true,
-        educations: true,
-        skills: true,
-      },
-    });
+    return this.prisma.cv.update({ where: { id }, data });
   }
 
   async softDelete(id: string) {
     return this.prisma.cv.update({
       where: { id },
-      data: { deletedAt: new Date(), status: 'DRAFT' },
+      data: { deletedAt: new Date() },
     });
   }
 
@@ -72,15 +41,18 @@ export class CvPrismaRepository {
     return this.prisma.cv.delete({ where: { id } });
   }
 
-  async deleteExperiencesByCvId(cvId: string) {
-    return this.prisma.experience.deleteMany({ where: { cvId } });
-  }
-
-  async deleteEducationsByCvId(cvId: string) {
-    return this.prisma.education.deleteMany({ where: { cvId } });
-  }
-
-  async deleteSkillsByCvId(cvId: string) {
-    return this.prisma.skill.deleteMany({ where: { cvId } });
+  /**
+   * Recruiter -> Job -> JobApplication -> Cv access chain: true if the
+   * given recruiter posted a Job that a JobApplication referencing this
+   * CV was submitted to.
+   */
+  async hasRecruiterAccess(
+    cvId: string,
+    recruiterId: string,
+  ): Promise<boolean> {
+    const count = await this.prisma.jobApplication.count({
+      where: { cvId, job: { postedById: recruiterId } },
+    });
+    return count > 0;
   }
 }

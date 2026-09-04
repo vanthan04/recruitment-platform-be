@@ -9,12 +9,10 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
-  Res,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Response } from 'express';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   ApiTags,
@@ -34,15 +32,17 @@ import { CreateCvCommand } from '@/modules/cv/application/commands/create-cv.com
 import { UpdateCvCommand } from '@/modules/cv/application/commands/update-cv.command';
 import { DeleteCvCommand } from '@/modules/cv/application/commands/delete-cv.command';
 import { PublishCvCommand } from '@/modules/cv/application/commands/publish-cv.command';
-import { UploadCvFileCommand } from '@/modules/cv/application/commands/upload-cv-file.command';
 import { GetCvQuery } from '@/modules/cv/application/queries/get-cv.query';
 import { ListMyCvsQuery } from '@/modules/cv/application/queries/list-my-cvs.query';
-import { ExportCvPdfQuery } from '@/modules/cv/application/queries/export-cv-pdf.query';
+import { DownloadCvQuery } from '@/modules/cv/application/queries/download-cv.query';
 
 import { CreateCvDto } from '@/modules/cv/presentation/dtos/create-cv.dto';
 import { UpdateCvDto } from '@/modules/cv/presentation/dtos/update-cv.dto';
 
-const MAX_CV_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+// Hard ceiling at the Multer layer (memory-buffered upload), generous enough
+// that legitimate oversized files still hit CvDomainService's friendlier,
+// configurable `CV_MAX_FILE_SIZE` check instead of a raw Multer error.
+const MULTER_CV_SIZE_CEILING_BYTES = 20 * 1024 * 1024;
 
 @ApiTags('cvs')
 @ApiBearerAuth()
@@ -56,26 +56,31 @@ export class CvController {
 
   @Post()
   @RequirePermissions(Permission.CV_CREATE)
-  @ApiOperation({ summary: 'Create a new CV' })
-  async create(@GetMe('id') userId: string, @Body() dto: CreateCvDto) {
+  @ApiOperation({ summary: 'Upload a new CV (PDF/DOC/DOCX)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        title: { type: 'string' },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MULTER_CV_SIZE_CEILING_BYTES },
+    }),
+  )
+  async create(
+    @GetMe('id') userId: string,
+    @Body() dto: CreateCvDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     const result = await this.commandBus.execute(
-      new CreateCvCommand(userId, {
-        title: dto.title,
-        summary: dto.summary,
-        experiences: dto.experiences?.map((e) => ({
-          ...e,
-          startDate: new Date(e.startDate),
-          endDate: e.endDate ? new Date(e.endDate) : undefined,
-        })),
-        educations: dto.educations?.map((e) => ({
-          ...e,
-          startDate: new Date(e.startDate),
-          endDate: e.endDate ? new Date(e.endDate) : undefined,
-        })),
-        skills: dto.skills,
-      }),
+      new CreateCvCommand(userId, dto.title, file),
     );
-    return ApiResponse.ok(result, 'CV created successfully');
+    return ApiResponse.ok(result, 'CV uploaded successfully');
   }
 
   @Get()
@@ -87,36 +92,32 @@ export class CvController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get CV by ID' })
+  @ApiOperation({ summary: 'Get CV metadata by ID' })
   async getById(@Param('id') id: string) {
     const result = await this.queryBus.execute(new GetCvQuery(id));
     return ApiResponse.ok(result, 'CV retrieved successfully');
   }
 
+  @Get(':id/download')
+  @ApiOperation({
+    summary:
+      'Get a time-limited presigned download URL for the CV file (owner or a recruiter whose job the CV was applied to)',
+  })
+  async download(@GetMe('id') userId: string, @Param('id') id: string) {
+    const result = await this.queryBus.execute(new DownloadCvQuery(userId, id));
+    return ApiResponse.ok(result, 'Download URL generated successfully');
+  }
+
   @Patch(':id')
   @RequirePermissions(Permission.CV_UPDATE_OWN)
-  @ApiOperation({ summary: 'Update CV' })
+  @ApiOperation({ summary: 'Update CV title' })
   async update(
     @GetMe('id') userId: string,
     @Param('id') cvId: string,
     @Body() dto: UpdateCvDto,
   ) {
     const result = await this.commandBus.execute(
-      new UpdateCvCommand(userId, cvId, {
-        title: dto.title,
-        summary: dto.summary,
-        experiences: dto.experiences?.map((e) => ({
-          ...e,
-          startDate: new Date(e.startDate),
-          endDate: e.endDate ? new Date(e.endDate) : undefined,
-        })),
-        educations: dto.educations?.map((e) => ({
-          ...e,
-          startDate: new Date(e.startDate),
-          endDate: e.endDate ? new Date(e.endDate) : undefined,
-        })),
-        skills: dto.skills,
-      }),
+      new UpdateCvCommand(userId, cvId, { title: dto.title }),
     );
     return ApiResponse.ok(result, 'CV updated successfully');
   }
@@ -137,42 +138,5 @@ export class CvController {
   @ApiOperation({ summary: 'Delete CV (soft delete)' })
   async delete(@GetMe('id') userId: string, @Param('id') cvId: string) {
     await this.commandBus.execute(new DeleteCvCommand(userId, cvId));
-  }
-
-  @Post(':id/upload')
-  @RequirePermissions(Permission.CV_UPDATE_OWN)
-  @ApiOperation({ summary: 'Upload a ready-made CV file (PDF/DOC/DOCX)' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { file: { type: 'string', format: 'binary' } },
-    },
-  })
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: MAX_CV_FILE_SIZE_BYTES } }),
-  )
-  async uploadFile(
-    @GetMe('id') userId: string,
-    @Param('id') cvId: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    const result = await this.commandBus.execute(
-      new UploadCvFileCommand(userId, cvId, file),
-    );
-    return ApiResponse.ok(result, 'CV file uploaded successfully');
-  }
-
-  @Get(':id/export')
-  @ApiOperation({ summary: 'Export CV as PDF' })
-  async exportPdf(@Param('id') cvId: string, @Res() res: Response) {
-    const { buffer, fileName } = await this.queryBus.execute(
-      new ExportCvPdfQuery(cvId),
-    );
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${fileName}"`,
-    });
-    res.send(buffer);
   }
 }

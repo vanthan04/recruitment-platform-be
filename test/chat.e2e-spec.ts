@@ -117,26 +117,19 @@ describe('Chat module (e2e)', () => {
       .expect(201);
     jobId = jobRes.body.data.id;
 
+    // CV is file-only: creation is a multipart upload and requires a real
+    // storage backend (S3) to be reachable — this test needs valid S3_*
+    // env vars, unlike the rest of this suite which only needs the DB.
     const cvRes = await request(app.getHttpServer())
       .post('/api/v1/cvs')
       .set('Authorization', `Bearer ${candidateToken}`)
-      .send({
-        title: 'Chat E2E CV',
-        experiences: [
-          {
-            company: 'Acme',
-            position: 'Engineer',
-            startDate: '2020-01-01',
-            isCurrent: true,
-          },
-        ],
+      .field('title', 'Chat E2E CV')
+      .attach('file', Buffer.from('%PDF-1.4 fake e2e cv content'), {
+        filename: 'chat-e2e-cv.pdf',
+        contentType: 'application/pdf',
       })
       .expect(201);
     const cvId = cvRes.body.data.id;
-    await request(app.getHttpServer())
-      .patch(`/api/v1/cvs/${cvId}/publish`)
-      .set('Authorization', `Bearer ${candidateToken}`)
-      .expect(200);
 
     const applyRes = await request(app.getHttpServer())
       .post('/api/v1/job-applications')

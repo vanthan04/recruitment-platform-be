@@ -1,8 +1,22 @@
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
 import {
+  CV_ALLOWED_MIME_TYPES,
+  CvFileType,
+} from '@/modules/cv/domain/value-objects/cv-file-type.vo';
+import {
   CvNotPublishedForApplicationException,
   CvDeletedForApplicationException,
+  CvFileRequiredException,
+  CvInvalidFileTypeException,
+  CvFileTooLargeException,
 } from '@/modules/cv/domain/exceptions/cv.exceptions';
+
+export interface UploadedCvFile {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+}
 
 /**
  * CV Domain Service.
@@ -13,7 +27,7 @@ import {
 export class CvDomainService {
   /**
    * Validate that a CV is ready for job application.
-   * Must be published and have required sections.
+   * Must be published and not deleted.
    */
   static validateForApplication(cv: Cv): void {
     if (!cv.isPublished) {
@@ -26,22 +40,27 @@ export class CvDomainService {
   }
 
   /**
-   * Check if CV has minimum completeness for publishing.
+   * Validate an uploaded CV file's type and size, and resolve its CvFileType.
+   * Never trusts the client-supplied filename extension for anything but a
+   * cosmetic check — the MIME type reported by Multer is the source of truth.
    */
-  static isReadyForPublish(cv: Cv): { ready: boolean; reasons: string[] } {
-    const reasons: string[] = [];
-
-    if (!cv.title || cv.title.trim().length === 0) {
-      reasons.push('CV must have a title');
+  static validateUploadedFile(
+    file: UploadedCvFile | undefined,
+    maxFileSizeBytes: number,
+  ): CvFileType {
+    if (!file || !file.buffer || file.size === 0) {
+      throw new CvFileRequiredException();
     }
 
-    if (cv.experiences.length === 0 && cv.educations.length === 0) {
-      reasons.push('CV must have at least one experience or education');
+    const fileType = CV_ALLOWED_MIME_TYPES[file.mimetype];
+    if (!fileType) {
+      throw new CvInvalidFileTypeException(file.mimetype);
     }
 
-    return {
-      ready: reasons.length === 0,
-      reasons,
-    };
+    if (file.size > maxFileSizeBytes) {
+      throw new CvFileTooLargeException(file.size, maxFileSizeBytes);
+    }
+
+    return fileType;
   }
 }

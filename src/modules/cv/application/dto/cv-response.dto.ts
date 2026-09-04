@@ -1,44 +1,18 @@
 /**
  * CV Response DTO — Application layer output.
  * Decoupled from domain entity. Used by controllers as response format.
+ * Intentionally omits `fileKey` — the frontend never needs the raw S3
+ * object key, only the presigned download URL from `GET /cvs/:id/download`.
  */
 export class CvResponseDto {
   id: string;
   title: string;
-  summary: string | null;
-  fileUrl: string | null;
+  originalName: string;
+  fileType: string;
+  mimeType: string;
+  fileSize: number | null;
   status: string;
-  publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   userId: string;
-  experiences: ExperienceResponseDto[];
-  educations: EducationResponseDto[];
-  skills: SkillResponseDto[];
-}
-
-export class ExperienceResponseDto {
-  id: string;
-  company: string;
-  position: string;
-  description: string | null;
-  startDate: Date;
-  endDate: Date | null;
-  isCurrent: boolean;
-}
-
-export class EducationResponseDto {
-  id: string;
-  school: string;
-  degree: string;
-  fieldOfStudy: string | null;
-  description: string | null;
-  startDate: Date;
-  endDate: Date | null;
-}
-
-export class SkillResponseDto {
-  id: string;
-  name: string;
-  level: string | null;
 }

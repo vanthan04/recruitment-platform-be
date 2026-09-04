@@ -18,6 +18,6 @@ import { FileUploadController } from './presentation/controllers/file-upload.con
     UploadFileHandler,
     FileUploadService,
   ],
-  exports: [FileUploadService],
+  exports: [FileUploadService, IFileStorageProvider],
 })
 export class FileUploadModule {}

@@ -1,44 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { ConfigService } from '@nestjs/config';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
+import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
-import { CvStatus } from '@/modules/cv/domain/value-objects/cv-status.vo';
+import { CvDomainService } from '@/modules/cv/domain/domain-services/cv-domain.service';
+import { CV_FILE_EXTENSIONS } from '@/modules/cv/domain/value-objects/cv-file-type.vo';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
 import { CvResponseDto } from '@/modules/cv/application/dto/cv-response.dto';
-import { Experience } from '@/modules/cv/domain/entities/experience.entity';
-import { DateRange } from '@/modules/cv/domain/value-objects/date-range.vo';
-import { Education } from '@/modules/cv/domain/entities/education.entity';
-import { Skill } from '@/modules/cv/domain/entities/skill.entity';
 
-export interface CreateCvInput {
-  title: string;
-  summary?: string;
-  experiences?: {
-    company: string;
-    position: string;
-    description?: string;
-    startDate: Date;
-    endDate?: Date;
-    isCurrent?: boolean;
-  }[];
-  educations?: {
-    school: string;
-    degree: string;
-    fieldOfStudy?: string;
-    description?: string;
-    startDate: Date;
-    endDate?: Date;
-  }[];
-  skills?: {
-    name: string;
-    level?: string;
-  }[];
+/**
+ * S3 key format: cvs/{userId}/{year}/{month}/{cvId}.{extension}.
+ * Backend-generated — never derived from the client-supplied original
+ * filename (which is stored only as display metadata, `originalName`).
+ */
+function buildCvFileKey(
+  userId: string,
+  cvId: string,
+  extension: string,
+): string {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  return `cvs/${userId}/${year}/${month}/${cvId}.${extension}`;
 }
 
 export class CreateCvCommand {
   constructor(
     public readonly userId: string,
-    public readonly input: CreateCvInput,
+    public readonly title: string,
+    public readonly file: Express.Multer.File,
   ) {}
 }
 
@@ -48,58 +39,52 @@ export class CreateCvHandler implements ICommandHandler<
   CreateCvCommand,
   CvResponseDto
 > {
-  constructor(private readonly cvRepository: ICvRepository) {}
+  constructor(
+    private readonly cvRepository: ICvRepository,
+    @Inject(ICvStoragePort)
+    private readonly cvStorage: ICvStoragePort,
+    private readonly configService: ConfigService,
+  ) {}
 
-  async execute({ userId, input }: CreateCvCommand): Promise<CvResponseDto> {
+  async execute({
+    userId,
+    title,
+    file,
+  }: CreateCvCommand): Promise<CvResponseDto> {
+    const maxFileSize = this.configService.get<number>(
+      'CV_MAX_FILE_SIZE',
+      10 * 1024 * 1024,
+    );
+    const fileType = CvDomainService.validateUploadedFile(file, maxFileSize);
+
     const cv = new Cv({
-      title: input.title,
-      summary: input.summary ?? null,
-      status: CvStatus.DRAFT,
+      title,
+      originalName: file.originalname,
+      fileType,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      fileKey: '',
       userId,
     });
 
-    if (input.experiences) {
-      for (const exp of input.experiences) {
-        cv.addExperience(
-          new Experience({
-            company: exp.company,
-            position: exp.position,
-            description: exp.description ?? null,
-            dateRange: new DateRange(exp.startDate, exp.endDate ?? null),
-            cvId: cv.id,
-          }),
-        );
-      }
-    }
+    const fileKey = buildCvFileKey(userId, cv.id, CV_FILE_EXTENSIONS[fileType]);
+    cv.fileKey = fileKey;
 
-    if (input.educations) {
-      for (const edu of input.educations) {
-        cv.addEducation(
-          new Education({
-            school: edu.school,
-            degree: edu.degree,
-            fieldOfStudy: edu.fieldOfStudy ?? null,
-            description: edu.description ?? null,
-            dateRange: new DateRange(edu.startDate, edu.endDate ?? null),
-            cvId: cv.id,
-          }),
-        );
-      }
-    }
+    await this.cvStorage.upload({
+      key: fileKey,
+      buffer: file.buffer,
+      mimeType: file.mimetype,
+    });
 
-    if (input.skills) {
-      for (const skill of input.skills) {
-        cv.addSkill(
-          new Skill({
-            name: skill.name,
-            level: skill.level ?? null,
-            cvId: cv.id,
-          }),
-        );
-      }
+    try {
+      const saved = await this.cvRepository.save(cv);
+      return CvResponseMapper.toDto(saved);
+    } catch (error) {
+      // S3 and PostgreSQL are not one distributed transaction — if the DB
+      // insert fails after a successful upload, best-effort clean up the
+      // now-orphaned S3 object rather than leaving it unreferenced forever.
+      await this.cvStorage.delete(fileKey).catch(() => undefined);
+      throw error;
     }
-
-    const saved = await this.cvRepository.save(cv);
-    return CvResponseMapper.toDto(saved);
   }
 }

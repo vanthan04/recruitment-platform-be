@@ -21,7 +21,7 @@ export class PublishCvHandler implements ICommandHandler<
   constructor(private readonly cvRepository: ICvRepository) {}
 
   async execute({ userId, cvId }: PublishCvCommand): Promise<CvResponseDto> {
-    const cv = await this.cvRepository.findByIdWithRelations(cvId);
+    const cv = await this.cvRepository.findById(cvId);
     if (!cv) {
       throw new CvNotFoundException(cvId);
     }
