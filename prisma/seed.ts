@@ -60,6 +60,22 @@ const PERMISSIONS = [
   { name: 'role:permission:manage', description: 'View/manage role -> permission assignments (admin)' },
 ] as const;
 
+// IT-only for now — platform is scoped to IT recruitment (see
+// docs/industry-expansion.md for how to add categories for another
+// industry later; Category.name/slug are free-form, not an enum).
+const CATEGORIES = [
+  { name: 'Lập trình Frontend', slug: 'lap-trinh-frontend' },
+  { name: 'Lập trình Backend', slug: 'lap-trinh-backend' },
+  { name: 'Lập trình Mobile', slug: 'lap-trinh-mobile' },
+  { name: 'DevOps / SRE', slug: 'devops-sre' },
+  { name: 'Kiểm thử phần mềm (QA/Tester)', slug: 'kiem-thu-phan-mem-qa-tester' },
+  { name: 'Dữ liệu & AI', slug: 'du-lieu-ai' },
+  { name: 'An ninh mạng (Security)', slug: 'an-ninh-mang-security' },
+  { name: 'Business Analyst / Product', slug: 'business-analyst-product' },
+  { name: 'UI/UX Design', slug: 'ui-ux-design' },
+  { name: 'Hỗ trợ kỹ thuật / IT Support', slug: 'ho-tro-ky-thuat-it-support' },
+] as const;
+
 const ROLE_PERMISSIONS: Record<(typeof ROLES)[number]['name'], string[]> = {
   ADMIN: [
     'category:create',
@@ -142,6 +158,17 @@ async function main() {
   }
 
   console.log('RBAC seed complete.');
+
+  console.log('Seeding job categories...');
+  for (const category of CATEGORIES) {
+    await prisma.category.upsert({
+      where: { slug: category.slug },
+      update: { name: category.name },
+      create: category,
+    });
+  }
+
+  console.log('Category seed complete.');
 }
 
 main()
