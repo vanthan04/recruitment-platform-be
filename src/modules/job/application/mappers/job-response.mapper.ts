@@ -24,6 +24,7 @@ export class JobResponseMapper {
     dto.currency = job.salary?.currency ?? 'VND';
     dto.requirements = job.requirements;
     dto.benefits = job.benefits;
+    dto.extraInfo = job.extraInfo;
     dto.expiresAt = job.expiresAt;
     dto.postedById = job.postedById;
     dto.createdAt = job.createdAt;

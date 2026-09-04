@@ -6,7 +6,25 @@ import { JobMapper } from '@/modules/job/infrastructure/persistence/mappers/job.
 import { ICompanyLookupPort } from '@/modules/job/application/ports/company-lookup.port';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
 import { normalizePagination } from '@/common/utils/pagination.util';
+import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-option.vo';
 import { Prisma } from '@prisma/client';
+
+function buildOrderBy(
+  sort?: JobSortOption,
+): Prisma.JobOrderByWithRelationInput {
+  switch (sort) {
+    case JobSortOption.SALARY_DESC:
+      // Jobs with no salary set sort last, not first — a NULL isn't the
+      // highest salary, treating it as such would push undisclosed-salary
+      // jobs to the top of a "highest pay first" sort.
+      return { salaryMax: { sort: 'desc', nulls: 'last' } };
+    case JobSortOption.VIEWS_DESC:
+      return { viewCount: 'desc' };
+    case JobSortOption.NEWEST:
+    default:
+      return { createdAt: 'desc' };
+  }
+}
 
 @Injectable()
 export class JobInfraRepository implements IJobRepository {
@@ -34,6 +52,7 @@ export class JobInfraRepository implements IJobRepository {
     companyId?: string;
     categoryId?: string;
     level?: string;
+    sort?: JobSortOption;
   }): Promise<{ jobs: Job[]; total: number }> {
     const { skip, limit } = normalizePagination(params);
     const where: Prisma.JobWhereInput = {
@@ -88,6 +107,7 @@ export class JobInfraRepository implements IJobRepository {
       skip,
       take: limit,
       where,
+      orderBy: buildOrderBy(params.sort),
     });
 
     const jobs = await this.attachSummaries(

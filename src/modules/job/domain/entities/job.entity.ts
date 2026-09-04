@@ -32,6 +32,12 @@ export interface CategorySummary {
 }
 
 /**
+ * Free-form extra fields (working hours, application method, and whatever
+ * else gets added later) stored as JSON so new keys never need a migration.
+ */
+export type JobExtraInfo = Record<string, string>;
+
+/**
  * Job entity — aggregate root.
  * Contains all business logic for job management.
  * Framework-agnostic — no NestJS or Prisma imports.
@@ -51,6 +57,7 @@ export class Job extends BaseEntity {
   salary: SalaryRange;
   requirements: string | null;
   benefits: string | null;
+  extraInfo: JobExtraInfo | null;
   expiresAt: Date | null;
   deletedAt: Date | null;
   postedById: string;
@@ -129,6 +136,7 @@ export class Job extends BaseEntity {
     categoryId?: string | null;
     requirements?: string;
     benefits?: string;
+    extraInfo?: JobExtraInfo;
     salaryMin?: number;
     salaryMax?: number;
     currency?: string;
@@ -142,6 +150,7 @@ export class Job extends BaseEntity {
     if (data.categoryId !== undefined) this.categoryId = data.categoryId;
     if (data.requirements !== undefined) this.requirements = data.requirements;
     if (data.benefits !== undefined) this.benefits = data.benefits;
+    if (data.extraInfo !== undefined) this.extraInfo = data.extraInfo;
     if (data.expiresAt !== undefined) this.expiresAt = data.expiresAt;
 
     if (

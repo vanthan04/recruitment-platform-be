@@ -23,6 +23,7 @@ export interface UpdateJobInput {
   currency?: string;
   requirements?: string;
   benefits?: string;
+  extraInfo?: Record<string, string>;
   expiresAt?: string;
 }
 
@@ -73,6 +74,7 @@ export class UpdateJobHandler implements ICommandHandler<
       categoryId: input.categoryId,
       requirements: input.requirements,
       benefits: input.benefits,
+      extraInfo: input.extraInfo,
       salaryMin: input.salaryMin,
       salaryMax: input.salaryMax,
       currency: input.currency,

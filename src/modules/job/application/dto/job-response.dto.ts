@@ -19,6 +19,7 @@ export class JobResponseDto {
   currency: string;
   requirements: string | null;
   benefits: string | null;
+  extraInfo: Record<string, string> | null;
   expiresAt: Date | null;
   postedById: string;
   createdAt: Date;

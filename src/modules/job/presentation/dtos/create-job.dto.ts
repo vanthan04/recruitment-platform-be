@@ -8,6 +8,7 @@ import {
   Min,
   IsDateString,
   MaxLength,
+  IsObject,
 } from 'class-validator';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
@@ -71,6 +72,14 @@ export class CreateJobDto {
   @IsString()
   @IsOptional()
   benefits?: string;
+
+  @ApiPropertyOptional({
+    description: 'Free-form extra fields (working hours, application method, etc.) — new keys need no migration.',
+    example: { workingHours: 'Thứ 2 - Thứ 6 (08:00 - 17:00)', applicationMethod: 'Ứng tuyển trực tuyến qua nút bên dưới.' },
+  })
+  @IsObject()
+  @IsOptional()
+  extraInfo?: Record<string, string>;
 
   @ApiPropertyOptional({ example: '2026-12-31' })
   @IsDateString()

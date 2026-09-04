@@ -3,6 +3,7 @@ import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
+import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-option.vo';
 
 export interface ListJobsInput {
   page: number;
@@ -15,6 +16,7 @@ export interface ListJobsInput {
   companyId?: string;
   categoryId?: string;
   level?: string;
+  sort?: JobSortOption;
 }
 
 export class ListJobsQuery {

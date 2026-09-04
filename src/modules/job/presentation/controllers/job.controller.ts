@@ -69,6 +69,7 @@ export class JobController {
         companyId: query.companyId,
         categoryId: query.categoryId,
         level: query.level,
+        sort: query.sort,
       }),
     );
     return ApiResponse.ok(result.jobs, 'Jobs retrieved successfully', {

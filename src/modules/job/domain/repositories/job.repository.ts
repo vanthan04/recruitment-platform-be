@@ -1,4 +1,5 @@
 import { Job } from '@/modules/job/domain/entities/job.entity';
+import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-option.vo';
 
 /**
  * Job Repository interface (port).
@@ -17,6 +18,7 @@ export abstract class IJobRepository {
     companyId?: string;
     categoryId?: string;
     level?: string;
+    sort?: JobSortOption;
   }): Promise<{ jobs: Job[]; total: number }>;
   abstract findAllByRecruiterPaginated(params: {
     recruiterId: string;

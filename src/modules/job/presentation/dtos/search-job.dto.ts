@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
 import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
+import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-option.vo';
 import { PageOptionsDto } from '@/common/dtos/page-options.dto';
 import { Type } from 'class-transformer';
 
@@ -49,4 +50,9 @@ export class SearchJobDto extends PageOptionsDto {
   @IsEnum(JobLevel)
   @IsOptional()
   level?: JobLevel;
+
+  @ApiPropertyOptional({ enum: JobSortOption, default: JobSortOption.NEWEST })
+  @IsEnum(JobSortOption)
+  @IsOptional()
+  sort?: JobSortOption;
 }
