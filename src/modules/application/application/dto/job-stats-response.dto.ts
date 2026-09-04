@@ -2,8 +2,12 @@ export class JobStatsResponseDto {
   jobId: string;
   viewCount: number;
   totalApplications: number;
-  pending: number;
-  accepted: number;
+  applied: number;
+  screening: number;
+  shortlisted: number;
+  interview: number;
+  offer: number;
+  hired: number;
   rejected: number;
   withdrawn: number;
 }

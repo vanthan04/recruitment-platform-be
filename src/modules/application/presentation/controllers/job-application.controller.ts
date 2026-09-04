@@ -108,7 +108,7 @@ export class JobApplicationController {
     @Body() dto: UpdateApplicationStatusDto,
   ) {
     const result = await this.commandBus.execute(
-      new UpdateApplicationStatusCommand(recruiterId, id, dto.status),
+      new UpdateApplicationStatusCommand(recruiterId, id, dto.status, dto.note),
     );
     return ApiResponse.ok(result, 'Application status updated successfully');
   }

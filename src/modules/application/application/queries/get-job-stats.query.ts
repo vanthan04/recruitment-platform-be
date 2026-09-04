@@ -45,12 +45,23 @@ export class GetJobStatsHandler implements IQueryHandler<
     const dto = new JobStatsResponseDto();
     dto.jobId = jobId;
     dto.viewCount = job.viewCount;
-    dto.pending = counts[ApplicationStatus.PENDING] ?? 0;
-    dto.accepted = counts[ApplicationStatus.ACCEPTED] ?? 0;
+    dto.applied = counts[ApplicationStatus.APPLIED] ?? 0;
+    dto.screening = counts[ApplicationStatus.SCREENING] ?? 0;
+    dto.shortlisted = counts[ApplicationStatus.SHORTLISTED] ?? 0;
+    dto.interview = counts[ApplicationStatus.INTERVIEW] ?? 0;
+    dto.offer = counts[ApplicationStatus.OFFER] ?? 0;
+    dto.hired = counts[ApplicationStatus.HIRED] ?? 0;
     dto.rejected = counts[ApplicationStatus.REJECTED] ?? 0;
     dto.withdrawn = counts[ApplicationStatus.WITHDRAWN] ?? 0;
     dto.totalApplications =
-      dto.pending + dto.accepted + dto.rejected + dto.withdrawn;
+      dto.applied +
+      dto.screening +
+      dto.shortlisted +
+      dto.interview +
+      dto.offer +
+      dto.hired +
+      dto.rejected +
+      dto.withdrawn;
 
     return dto;
   }

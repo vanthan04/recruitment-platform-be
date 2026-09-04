@@ -1,6 +1,10 @@
 import { BaseEntity } from '@/common/domain/base.entity';
-import { ApplicationStatus } from '@/modules/application/domain/value-objects/application-status.vo';
-import { ApplicationNotPendingException } from '@/modules/application/domain/exceptions/application.exceptions';
+import {
+  ApplicationStatus,
+  canTransitionApplicationStatus,
+  isTerminalApplicationStatus,
+} from '@/modules/application/domain/value-objects/application-status.vo';
+import { InvalidApplicationStatusTransitionException } from '@/modules/application/domain/exceptions/application.exceptions';
 
 export class JobApplication extends BaseEntity {
   status: ApplicationStatus;
@@ -12,31 +16,32 @@ export class JobApplication extends BaseEntity {
   constructor(partial: Partial<JobApplication>) {
     super();
     Object.assign(this, partial);
-    this.status = partial.status ?? ApplicationStatus.PENDING;
+    this.status = partial.status ?? ApplicationStatus.APPLIED;
   }
 
-  accept(): void {
-    if (this.status !== ApplicationStatus.PENDING) {
-      throw new ApplicationNotPendingException('accepted');
+  /**
+   * Recruiter-driven forward transition (APPLIED -> ... -> HIRED, or
+   * REJECTED from any non-terminal step). See application-status.vo's
+   * transition map for exactly which moves are allowed.
+   */
+  transitionTo(newStatus: ApplicationStatus): void {
+    if (!canTransitionApplicationStatus(this.status, newStatus)) {
+      throw new InvalidApplicationStatusTransitionException(
+        this.status,
+        newStatus,
+      );
     }
-    this.status = ApplicationStatus.ACCEPTED;
+    this.status = newStatus;
   }
 
-  reject(): void {
-    if (this.status !== ApplicationStatus.PENDING) {
-      throw new ApplicationNotPendingException('rejected');
-    }
-    this.status = ApplicationStatus.REJECTED;
-  }
-
+  /** Candidate-driven: withdraw from any non-terminal state. */
   withdraw(): void {
-    if (this.status !== ApplicationStatus.PENDING) {
-      throw new ApplicationNotPendingException('withdrawn');
+    if (isTerminalApplicationStatus(this.status)) {
+      throw new InvalidApplicationStatusTransitionException(
+        this.status,
+        ApplicationStatus.WITHDRAWN,
+      );
     }
     this.status = ApplicationStatus.WITHDRAWN;
-  }
-
-  isPending(): boolean {
-    return this.status === ApplicationStatus.PENDING;
   }
 }

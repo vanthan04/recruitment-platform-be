@@ -4,6 +4,9 @@ import { JobApplicationController } from '@/modules/application/presentation/con
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { JobApplicationInfraRepository } from '@/modules/application/infrastructure/repositories/job-application.infra-repository';
 import { JobApplicationPrismaRepository } from '@/modules/application/infrastructure/persistence/prisma/job-application-prisma.repository';
+import { IApplicationStatusHistoryRepository } from '@/modules/application/domain/repositories/application-status-history.repository';
+import { ApplicationStatusHistoryInfraRepository } from '@/modules/application/infrastructure/repositories/application-status-history.infra-repository';
+import { ApplicationStatusHistoryPrismaRepository } from '@/modules/application/infrastructure/persistence/prisma/application-status-history-prisma.repository';
 import { JobModule } from '@/modules/job/job.module';
 import { CvModule } from '@/modules/cv/cv.module';
 import { UserModule } from '@/modules/user/user.module';
@@ -29,6 +32,11 @@ import { GetJobStatsHandler } from '@/modules/application/application/queries/ge
     {
       provide: IJobApplicationRepository,
       useClass: JobApplicationInfraRepository,
+    },
+    ApplicationStatusHistoryPrismaRepository,
+    {
+      provide: IApplicationStatusHistoryRepository,
+      useClass: ApplicationStatusHistoryInfraRepository,
     },
     {
       provide: IJobLookupPort,

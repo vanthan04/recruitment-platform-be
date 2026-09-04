@@ -17,7 +17,8 @@ import {
 } from '@/modules/chat/domain/exceptions/chat.exceptions';
 import { ensureOwner } from '@/common/utils/ownership.util';
 
-const ELIGIBLE_APPLICATION_STATUS = 'ACCEPTED';
+// HIRED is the pipeline's successful terminal status (formerly ACCEPTED).
+const ELIGIBLE_APPLICATION_STATUS = 'HIRED';
 
 export class CreateConversationCommand {
   constructor(

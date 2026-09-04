@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
+import { IApplicationStatusHistoryRepository } from '@/modules/application/domain/repositories/application-status-history.repository';
 import {
   JobApplicationNotFoundException,
   ApplicationOwnershipException,
@@ -23,6 +24,7 @@ export class WithdrawApplicationHandler implements ICommandHandler<
 > {
   constructor(
     private readonly applicationRepository: IJobApplicationRepository,
+    private readonly statusHistoryRepository: IApplicationStatusHistoryRepository,
   ) {}
 
   async execute({
@@ -39,9 +41,19 @@ export class WithdrawApplicationHandler implements ICommandHandler<
       throw new ApplicationOwnershipException();
     }
 
+    const fromStatus = application.status;
     application.withdraw();
 
     const updated = await this.applicationRepository.update(application);
+
+    await this.statusHistoryRepository.create({
+      applicationId: updated.id,
+      fromStatus,
+      toStatus: updated.status,
+      changedById: userId,
+      note: null,
+    });
+
     return ApplicationResponseMapper.toDto(updated);
   }
 }

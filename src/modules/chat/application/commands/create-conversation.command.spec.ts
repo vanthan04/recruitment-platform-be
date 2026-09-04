@@ -25,7 +25,7 @@ function makeApplication(
 ): ChatApplicationLookupResult {
   return {
     id: 'app-1',
-    status: 'ACCEPTED',
+    status: 'HIRED',
     userId: 'candidate-1',
     jobId: 'job-1',
     ...overrides,
@@ -107,9 +107,9 @@ describe('CreateConversationHandler', () => {
     ).rejects.toThrow(EntityNotFoundException);
   });
 
-  it('throws BusinessRuleViolationException when the application is not ACCEPTED', async () => {
+  it('throws BusinessRuleViolationException when the application is not HIRED', async () => {
     applicationLookupPort.findById.mockResolvedValue(
-      makeApplication({ status: 'PENDING' }),
+      makeApplication({ status: 'APPLIED' }),
     );
 
     await expect(

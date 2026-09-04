@@ -54,8 +54,12 @@ enum JobType {
 }
 
 enum ApplicationStatus {
-  PENDING
-  ACCEPTED
+  APPLIED
+  SCREENING
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  HIRED
   REJECTED
   WITHDRAWN
 }
@@ -195,6 +199,7 @@ model User {
   savedSearches    SavedSearch[]
   refreshTokens    RefreshToken[]
   scheduledInterviews InterviewSchedule[]
+  applicationStatusChanges ApplicationStatusHistory[]
   conversationsAsCandidate  Conversation[]       @relation("ConversationCandidate")
   conversationsAsRecruiter  Conversation[]       @relation("ConversationRecruiter")
   conversationMemberships   ConversationMember[]
@@ -345,7 +350,7 @@ model Job {
 
 model JobApplication {
   id          String            @id @default(uuid())
-  status      ApplicationStatus @default(PENDING)
+  status      ApplicationStatus @default(APPLIED)
   coverLetter String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -359,10 +364,33 @@ model JobApplication {
   cvId   String
   conversation Conversation?
   interviewSchedules InterviewSchedule[]
+  statusHistory ApplicationStatusHistory[]
 
   @@unique([userId, jobId]) // One application per user per job
   @@index([jobId])
+  @@index([jobId, status])
+  @@index([userId, createdAt])
   @@map("job_applications")
+}
+
+// ─────────────────────────────────────────────
+// Application Status History
+// ─────────────────────────────────────────────
+
+model ApplicationStatusHistory {
+  id         String             @id @default(uuid())
+  fromStatus ApplicationStatus?
+  toStatus   ApplicationStatus
+  note       String?
+  createdAt  DateTime           @default(now())
+
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId String
+  changedBy     User?          @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  changedById   String?
+
+  @@index([applicationId, createdAt])
+  @@map("application_status_histories")
 }
 
 // ─────────────────────────────────────────────

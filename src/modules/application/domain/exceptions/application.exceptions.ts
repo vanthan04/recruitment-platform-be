@@ -106,12 +106,12 @@ export class ApplicationOwnershipException extends UnauthorizedDomainException {
   }
 }
 
-export class ApplicationNotPendingException extends BusinessRuleViolationException {
-  constructor(action: 'accepted' | 'rejected' | 'withdrawn') {
+export class InvalidApplicationStatusTransitionException extends BusinessRuleViolationException {
+  constructor(from: string, to: string) {
     super(
-      `Only pending applications can be ${action}`,
-      'APPLICATION_NOT_PENDING',
+      `Cannot transition application status from ${from} to ${to}`,
+      'APPLICATION_INVALID_STATUS_TRANSITION',
     );
-    this.name = 'ApplicationNotPendingException';
+    this.name = 'InvalidApplicationStatusTransitionException';
   }
 }
