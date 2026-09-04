@@ -15,7 +15,8 @@ export class JobResponseMapper {
     dto.categoryId = job.categoryId;
     dto.category = job.category ?? null;
     dto.location = job.location;
-    dto.jobType = job.jobType;
+    dto.employmentType = job.employmentType;
+    dto.workMode = job.workMode;
     dto.level = job.level;
     dto.status = job.status;
     dto.viewCount = job.viewCount;
@@ -27,6 +28,11 @@ export class JobResponseMapper {
     dto.extraInfo = job.extraInfo;
     dto.expiresAt = job.expiresAt;
     dto.postedById = job.postedById;
+    dto.skills = job.skills.map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+    }));
     dto.createdAt = job.createdAt;
     dto.updatedAt = job.updatedAt;
     return dto;

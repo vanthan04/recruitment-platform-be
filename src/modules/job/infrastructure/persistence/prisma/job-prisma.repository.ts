@@ -7,8 +7,8 @@ export class JobPrismaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   // No `include` here — this repository only ever touches the `jobs` table.
-  // Company/category summaries are attached in JobInfraRepository via
-  // ICompanyLookupPort/ICategoryLookupPort, not a Prisma relational join.
+  // Company/category/skill summaries are attached in JobInfraRepository via
+  // lookup ports, not a Prisma relational join.
 
   async findById(id: string) {
     return this.prisma.job.findFirst({
@@ -65,5 +65,28 @@ export class JobPrismaRepository {
       where: { id },
       data: { viewCount: { increment: 1 } },
     });
+  }
+
+  /** The job_skills join rows for a batch of jobs — just the ids, not the Skill rows. */
+  async findSkillIdsByJobIds(jobIds: string[]) {
+    return this.prisma.jobSkill.findMany({
+      where: { jobId: { in: jobIds } },
+      select: { jobId: true, skillId: true },
+    });
+  }
+
+  /** Full-replace a job's skill assignments. */
+  async setSkills(jobId: string, skillIds: string[]) {
+    const uniqueIds = [...new Set(skillIds)];
+    await this.prisma.$transaction([
+      this.prisma.jobSkill.deleteMany({ where: { jobId } }),
+      ...(uniqueIds.length > 0
+        ? [
+            this.prisma.jobSkill.createMany({
+              data: uniqueIds.map((skillId) => ({ jobId, skillId })),
+            }),
+          ]
+        : []),
+    ]);
   }
 }

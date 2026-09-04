@@ -9,8 +9,10 @@ import {
   IsDateString,
   MaxLength,
   IsObject,
+  IsArray,
 } from 'class-validator';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 
 export class CreateJobDto {
@@ -31,10 +33,15 @@ export class CreateJobDto {
   @MaxLength(200)
   location: string;
 
-  @ApiProperty({ enum: JobType, default: JobType.FULL_TIME })
-  @IsEnum(JobType)
+  @ApiProperty({ enum: EmploymentType, default: EmploymentType.FULL_TIME })
+  @IsEnum(EmploymentType)
   @IsOptional()
-  jobType?: JobType = JobType.FULL_TIME;
+  employmentType?: EmploymentType = EmploymentType.FULL_TIME;
+
+  @ApiProperty({ enum: WorkMode, default: WorkMode.ONSITE })
+  @IsEnum(WorkMode)
+  @IsOptional()
+  workMode?: WorkMode = WorkMode.ONSITE;
 
   @ApiPropertyOptional({ enum: JobLevel })
   @IsEnum(JobLevel)
@@ -74,8 +81,12 @@ export class CreateJobDto {
   benefits?: string;
 
   @ApiPropertyOptional({
-    description: 'Free-form extra fields (working hours, application method, etc.) — new keys need no migration.',
-    example: { workingHours: 'Thứ 2 - Thứ 6 (08:00 - 17:00)', applicationMethod: 'Ứng tuyển trực tuyến qua nút bên dưới.' },
+    description:
+      'Free-form extra fields (working hours, application method, etc.) — new keys need no migration.',
+    example: {
+      workingHours: 'Thứ 2 - Thứ 6 (08:00 - 17:00)',
+      applicationMethod: 'Ứng tuyển trực tuyến qua nút bên dưới.',
+    },
   })
   @IsObject()
   @IsOptional()
@@ -85,4 +96,13 @@ export class CreateJobDto {
   @IsDateString()
   @IsOptional()
   expiresAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Skill ids to attach to this job (must already exist).',
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  skillIds?: string[];
 }

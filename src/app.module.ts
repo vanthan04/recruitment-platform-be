@@ -15,6 +15,7 @@ import { PermissionModule } from '@/modules/permission/permission.module';
 import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
 import { CompanyModule } from '@/modules/company/company.module';
 import { CategoryModule } from '@/modules/category/category.module';
+import { SkillModule } from '@/modules/skill/skill.module';
 import { CvModule } from '@/modules/cv/cv.module';
 import { JobModule } from '@/modules/job/job.module';
 import { JobApplicationModule } from '@/modules/application/job-application.module';
@@ -47,6 +48,7 @@ import appConfig from '@/common/config/app.config';
     FileUploadModule,
     CompanyModule,
     CategoryModule,
+    SkillModule,
     CvModule,
     JobModule,
     JobApplicationModule,

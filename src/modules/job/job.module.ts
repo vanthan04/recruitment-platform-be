@@ -7,12 +7,15 @@ import { JobPrismaRepository } from '@/modules/job/infrastructure/persistence/pr
 import { UserModule } from '@/modules/user/user.module';
 import { CategoryModule } from '@/modules/category/category.module';
 import { CompanyModule } from '@/modules/company/company.module';
+import { SkillModule } from '@/modules/skill/skill.module';
 import { IUserLookupPort } from '@/modules/job/application/ports/user-lookup.port';
 import { UserLookupAdapter } from '@/modules/job/infrastructure/adapters/user-lookup.adapter';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
 import { CategoryLookupAdapter } from '@/modules/job/infrastructure/adapters/category-lookup.adapter';
 import { ICompanyLookupPort } from '@/modules/job/application/ports/company-lookup.port';
 import { CompanyLookupAdapter } from '@/modules/job/infrastructure/adapters/company-lookup.adapter';
+import { ISkillLookupPort } from '@/modules/job/application/ports/skill-lookup.port';
+import { SkillLookupAdapter } from '@/modules/job/infrastructure/adapters/skill-lookup.adapter';
 
 import { CreateJobHandler } from '@/modules/job/application/commands/create-job.command';
 import { UpdateJobHandler } from '@/modules/job/application/commands/update-job.command';
@@ -26,7 +29,7 @@ import { ListJobsHandler } from '@/modules/job/application/queries/list-jobs.que
 import { ListMyJobsHandler } from '@/modules/job/application/queries/list-my-jobs.query';
 
 @Module({
-  imports: [CqrsModule, UserModule, CategoryModule, CompanyModule],
+  imports: [CqrsModule, UserModule, CategoryModule, CompanyModule, SkillModule],
   controllers: [JobController],
   providers: [
     JobPrismaRepository,
@@ -45,6 +48,10 @@ import { ListMyJobsHandler } from '@/modules/job/application/queries/list-my-job
     {
       provide: ICompanyLookupPort,
       useClass: CompanyLookupAdapter,
+    },
+    {
+      provide: ISkillLookupPort,
+      useClass: SkillLookupAdapter,
     },
     CreateJobHandler,
     UpdateJobHandler,

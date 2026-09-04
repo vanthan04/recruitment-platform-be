@@ -1,11 +1,10 @@
 /**
- * Job Type value object.
+ * Employment Type value object.
  * Framework-agnostic.
  */
-export enum JobType {
+export enum EmploymentType {
   FULL_TIME = 'FULL_TIME',
   PART_TIME = 'PART_TIME',
   CONTRACT = 'CONTRACT',
   INTERNSHIP = 'INTERNSHIP',
-  REMOTE = 'REMOTE',
 }

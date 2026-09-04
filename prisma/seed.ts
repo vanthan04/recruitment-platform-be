@@ -26,6 +26,10 @@ const PERMISSIONS = [
   { name: 'category:create', description: 'Create a job category' },
   { name: 'category:update', description: 'Update a job category' },
   { name: 'category:delete', description: 'Delete a job category' },
+  // skill
+  { name: 'skill:create', description: 'Create a skill' },
+  { name: 'skill:update', description: 'Update a skill' },
+  { name: 'skill:delete', description: 'Delete a skill' },
   // saved search / job alert
   { name: 'saved-search:create', description: 'Create a saved job search / alert' },
   { name: 'saved-search:read', description: 'List own saved job searches' },
@@ -81,6 +85,9 @@ const ROLE_PERMISSIONS: Record<(typeof ROLES)[number]['name'], string[]> = {
     'category:create',
     'category:update',
     'category:delete',
+    'skill:create',
+    'skill:update',
+    'skill:delete',
     'user:read',
     'user:update',
     'role:permission:manage',

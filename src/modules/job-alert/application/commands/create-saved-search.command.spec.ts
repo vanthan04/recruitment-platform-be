@@ -63,7 +63,8 @@ describe('CreateSavedSearchHandler', () => {
         categoryId: 'cat-1',
         keyword: null,
         location: null,
-        jobType: null,
+        employmentType: null,
+        workMode: null,
       }),
     );
     expect(result).toBeDefined();

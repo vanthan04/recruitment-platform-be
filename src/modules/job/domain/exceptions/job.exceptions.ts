@@ -26,6 +26,13 @@ export class JobCategoryNotFoundException extends EntityNotFoundException {
   }
 }
 
+export class JobSkillNotFoundException extends EntityNotFoundException {
+  constructor(id?: string) {
+    super('Skill', id, 'JOB_SKILL_NOT_FOUND');
+    this.name = 'JobSkillNotFoundException';
+  }
+}
+
 export class CompanyProfileRequiredException extends BusinessRuleViolationException {
   constructor() {
     super(

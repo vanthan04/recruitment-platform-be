@@ -3,8 +3,10 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { IUserLookupPort } from '@/modules/job/application/ports/user-lookup.port';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
+import { ISkillLookupPort } from '@/modules/job/application/ports/skill-lookup.port';
 import { Job } from '@/modules/job/domain/entities/job.entity';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
@@ -12,13 +14,15 @@ import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
 import {
   CompanyProfileRequiredException,
   JobCategoryNotFoundException,
+  JobSkillNotFoundException,
 } from '@/modules/job/domain/exceptions/job.exceptions';
 
 export interface CreateJobInput {
   title: string;
   description: string;
   location: string;
-  jobType?: string;
+  employmentType?: string;
+  workMode?: string;
   level?: string;
   categoryId?: string;
   salaryMin?: number;
@@ -28,6 +32,7 @@ export interface CreateJobInput {
   benefits?: string;
   extraInfo?: Record<string, string>;
   expiresAt?: string;
+  skillIds?: string[];
 }
 
 export class CreateJobCommand {
@@ -47,6 +52,7 @@ export class CreateJobHandler implements ICommandHandler<
     private readonly jobRepository: IJobRepository,
     private readonly userLookup: IUserLookupPort,
     private readonly categoryLookup: ICategoryLookupPort,
+    private readonly skillLookup: ISkillLookupPort,
   ) {}
 
   async execute({
@@ -65,13 +71,24 @@ export class CreateJobHandler implements ICommandHandler<
       throw new JobCategoryNotFoundException(input.categoryId);
     }
 
+    const skillIds = [...new Set(input.skillIds ?? [])];
+    if (skillIds.length > 0) {
+      const found = await this.skillLookup.findManyByIds(skillIds);
+      const missing = skillIds.filter((id) => !found.has(id));
+      if (missing.length > 0) {
+        throw new JobSkillNotFoundException(missing.join(', '));
+      }
+    }
+
     const job = new Job({
       title: input.title,
       description: input.description,
       companyId,
       categoryId: input.categoryId ?? null,
       location: input.location,
-      jobType: (input.jobType as JobType) ?? JobType.FULL_TIME,
+      employmentType:
+        (input.employmentType as EmploymentType) ?? EmploymentType.FULL_TIME,
+      workMode: (input.workMode as WorkMode) ?? WorkMode.ONSITE,
       level: (input.level as JobLevel) ?? null,
       salary: new SalaryRange(
         input.salaryMin ?? null,
@@ -89,6 +106,13 @@ export class CreateJobHandler implements ICommandHandler<
     job.open();
 
     const saved = await this.jobRepository.save(job);
-    return JobResponseMapper.toDto(saved);
+
+    if (skillIds.length > 0) {
+      await this.jobRepository.setSkills(saved.id, skillIds);
+    }
+
+    const final =
+      skillIds.length > 0 ? await this.jobRepository.findById(saved.id) : saved;
+    return JobResponseMapper.toDto(final!);
   }
 }

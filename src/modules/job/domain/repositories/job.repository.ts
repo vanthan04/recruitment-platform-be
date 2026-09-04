@@ -12,7 +12,8 @@ export abstract class IJobRepository {
     limit: number;
     keyword?: string;
     location?: string;
-    jobType?: string;
+    employmentType?: string;
+    workMode?: string;
     salaryMin?: number;
     salaryMax?: number;
     companyId?: string;
@@ -31,4 +32,6 @@ export abstract class IJobRepository {
   abstract save(job: Job): Promise<Job>;
   abstract update(job: Job): Promise<Job>;
   abstract delete(id: string): Promise<void>;
+  /** Full-replace the job's skill assignments (no-op for an omitted/undefined list at call sites). */
+  abstract setSkills(jobId: string, skillIds: string[]): Promise<void>;
 }

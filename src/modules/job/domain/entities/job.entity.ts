@@ -1,6 +1,7 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { JobStatus } from '@/modules/job/domain/value-objects/job-status.vo';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
 import {
@@ -38,6 +39,16 @@ export interface CategorySummary {
 export type JobExtraInfo = Record<string, string>;
 
 /**
+ * Lightweight read-only snapshot of an assigned Skill, attached when the
+ * infrastructure layer joins the relation. Not part of Job's own persistence.
+ */
+export interface SkillSummary {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+/**
  * Job entity — aggregate root.
  * Contains all business logic for job management.
  * Framework-agnostic — no NestJS or Prisma imports.
@@ -50,7 +61,8 @@ export class Job extends BaseEntity {
   categoryId: string | null;
   category?: CategorySummary | null;
   location: string;
-  jobType: JobType;
+  employmentType: EmploymentType;
+  workMode: WorkMode;
   level: JobLevel | null;
   status: JobStatus;
   viewCount: number;
@@ -61,12 +73,15 @@ export class Job extends BaseEntity {
   expiresAt: Date | null;
   deletedAt: Date | null;
   postedById: string;
+  skills: SkillSummary[];
 
   constructor(partial: Partial<Job>) {
     super();
     Object.assign(this, partial);
     this.status = partial.status ?? JobStatus.DRAFT;
-    this.jobType = partial.jobType ?? JobType.FULL_TIME;
+    this.employmentType = partial.employmentType ?? EmploymentType.FULL_TIME;
+    this.workMode = partial.workMode ?? WorkMode.ONSITE;
+    this.skills = partial.skills ?? [];
     this.level = partial.level ?? null;
     this.categoryId = partial.categoryId ?? null;
     this.viewCount = partial.viewCount ?? 0;
@@ -131,7 +146,8 @@ export class Job extends BaseEntity {
     title?: string;
     description?: string;
     location?: string;
-    jobType?: JobType;
+    employmentType?: EmploymentType;
+    workMode?: WorkMode;
     level?: JobLevel | null;
     categoryId?: string | null;
     requirements?: string;
@@ -145,7 +161,8 @@ export class Job extends BaseEntity {
     if (data.title) this.title = data.title;
     if (data.description) this.description = data.description;
     if (data.location) this.location = data.location;
-    if (data.jobType) this.jobType = data.jobType;
+    if (data.employmentType) this.employmentType = data.employmentType;
+    if (data.workMode) this.workMode = data.workMode;
     if (data.level !== undefined) this.level = data.level;
     if (data.categoryId !== undefined) this.categoryId = data.categoryId;
     if (data.requirements !== undefined) this.requirements = data.requirements;

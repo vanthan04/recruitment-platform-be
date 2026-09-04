@@ -7,7 +7,8 @@ export interface JobDigestItem {
 export interface JobSearchFilters {
   keyword?: string;
   location?: string;
-  jobType?: string;
+  employmentType?: string;
+  workMode?: string;
   categoryId?: string;
 }
 

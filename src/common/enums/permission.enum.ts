@@ -16,6 +16,10 @@ export enum Permission {
   CATEGORY_UPDATE = 'category:update',
   CATEGORY_DELETE = 'category:delete',
 
+  SKILL_CREATE = 'skill:create',
+  SKILL_UPDATE = 'skill:update',
+  SKILL_DELETE = 'skill:delete',
+
   SAVED_SEARCH_CREATE = 'saved-search:create',
   SAVED_SEARCH_READ = 'saved-search:read',
   SAVED_SEARCH_DELETE = 'saved-search:delete',

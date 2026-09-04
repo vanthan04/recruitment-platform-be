@@ -5,6 +5,10 @@ import { JobPrismaRepository } from '@/modules/job/infrastructure/persistence/pr
 import { JobMapper } from '@/modules/job/infrastructure/persistence/mappers/job.mapper';
 import { ICompanyLookupPort } from '@/modules/job/application/ports/company-lookup.port';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
+import {
+  ISkillLookupPort,
+  JobSkillSummary,
+} from '@/modules/job/application/ports/skill-lookup.port';
 import { normalizePagination } from '@/common/utils/pagination.util';
 import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-option.vo';
 import { Prisma } from '@prisma/client';
@@ -32,6 +36,7 @@ export class JobInfraRepository implements IJobRepository {
     private readonly jobPrisma: JobPrismaRepository,
     private readonly companyLookupPort: ICompanyLookupPort,
     private readonly categoryLookupPort: ICategoryLookupPort,
+    private readonly skillLookupPort: ISkillLookupPort,
   ) {}
 
   async findById(id: string): Promise<Job | null> {
@@ -46,7 +51,8 @@ export class JobInfraRepository implements IJobRepository {
     limit: number;
     keyword?: string;
     location?: string;
-    jobType?: string;
+    employmentType?: string;
+    workMode?: string;
     salaryMin?: number;
     salaryMax?: number;
     companyId?: string;
@@ -79,8 +85,12 @@ export class JobInfraRepository implements IJobRepository {
       where.location = { contains: params.location, mode: 'insensitive' };
     }
 
-    if (params.jobType) {
-      where.jobType = params.jobType as any;
+    if (params.employmentType) {
+      where.employmentType = params.employmentType as any;
+    }
+
+    if (params.workMode) {
+      where.workMode = params.workMode as any;
     }
 
     if (params.salaryMin !== undefined) {
@@ -145,7 +155,7 @@ export class JobInfraRepository implements IJobRepository {
 
   async findExpiredOpenJobs(): Promise<Job[]> {
     // Internal cron use only (close-expired-jobs) — nothing here reads
-    // .company/.category, so skip the lookup round-trips.
+    // .company/.category/.skills, so skip the lookup round-trips.
     const raws = await this.jobPrisma.findExpiredOpen();
     return raws.map((r) => JobMapper.toDomain(r)!);
   }
@@ -172,7 +182,11 @@ export class JobInfraRepository implements IJobRepository {
     await this.jobPrisma.incrementViewCount(id);
   }
 
-  /** Batch-attaches company/category summaries — one lookup per unique id, not per job. */
+  async setSkills(jobId: string, skillIds: string[]): Promise<void> {
+    await this.jobPrisma.setSkills(jobId, skillIds);
+  }
+
+  /** Batch-attaches company/category/skill summaries — one lookup per unique id, not per job. */
   private async attachSummaries(jobs: Job[]): Promise<Job[]> {
     if (jobs.length === 0) return jobs;
 
@@ -180,17 +194,32 @@ export class JobInfraRepository implements IJobRepository {
     const categoryIds = jobs
       .map((j) => j.categoryId)
       .filter((id): id is string => !!id);
+    const jobIds = jobs.map((j) => j.id);
 
-    const [companies, categories] = await Promise.all([
+    const [companies, categories, jobSkillLinks] = await Promise.all([
       this.companyLookupPort.findManyByIds(companyIds),
       this.categoryLookupPort.findManyByIds(categoryIds),
+      this.jobPrisma.findSkillIdsByJobIds(jobIds),
     ]);
+
+    const skillIdsByJobId = new Map<string, string[]>();
+    for (const link of jobSkillLinks) {
+      const list = skillIdsByJobId.get(link.jobId) ?? [];
+      list.push(link.skillId);
+      skillIdsByJobId.set(link.jobId, list);
+    }
+    const skillSummaries = await this.skillLookupPort.findManyByIds(
+      jobSkillLinks.map((l) => l.skillId),
+    );
 
     for (const job of jobs) {
       job.company = companies.get(job.companyId);
       job.category = job.categoryId
         ? categories.get(job.categoryId)
         : undefined;
+      job.skills = (skillIdsByJobId.get(job.id) ?? [])
+        .map((id) => skillSummaries.get(id))
+        .filter((s): s is JobSkillSummary => !!s);
     }
     return jobs;
   }

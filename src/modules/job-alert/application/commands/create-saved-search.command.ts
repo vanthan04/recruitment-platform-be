@@ -3,7 +3,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { ICategoryLookupPort } from '@/modules/job-alert/application/ports/category-lookup.port';
 import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.entity';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { SavedSearchCategoryNotFoundException } from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
 import { SavedSearchResponseMapper } from '@/modules/job-alert/application/mappers/saved-search-response.mapper';
 import { SavedSearchResponseDto } from '@/modules/job-alert/application/dto/saved-search-response.dto';
@@ -12,7 +13,8 @@ export interface CreateSavedSearchInput {
   keyword?: string;
   location?: string;
   categoryId?: string;
-  jobType?: string;
+  employmentType?: string;
+  workMode?: string;
 }
 
 export class CreateSavedSearchCommand {
@@ -49,7 +51,8 @@ export class CreateSavedSearchHandler implements ICommandHandler<
       keyword: input.keyword ?? null,
       location: input.location ?? null,
       categoryId: input.categoryId ?? null,
-      jobType: (input.jobType as JobType) ?? null,
+      employmentType: (input.employmentType as EmploymentType) ?? null,
+      workMode: (input.workMode as WorkMode) ?? null,
     });
 
     const saved = await this.savedSearchRepository.save(savedSearch);

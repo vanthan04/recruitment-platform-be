@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 
 export class CreateSavedSearchDto {
   @ApiPropertyOptional({ example: 'Node.js' })
@@ -18,8 +19,13 @@ export class CreateSavedSearchDto {
   @IsOptional()
   categoryId?: string;
 
-  @ApiPropertyOptional({ enum: JobType })
-  @IsEnum(JobType)
+  @ApiPropertyOptional({ enum: EmploymentType })
+  @IsEnum(EmploymentType)
   @IsOptional()
-  jobType?: JobType;
+  employmentType?: EmploymentType;
+
+  @ApiPropertyOptional({ enum: WorkMode })
+  @IsEnum(WorkMode)
+  @IsOptional()
+  workMode?: WorkMode;
 }

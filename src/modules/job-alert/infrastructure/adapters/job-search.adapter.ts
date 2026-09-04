@@ -19,7 +19,8 @@ export class JobSearchAdapter implements IJobSearchPort {
       limit: 20,
       keyword: filters.keyword,
       location: filters.location,
-      jobType: filters.jobType,
+      employmentType: filters.employmentType,
+      workMode: filters.workMode,
       categoryId: filters.categoryId,
     });
 

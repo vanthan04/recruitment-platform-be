@@ -10,7 +10,8 @@ export interface ListJobsInput {
   limit: number;
   keyword?: string;
   location?: string;
-  jobType?: string;
+  employmentType?: string;
+  workMode?: string;
   salaryMin?: number;
   salaryMax?: number;
   companyId?: string;

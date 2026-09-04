@@ -2,20 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
+import { ISkillLookupPort } from '@/modules/job/application/ports/skill-lookup.port';
 import {
   JobNotFoundException,
   JobCategoryNotFoundException,
+  JobSkillNotFoundException,
 } from '@/modules/job/domain/exceptions/job.exceptions';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 
 export interface UpdateJobInput {
   title?: string;
   description?: string;
   location?: string;
-  jobType?: string;
+  employmentType?: string;
+  workMode?: string;
   level?: string;
   categoryId?: string | null;
   salaryMin?: number;
@@ -25,6 +29,7 @@ export interface UpdateJobInput {
   benefits?: string;
   extraInfo?: Record<string, string>;
   expiresAt?: string;
+  skillIds?: string[];
 }
 
 export class UpdateJobCommand {
@@ -44,6 +49,7 @@ export class UpdateJobHandler implements ICommandHandler<
   constructor(
     private readonly jobRepository: IJobRepository,
     private readonly categoryLookup: ICategoryLookupPort,
+    private readonly skillLookup: ISkillLookupPort,
   ) {}
 
   async execute({
@@ -65,11 +71,24 @@ export class UpdateJobHandler implements ICommandHandler<
       throw new JobCategoryNotFoundException(input.categoryId);
     }
 
+    let skillIds: string[] | undefined;
+    if (input.skillIds !== undefined) {
+      skillIds = [...new Set(input.skillIds)];
+      if (skillIds.length > 0) {
+        const found = await this.skillLookup.findManyByIds(skillIds);
+        const missing = skillIds.filter((id) => !found.has(id));
+        if (missing.length > 0) {
+          throw new JobSkillNotFoundException(missing.join(', '));
+        }
+      }
+    }
+
     job.updateDetails({
       title: input.title,
       description: input.description,
       location: input.location,
-      jobType: input.jobType as JobType,
+      employmentType: input.employmentType as EmploymentType,
+      workMode: input.workMode as WorkMode,
       level: input.level !== undefined ? (input.level as JobLevel) : undefined,
       categoryId: input.categoryId,
       requirements: input.requirements,
@@ -82,6 +101,15 @@ export class UpdateJobHandler implements ICommandHandler<
     });
 
     const updated = await this.jobRepository.update(job);
-    return JobResponseMapper.toDto(updated);
+
+    if (skillIds !== undefined) {
+      await this.jobRepository.setSkills(updated.id, skillIds);
+    }
+
+    const final =
+      skillIds !== undefined
+        ? await this.jobRepository.findById(updated.id)
+        : updated;
+    return JobResponseMapper.toDto(final!);
   }
 }

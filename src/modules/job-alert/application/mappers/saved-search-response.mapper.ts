@@ -8,7 +8,8 @@ export class SavedSearchResponseMapper {
     dto.keyword = savedSearch.keyword;
     dto.location = savedSearch.location;
     dto.categoryId = savedSearch.categoryId;
-    dto.jobType = savedSearch.jobType;
+    dto.employmentType = savedSearch.employmentType;
+    dto.workMode = savedSearch.workMode;
     dto.createdAt = savedSearch.createdAt;
     return dto;
   }

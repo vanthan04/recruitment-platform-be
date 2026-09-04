@@ -10,7 +10,8 @@ export class JobResponseDto {
   categoryId: string | null;
   category: { id: string; name: string; slug: string } | null;
   location: string;
-  jobType: string;
+  employmentType: string;
+  workMode: string;
   level: string | null;
   status: string;
   viewCount: number;
@@ -22,6 +23,7 @@ export class JobResponseDto {
   extraInfo: Record<string, string> | null;
   expiresAt: Date | null;
   postedById: string;
+  skills: { id: string; name: string; slug: string }[];
   createdAt: Date;
   updatedAt: Date;
 }

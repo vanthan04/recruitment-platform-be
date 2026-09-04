@@ -3,6 +3,7 @@ export class SavedSearchResponseDto {
   keyword: string | null;
   location: string | null;
   categoryId: string | null;
-  jobType: string | null;
+  employmentType: string | null;
+  workMode: string | null;
   createdAt: Date;
 }

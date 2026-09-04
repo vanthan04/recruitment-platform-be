@@ -1,6 +1,7 @@
 import { Job } from '@/modules/job/domain/entities/job.entity';
 import { JobStatus } from '@/modules/job/domain/value-objects/job-status.vo';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
 
@@ -18,7 +19,8 @@ export class JobMapper {
       companyId: raw.companyId,
       categoryId: raw.categoryId,
       location: raw.location,
-      jobType: raw.jobType as JobType,
+      employmentType: raw.employmentType as EmploymentType,
+      workMode: raw.workMode as WorkMode,
       level: raw.level as JobLevel | null,
       status: raw.status as JobStatus,
       viewCount: raw.viewCount,
@@ -41,7 +43,8 @@ export class JobMapper {
       companyId: job.companyId,
       categoryId: job.categoryId,
       location: job.location,
-      jobType: job.jobType,
+      employmentType: job.employmentType,
+      workMode: job.workMode,
       level: job.level,
       status: job.status,
       salaryMin: job.salary?.min,

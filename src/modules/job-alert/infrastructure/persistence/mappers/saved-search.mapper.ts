@@ -1,5 +1,6 @@
 import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.entity';
-import { JobType } from '@/modules/job/domain/value-objects/job-type.vo';
+import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
+import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 
 export class SavedSearchMapper {
   static toDomain(raw: any): SavedSearch | null {
@@ -11,7 +12,8 @@ export class SavedSearchMapper {
       keyword: raw.keyword,
       location: raw.location,
       categoryId: raw.categoryId,
-      jobType: raw.jobType as JobType | null,
+      employmentType: raw.employmentType as EmploymentType | null,
+      workMode: raw.workMode as WorkMode | null,
       createdAt: raw.createdAt,
     });
   }
@@ -22,7 +24,8 @@ export class SavedSearchMapper {
       keyword: savedSearch.keyword,
       location: savedSearch.location,
       categoryId: savedSearch.categoryId,
-      jobType: savedSearch.jobType,
+      employmentType: savedSearch.employmentType,
+      workMode: savedSearch.workMode,
     };
   }
 }

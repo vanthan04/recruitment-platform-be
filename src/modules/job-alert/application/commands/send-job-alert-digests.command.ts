@@ -34,7 +34,8 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
         {
           keyword: search.keyword ?? undefined,
           location: search.location ?? undefined,
-          jobType: search.jobType ?? undefined,
+          employmentType: search.employmentType ?? undefined,
+          workMode: search.workMode ?? undefined,
           categoryId: search.categoryId ?? undefined,
         },
         since,
