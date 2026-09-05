@@ -1,4 +1,8 @@
-import { ArgumentsHost, HttpStatus } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  HttpStatus,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
 import {
@@ -121,12 +125,46 @@ describe('GlobalExceptionFilter', () => {
     );
   });
 
-  it('falls back to 500 for an unrecognized error', () => {
+  it('falls back to 500 for an unrecognized error, without leaking its message', () => {
     const { filter } = makeFilter();
-    const { host, status } = makeHost();
+    const { host, status, json } = makeHost();
 
-    filter.catch(new Error('boom'), host);
+    filter.catch(new Error('boom: internal db pool exhausted'), host);
 
     expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Internal server error',
+        code: 'INTERNAL_SERVER_ERROR',
+      }),
+    );
+  });
+
+  it('does not leak an unsafe message embedded in a 500-status HttpException (e.g. a raw AWS/SMTP error string)', () => {
+    const { filter } = makeFilter();
+    const { host, status, json } = makeHost();
+
+    filter.catch(
+      new InternalServerErrorException(
+        'Failed to upload to S3: The AWS Access Key Id you provided does not exist',
+      ),
+      host,
+    );
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Internal server error' }),
+    );
+  });
+
+  it('leaves non-500 responses (e.g. a domain BusinessRuleViolationException) untouched by the 5xx sanitization', () => {
+    const { filter } = makeFilter();
+    const { host, json } = makeHost();
+
+    filter.catch(new BusinessRuleViolationException('nope', 'NOPE'), host);
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'nope', code: 'NOPE' }),
+    );
   });
 });

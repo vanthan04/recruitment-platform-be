@@ -16,10 +16,18 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl as getS3SignedUrl } from '@aws-sdk/s3-request-presigner';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 
 const DEFAULT_SIGNED_URL_EXPIRY_SECONDS = 300;
+// Without these, a network partition or a hung S3-compatible endpoint falls
+// back to Node's own (much longer) socket defaults — every caller here
+// awaits this inline in a request handler, so that hang becomes the
+// request's hang too.
+const S3_CONNECTION_TIMEOUT_MS = 5_000;
+const S3_REQUEST_TIMEOUT_MS = 15_000;
+const S3_MAX_ATTEMPTS = 3;
 
 @Injectable()
 export class S3StorageProvider implements IFileStorageProvider {
@@ -43,6 +51,11 @@ export class S3StorageProvider implements IFileStorageProvider {
         'S3_FORCE_PATH_STYLE',
         false,
       ),
+      requestHandler: new NodeHttpHandler({
+        connectionTimeout: S3_CONNECTION_TIMEOUT_MS,
+        requestTimeout: S3_REQUEST_TIMEOUT_MS,
+      }),
+      maxAttempts: S3_MAX_ATTEMPTS,
     });
   }
 
@@ -71,8 +84,15 @@ export class S3StorageProvider implements IFileStorageProvider {
 
       return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${fileKey}`;
     } catch (error) {
+      // The real AWS SDK message (endpoint/host details, credential-validity
+      // hints) is logged server-side only — never handed to the client, who
+      // gets a fixed generic message instead.
+      this.logger.error(
+        `Failed to upload to S3: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
       throw new InternalServerErrorException(
-        'Failed to upload to S3: ' + error.message,
+        'Failed to upload file. Please try again later.',
       );
     }
   }
@@ -103,8 +123,12 @@ export class S3StorageProvider implements IFileStorageProvider {
       });
       await this.s3Client.send(command);
     } catch (error) {
+      this.logger.error(
+        `Failed to upload buffer to S3 (key: ${key}): ${(error as Error).message}`,
+        (error as Error).stack,
+      );
       throw new InternalServerErrorException(
-        'Failed to upload to S3: ' + error.message,
+        'Failed to upload file. Please try again later.',
       );
     }
   }

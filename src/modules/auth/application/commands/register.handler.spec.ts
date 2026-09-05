@@ -85,4 +85,25 @@ describe('RegisterHandler', () => {
       expect.objectContaining({ to: 'new@test.com' }),
     );
   });
+
+  it('still returns success when the verification email fails to send', async () => {
+    userRepository.existsByEmail.mockResolvedValue(false);
+    userRepository.save.mockResolvedValue({
+      id: 'user-1',
+      email: 'new@test.com',
+    } as any);
+    mailService.sendEmail.mockRejectedValue(new Error('SMTP timeout'));
+
+    const result = await handler.execute({
+      dto: {
+        email: 'new@test.com',
+        password: 'password123',
+        fullName: 'New User',
+        role: UserRole.CANDIDATE,
+      },
+    } as any);
+
+    expect(result).toEqual({ email: 'new@test.com' });
+    expect(userRepository.save).toHaveBeenCalled();
+  });
 });

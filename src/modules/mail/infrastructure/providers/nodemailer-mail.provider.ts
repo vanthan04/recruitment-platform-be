@@ -19,6 +19,13 @@ export class NodemailerMailProvider implements IMailService {
         user: this.configService.get<string>('MAIL_USER'),
         pass: this.configService.get<string>('MAIL_PASS'),
       },
+      // Without these, a slow/unreachable SMTP host relies entirely on the
+      // OS-level TCP timeout (can be minutes) before this call ever rejects
+      // — every caller sends mail inline in a request handler, so that
+      // hang becomes the request's hang too.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
     });
   }
 

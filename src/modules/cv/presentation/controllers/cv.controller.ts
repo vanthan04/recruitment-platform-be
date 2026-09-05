@@ -39,10 +39,19 @@ import { DownloadCvQuery } from '@/modules/cv/application/queries/download-cv.qu
 import { CreateCvDto } from '@/modules/cv/presentation/dtos/create-cv.dto';
 import { UpdateCvDto } from '@/modules/cv/presentation/dtos/update-cv.dto';
 
-// Hard ceiling at the Multer layer (memory-buffered upload), generous enough
-// that legitimate oversized files still hit CvDomainService's friendlier,
-// configurable `CV_MAX_FILE_SIZE` check instead of a raw Multer error.
-const MULTER_CV_SIZE_CEILING_BYTES = 20 * 1024 * 1024;
+// Multer buffers the whole upload into memory before CvDomainService ever
+// gets a chance to reject it — so the Multer-layer ceiling has to match the
+// actual configured business limit (not just sit comfortably above it), or
+// a request between the two limits still buffers the full oversized payload
+// into memory before being rejected. `+1024` covers multipart framing
+// overhead so a file at exactly CV_MAX_FILE_SIZE doesn't get clipped by
+// Multer before CvDomainService's own (more precise) size check runs.
+const DEFAULT_CV_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MULTER_CV_SIZE_CEILING_BYTES =
+  parseInt(
+    process.env.CV_MAX_FILE_SIZE || `${DEFAULT_CV_MAX_FILE_SIZE_BYTES}`,
+    10,
+  ) + 1024;
 
 @ApiTags('cvs')
 @ApiBearerAuth()

@@ -37,6 +37,18 @@ describe('NodemailerMailProvider', () => {
     );
   });
 
+  it('configures explicit connection/socket timeouts so a hung SMTP host cannot hang the caller indefinitely', () => {
+    new NodemailerMailProvider(configService);
+
+    expect(nodemailer.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connectionTimeout: expect.any(Number),
+        greetingTimeout: expect.any(Number),
+        socketTimeout: expect.any(Number),
+      }),
+    );
+  });
+
   it('sends the email through the transporter using MAIL_FROM as the sender', async () => {
     const provider = new NodemailerMailProvider(configService);
 

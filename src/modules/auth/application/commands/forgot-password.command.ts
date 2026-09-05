@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/ports/verification-token-repository.port';
@@ -22,6 +22,8 @@ export class ForgotPasswordHandler implements ICommandHandler<
   ForgotPasswordCommand,
   { message: string }
 > {
+  private readonly logger = new Logger(ForgotPasswordHandler.name);
+
   constructor(
     private readonly userRepository: IAuthUserRepositoryPort,
     private readonly mailService: IAuthMailServicePort,
@@ -43,12 +45,25 @@ export class ForgotPasswordHandler implements ICommandHandler<
         new Date(Date.now() + PASSWORD_RESET_TTL_MS),
       );
 
-      await this.mailService.sendEmail({
-        to: user.email,
-        subject: 'Password recovery request',
-        text: `Your password recovery code is: ${resetCode}`,
-        html: `<b>Your password recovery code is: ${resetCode}</b>`,
-      });
+      // Caught (not propagated) for two reasons: a mail failure shouldn't
+      // fail an already-successful token creation, and — just as
+      // importantly here — letting it throw would make this endpoint
+      // respond differently for a real user (500) than a nonexistent one
+      // (200), reopening exactly the account-enumeration side channel this
+      // handler's identical-response design exists to close.
+      try {
+        await this.mailService.sendEmail({
+          to: user.email,
+          subject: 'Password recovery request',
+          text: `Your password recovery code is: ${resetCode}`,
+          html: `<b>Your password recovery code is: ${resetCode}</b>`,
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed to send password recovery email to ${user.email}`,
+          err instanceof Error ? err.stack : err,
+        );
+      }
     }
 
     return {

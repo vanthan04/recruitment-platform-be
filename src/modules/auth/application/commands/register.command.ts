@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
@@ -25,6 +25,8 @@ export class RegisterHandler implements ICommandHandler<
   RegisterCommand,
   { email: string }
 > {
+  private readonly logger = new Logger(RegisterHandler.name);
+
   constructor(
     private readonly userRepository: IAuthUserRepositoryPort,
     private readonly mailService: IAuthMailServicePort,
@@ -56,12 +58,23 @@ export class RegisterHandler implements ICommandHandler<
       new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS),
     );
 
-    await this.mailService.sendEmail({
-      to: dto.email,
-      subject: 'Verify your account',
-      text: `Your verification code is: ${verifyCode}`,
-      html: `<b>Your verification code is: ${verifyCode}</b>`,
-    });
+    // The account and verification token are already committed at this
+    // point — an SMTP failure here is a notification problem, not a reason
+    // to report the registration itself as failed (the client would retry
+    // a "failed" register, but existsByEmail would now reject it).
+    try {
+      await this.mailService.sendEmail({
+        to: dto.email,
+        subject: 'Verify your account',
+        text: `Your verification code is: ${verifyCode}`,
+        html: `<b>Your verification code is: ${verifyCode}</b>`,
+      });
+    } catch (err) {
+      this.logger.error(
+        `Failed to send verification email to ${dto.email}`,
+        err instanceof Error ? err.stack : err,
+      );
+    }
 
     return {
       email: newUser.email,

@@ -104,9 +104,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       this.logger.warn(logPayload, finalMessage);
     }
 
+    // The log line above always carries the real message (and, via `err`,
+    // the full exception/stack) for debugging — but a 5xx response body
+    // never echoes it back to the client. This is deliberately independent
+    // of *what* produced the 500 (a raw Error, an HttpException some
+    // handler constructed with unsafe detail baked into its own message,
+    // an unmapped Prisma error code): every DomainException and validation
+    // error already resolves to a status below 500, so nothing legitimate
+    // is lost by blanking the message once we're here.
+    const clientMessage =
+      status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? 'Internal server error'
+        : finalMessage;
+    const clientCode =
+      status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? 'INTERNAL_SERVER_ERROR'
+        : code;
+
     response
       .status(status)
-      .json(ApiResponse.fail(finalMessage, code, undefined, { requestId }));
+      .json(ApiResponse.fail(clientMessage, clientCode, undefined, { requestId }));
   }
 
   private mapDomainExceptionToStatus(exception: DomainException): number {
