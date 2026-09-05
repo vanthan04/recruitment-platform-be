@@ -6,8 +6,21 @@ export interface InterviewMailParams {
   note?: string | null;
 }
 
+// Without an explicit `timeZone`, this follows the Node process's own
+// runtime timezone — commonly UTC in a container — not the candidate's.
+// An interview at 14:00 in Vietnam would otherwise render as "07:00" with
+// no indication anything was converted, a real scheduling failure rather
+// than a cosmetic one. The zone is also spelled out in the string itself so
+// the time is unambiguous even if a mail client's own rendering doesn't
+// preserve the locale formatting.
+const INTERVIEW_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
 const formatDateTime = (date: Date): string =>
-  date.toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short' });
+  `${date.toLocaleString('vi-VN', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: INTERVIEW_TIME_ZONE,
+  })} (giờ Việt Nam, GMT+7)`;
 
 export function buildInterviewEmail(
   action: 'scheduled' | 'rescheduled' | 'cancelled',
