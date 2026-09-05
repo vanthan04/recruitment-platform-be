@@ -16,19 +16,16 @@ export class CategoryLookupAdapter implements ICategoryLookupPort {
 
   async findManyByIds(ids: string[]): Promise<Map<string, JobCategorySummary>> {
     const uniqueIds = [...new Set(ids)];
-    const categories = await Promise.all(
-      uniqueIds.map((id) => this.categoryRepository.findById(id)),
-    );
+    const categories = await this.categoryRepository.findManyByIds(uniqueIds);
 
     const summaries = new Map<string, JobCategorySummary>();
-    categories.forEach((category, index) => {
-      if (!category) return;
-      summaries.set(uniqueIds[index], {
+    for (const category of categories) {
+      summaries.set(category.id, {
         id: category.id,
         name: category.name,
         slug: category.slug,
       });
-    });
+    }
     return summaries;
   }
 }

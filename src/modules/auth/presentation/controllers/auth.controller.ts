@@ -28,6 +28,14 @@ import { FacebookAuthGuard } from '@/common/guards/facebook-auth.guard';
 import { SocialProfile } from '@/common/strategies/google.strategy';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+// The chat WebSocket gateway (ws-auth.util.ts) authenticates the socket
+// handshake by reading this same cookie off `handshake.headers.cookie` — a
+// browser has no way to attach an Authorization header to a WS handshake,
+// so this is the only channel it has. REST calls keep using the JSON-body
+// access_token as a Bearer header, same as always; this cookie is additive.
+const ACCESS_TOKEN_COOKIE = 'access_token';
+const ACCESS_TOKEN_COOKIE_MAX_AGE_MS = 15 * 60 * 1000; // matches AuthService.getTokens' 15m access token expiry
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -35,6 +43,26 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  private setAccessTokenCookie(res: Response, accessToken: string): void {
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      // Frontend and backend are cross-origin (different hosts) in
+      // production, and a cross-site cookie needs SameSite=None — which
+      // browsers only honor alongside Secure. Locally both run on
+      // `localhost` (same site regardless of port), so Lax already works
+      // and doesn't require HTTPS in dev.
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
+      path: '/',
+    });
+  }
+
+  private clearAccessTokenCookie(res: Response): void {
+    res.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/' });
+  }
 
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -51,8 +79,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Login user' })
-  async login(@Body() dto: LoginRequestDto) {
+  async login(
+    @Body() dto: LoginRequestDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.login(dto);
+    this.setAccessTokenCookie(res, result.access_token);
     return ApiResponse.ok(result, 'Logged in successfully');
   }
 
@@ -96,8 +128,13 @@ export class AuthController {
   @ApiOperation({
     summary: 'Logout current device (revokes the given refresh token)',
   })
-  async logout(@Req() req: any, @Body() dto: RefreshTokenDto) {
+  async logout(
+    @Req() req: any,
+    @Body() dto: RefreshTokenDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.authService.logout(req.user.id, dto.refreshToken);
+    this.clearAccessTokenCookie(res);
     return ApiResponse.ok(null, 'Logged out successfully');
   }
 
@@ -107,16 +144,24 @@ export class AuthController {
   @ApiOperation({
     summary: 'Logout from all devices (revokes every active session)',
   })
-  async logoutAll(@Req() req: any) {
+  async logoutAll(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.authService.logoutAll(req.user.id);
+    this.clearAccessTokenCookie(res);
     return ApiResponse.ok(null, 'Logged out from all devices successfully');
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh JWT tokens' })
-  async refresh(@Body() dto: RefreshTokenDto) {
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.refreshTokens(dto.refreshToken);
+    this.setAccessTokenCookie(res, result.access_token);
     return ApiResponse.ok(result, 'Token refreshed successfully');
   }
 
@@ -162,8 +207,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Exchange a social-login code for JWT tokens' })
-  async socialExchange(@Body() dto: SocialExchangeDto) {
+  async socialExchange(
+    @Body() dto: SocialExchangeDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.exchangeSocialCode(dto.code);
+    this.setAccessTokenCookie(res, result.access_token);
     return ApiResponse.ok(result, 'Logged in successfully');
   }
 

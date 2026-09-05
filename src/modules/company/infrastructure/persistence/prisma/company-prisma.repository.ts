@@ -24,6 +24,12 @@ export class CompanyPrismaRepository {
     });
   }
 
+  async findManyByIds(ids: string[]) {
+    return this.prisma.company.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+    });
+  }
+
   async existsBySlug(slug: string): Promise<boolean> {
     const company = await this.prisma.company.findUnique({
       where: { slug },

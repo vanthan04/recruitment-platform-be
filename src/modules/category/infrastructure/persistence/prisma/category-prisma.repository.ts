@@ -9,6 +9,10 @@ export class CategoryPrismaRepository {
     return this.prisma.category.findUnique({ where: { id } });
   }
 
+  async findManyByIds(ids: string[]) {
+    return this.prisma.category.findMany({ where: { id: { in: ids } } });
+  }
+
   async existsBySlug(slug: string): Promise<boolean> {
     const category = await this.prisma.category.findUnique({
       where: { slug },

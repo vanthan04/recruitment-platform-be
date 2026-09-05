@@ -13,19 +13,16 @@ export class CompanyLookupAdapter implements ICompanyLookupPort {
 
   async findManyByIds(ids: string[]): Promise<Map<string, JobCompanySummary>> {
     const uniqueIds = [...new Set(ids)];
-    const companies = await Promise.all(
-      uniqueIds.map((id) => this.companyRepository.findById(id)),
-    );
+    const companies = await this.companyRepository.findManyByIds(uniqueIds);
 
     const summaries = new Map<string, JobCompanySummary>();
-    companies.forEach((company, index) => {
-      if (!company) return;
-      summaries.set(uniqueIds[index], {
+    for (const company of companies) {
+      summaries.set(company.id, {
         id: company.id,
         name: company.name,
         logoUrl: company.logoUrl,
       });
-    });
+    }
     return summaries;
   }
 

@@ -6,6 +6,7 @@ import { Company } from '@/modules/company/domain/entities/company.entity';
  */
 export abstract class ICompanyRepository {
   abstract findById(id: string): Promise<Company | null>;
+  abstract findManyByIds(ids: string[]): Promise<Company[]>;
   abstract findBySlug(slug: string): Promise<Company | null>;
   abstract findByOwnerId(ownerId: string): Promise<Company | null>;
   abstract existsBySlug(slug: string): Promise<boolean>;

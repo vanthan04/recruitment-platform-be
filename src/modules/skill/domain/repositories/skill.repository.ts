@@ -6,6 +6,7 @@ import { Skill } from '@/modules/skill/domain/entities/skill.entity';
  */
 export abstract class ISkillRepository {
   abstract findById(id: string): Promise<Skill | null>;
+  abstract findManyByIds(ids: string[]): Promise<Skill[]>;
   abstract existsBySlug(slug: string): Promise<boolean>;
   abstract findAll(): Promise<Skill[]>;
   abstract save(skill: Skill): Promise<Skill>;

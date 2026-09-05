@@ -13,6 +13,12 @@ export class CategoryInfraRepository implements ICategoryRepository {
     return CategoryMapper.toDomain(raw);
   }
 
+  async findManyByIds(ids: string[]): Promise<Category[]> {
+    if (ids.length === 0) return [];
+    const raws = await this.categoryPrisma.findManyByIds(ids);
+    return raws.map((r) => CategoryMapper.toDomain(r)!);
+  }
+
   async existsBySlug(slug: string): Promise<boolean> {
     return this.categoryPrisma.existsBySlug(slug);
   }

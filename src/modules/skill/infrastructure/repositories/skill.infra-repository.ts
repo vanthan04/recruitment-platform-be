@@ -13,6 +13,12 @@ export class SkillInfraRepository implements ISkillRepository {
     return SkillMapper.toDomain(raw);
   }
 
+  async findManyByIds(ids: string[]): Promise<Skill[]> {
+    if (ids.length === 0) return [];
+    const raws = await this.skillPrisma.findManyByIds(ids);
+    return raws.map((r) => SkillMapper.toDomain(r)!);
+  }
+
   async existsBySlug(slug: string): Promise<boolean> {
     return this.skillPrisma.existsBySlug(slug);
   }

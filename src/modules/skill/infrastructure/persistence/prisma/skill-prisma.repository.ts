@@ -9,6 +9,10 @@ export class SkillPrismaRepository {
     return this.prisma.skill.findUnique({ where: { id } });
   }
 
+  async findManyByIds(ids: string[]) {
+    return this.prisma.skill.findMany({ where: { id: { in: ids } } });
+  }
+
   async existsBySlug(slug: string): Promise<boolean> {
     const skill = await this.prisma.skill.findUnique({
       where: { slug },

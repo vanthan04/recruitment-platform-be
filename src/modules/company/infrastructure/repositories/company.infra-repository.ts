@@ -25,6 +25,12 @@ export class CompanyInfraRepository implements ICompanyRepository {
     return CompanyMapper.toDomain(raw);
   }
 
+  async findManyByIds(ids: string[]): Promise<Company[]> {
+    if (ids.length === 0) return [];
+    const raws = await this.companyPrisma.findManyByIds(ids);
+    return raws.map((r) => CompanyMapper.toDomain(r)!);
+  }
+
   async existsBySlug(slug: string): Promise<boolean> {
     return this.companyPrisma.existsBySlug(slug);
   }

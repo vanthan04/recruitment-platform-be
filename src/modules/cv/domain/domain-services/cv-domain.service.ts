@@ -19,6 +19,25 @@ export interface UploadedCvFile {
 }
 
 /**
+ * File-signature ("magic bytes") each allowed CvFileType actually starts
+ * with, independent of whatever Content-Type the client's multipart request
+ * declared. A `.docx` is a zip container (PK\x03\x04, or the empty/spanned
+ * zip variants) — this can't distinguish it from some *other* zip-based
+ * format renamed to `.docx`, but it does reject the common case this exists
+ * to catch: an arbitrary binary (an executable, a raw macro payload, a
+ * renamed script) wrapped in a spoofed multipart Content-Type header.
+ */
+const MAGIC_BYTES: Record<CvFileType, Buffer[]> = {
+  [CvFileType.PDF]: [Buffer.from('25504446', 'hex')], // "%PDF"
+  [CvFileType.DOC]: [Buffer.from('D0CF11E0A1B11AE1', 'hex')], // OLE compound file
+  [CvFileType.DOCX]: [
+    Buffer.from('504B0304', 'hex'),
+    Buffer.from('504B0506', 'hex'),
+    Buffer.from('504B0708', 'hex'),
+  ],
+};
+
+/**
  * CV Domain Service.
  * Handles business logic that spans across multiple entities
  * or doesn't naturally belong to a single entity.
@@ -41,8 +60,10 @@ export class CvDomainService {
 
   /**
    * Validate an uploaded CV file's type and size, and resolve its CvFileType.
-   * Never trusts the client-supplied filename extension for anything but a
-   * cosmetic check — the MIME type reported by Multer is the source of truth.
+   * The declared MIME type (from the client's multipart Content-Type, or a
+   * spoofed one) only picks which CvFileType is *claimed* — the file's
+   * actual byte signature must then agree with that claim, since Content-Type
+   * is entirely attacker-controlled and trivially spoofed.
    */
   static validateUploadedFile(
     file: UploadedCvFile | undefined,
@@ -53,7 +74,7 @@ export class CvDomainService {
     }
 
     const fileType = CV_ALLOWED_MIME_TYPES[file.mimetype];
-    if (!fileType) {
+    if (!fileType || !this.matchesFileSignature(file.buffer, fileType)) {
       throw new CvInvalidFileTypeException(file.mimetype);
     }
 
@@ -62,5 +83,16 @@ export class CvDomainService {
     }
 
     return fileType;
+  }
+
+  private static matchesFileSignature(
+    buffer: Buffer,
+    fileType: CvFileType,
+  ): boolean {
+    return MAGIC_BYTES[fileType].some(
+      (signature) =>
+        buffer.length >= signature.length &&
+        buffer.subarray(0, signature.length).equals(signature),
+    );
   }
 }

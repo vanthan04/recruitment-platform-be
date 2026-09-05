@@ -11,19 +11,16 @@ export class SkillLookupAdapter implements ISkillLookupPort {
 
   async findManyByIds(ids: string[]): Promise<Map<string, JobSkillSummary>> {
     const uniqueIds = [...new Set(ids)];
-    const skills = await Promise.all(
-      uniqueIds.map((id) => this.skillRepository.findById(id)),
-    );
+    const skills = await this.skillRepository.findManyByIds(uniqueIds);
 
     const summaries = new Map<string, JobSkillSummary>();
-    skills.forEach((skill, index) => {
-      if (!skill) return;
-      summaries.set(uniqueIds[index], {
+    for (const skill of skills) {
+      summaries.set(skill.id, {
         id: skill.id,
         name: skill.name,
         slug: skill.slug,
       });
-    });
+    }
     return summaries;
   }
 }
