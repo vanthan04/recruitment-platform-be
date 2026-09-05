@@ -68,6 +68,16 @@ export class InterviewTimeInPastException extends BusinessRuleViolationException
   }
 }
 
+export class InterviewNotActionableException extends BusinessRuleViolationException {
+  constructor(action: string) {
+    super(
+      `Only scheduled interviews can be ${action}`,
+      'INTERVIEW_NOT_ACTIONABLE',
+    );
+    this.name = 'InterviewNotActionableException';
+  }
+}
+
 export class InterviewLocationOrMeetingLinkRequiredException extends BusinessRuleViolationException {
   constructor() {
     super(

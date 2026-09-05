@@ -11,7 +11,7 @@ export class NotificationMapper {
       type: raw.type as NotificationType,
       title: raw.title,
       message: raw.message,
-      isRead: raw.isRead,
+      readAt: raw.readAt,
       metadata: raw.metadata,
       createdAt: raw.createdAt,
     });
@@ -23,7 +23,7 @@ export class NotificationMapper {
       type: notification.type,
       title: notification.title,
       message: notification.message,
-      isRead: notification.isRead,
+      readAt: notification.readAt,
       metadata: notification.metadata ?? undefined,
     };
   }

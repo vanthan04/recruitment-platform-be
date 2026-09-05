@@ -61,9 +61,9 @@ describe('MarkAsReadHandler', () => {
       new MarkAsReadCommand('user-1', 'notif-1'),
     );
 
-    expect(result.isRead).toBe(true);
+    expect(result.readAt).toBeInstanceOf(Date);
     expect(notificationRepository.update).toHaveBeenCalledWith(
-      expect.objectContaining({ isRead: true }),
+      expect.objectContaining({ readAt: expect.any(Date) }),
     );
   });
 });

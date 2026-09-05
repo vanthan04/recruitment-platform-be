@@ -19,6 +19,8 @@ import { ApiResponse } from '@/common/dtos/api-response';
 import { ScheduleInterviewCommand } from '@/modules/interview/application/commands/schedule-interview.command';
 import { RescheduleInterviewCommand } from '@/modules/interview/application/commands/reschedule-interview.command';
 import { CancelInterviewCommand } from '@/modules/interview/application/commands/cancel-interview.command';
+import { CompleteInterviewCommand } from '@/modules/interview/application/commands/complete-interview.command';
+import { MarkInterviewNoShowCommand } from '@/modules/interview/application/commands/mark-interview-no-show.command';
 import { ListInterviewsByApplicationQuery } from '@/modules/interview/application/queries/list-interviews-by-application.query';
 
 import { ScheduleInterviewDto } from '@/modules/interview/presentation/dtos/schedule-interview.dto';
@@ -72,6 +74,30 @@ export class InterviewController {
       new CancelInterviewCommand(recruiterId, id),
     );
     return ApiResponse.ok(result, 'Interview cancelled successfully');
+  }
+
+  @Patch(':id/complete')
+  @RequirePermissions(Permission.INTERVIEW_UPDATE)
+  @ApiOperation({
+    summary: 'Mark an interview as completed (Recruiter owner only)',
+  })
+  async complete(@GetMe('id') recruiterId: string, @Param('id') id: string) {
+    const result = await this.commandBus.execute(
+      new CompleteInterviewCommand(recruiterId, id),
+    );
+    return ApiResponse.ok(result, 'Interview marked as completed');
+  }
+
+  @Patch(':id/no-show')
+  @RequirePermissions(Permission.INTERVIEW_UPDATE)
+  @ApiOperation({
+    summary: 'Mark the candidate as a no-show (Recruiter owner only)',
+  })
+  async markNoShow(@GetMe('id') recruiterId: string, @Param('id') id: string) {
+    const result = await this.commandBus.execute(
+      new MarkInterviewNoShowCommand(recruiterId, id),
+    );
+    return ApiResponse.ok(result, 'Interview marked as no-show');
   }
 
   @Get('application/:applicationId')

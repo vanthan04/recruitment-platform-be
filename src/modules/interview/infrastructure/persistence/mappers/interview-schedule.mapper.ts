@@ -8,6 +8,7 @@ export class InterviewScheduleMapper {
     return new InterviewSchedule({
       id: raw.id,
       scheduledAt: raw.scheduledAt,
+      durationMinutes: raw.durationMinutes,
       location: raw.location,
       meetingLink: raw.meetingLink,
       note: raw.note,
@@ -22,6 +23,7 @@ export class InterviewScheduleMapper {
   static toPersistence(interview: InterviewSchedule): any {
     return {
       scheduledAt: interview.scheduledAt,
+      durationMinutes: interview.durationMinutes,
       location: interview.location,
       meetingLink: interview.meetingLink,
       note: interview.note,

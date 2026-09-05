@@ -22,6 +22,7 @@ export interface ScheduleInterviewInput {
   location?: string;
   meetingLink?: string;
   note?: string;
+  durationMinutes?: number;
 }
 
 export class ScheduleInterviewCommand {
@@ -76,6 +77,7 @@ export class ScheduleInterviewHandler implements ICommandHandler<
       location: input.location ?? null,
       meetingLink: input.meetingLink ?? null,
       note: input.note ?? null,
+      durationMinutes: input.durationMinutes ?? null,
       createdById: recruiterId,
     });
 

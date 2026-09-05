@@ -33,8 +33,8 @@ export class NotificationPrismaRepository {
 
   async markAllAsRead(userId: string) {
     await this.prisma.notification.updateMany({
-      where: { userId, isRead: false },
-      data: { isRead: true },
+      where: { userId, readAt: null },
+      data: { readAt: new Date() },
     });
   }
 }

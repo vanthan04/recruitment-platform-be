@@ -13,8 +13,9 @@ function makeNotification(overrides: Partial<Notification> = {}): Notification {
 }
 
 describe('Notification entity', () => {
-  it('defaults isRead to false and metadata to null', () => {
+  it('defaults readAt to null (unread) and metadata to null', () => {
     const notification = makeNotification();
+    expect(notification.readAt).toBeNull();
     expect(notification.isRead).toBe(false);
     expect(notification.metadata).toBeNull();
   });
@@ -22,11 +23,12 @@ describe('Notification entity', () => {
   it('marks an unread notification as read', () => {
     const notification = makeNotification();
     notification.markAsRead();
+    expect(notification.readAt).toBeInstanceOf(Date);
     expect(notification.isRead).toBe(true);
   });
 
   it('throws NotificationAlreadyReadException when already read', () => {
-    const notification = makeNotification({ isRead: true });
+    const notification = makeNotification({ readAt: new Date() });
     expect(() => notification.markAsRead()).toThrow(
       NotificationAlreadyReadException,
     );

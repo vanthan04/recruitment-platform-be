@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsDateString, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsInt,
+  Min,
+  MaxLength,
+} from 'class-validator';
 
 export class RescheduleInterviewDto {
   @ApiPropertyOptional({ example: '2026-09-12T09:00:00.000Z' })
@@ -24,4 +31,10 @@ export class RescheduleInterviewDto {
   @IsOptional()
   @MaxLength(1000)
   note?: string;
+
+  @ApiPropertyOptional({ example: 45 })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  durationMinutes?: number;
 }

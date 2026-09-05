@@ -8,7 +8,7 @@ export class NotificationResponseMapper {
     dto.type = notification.type;
     dto.title = notification.title;
     dto.message = notification.message;
-    dto.isRead = notification.isRead;
+    dto.readAt = notification.readAt;
     dto.metadata = notification.metadata;
     dto.createdAt = notification.createdAt;
     return dto;

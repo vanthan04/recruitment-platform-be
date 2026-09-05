@@ -8,7 +8,7 @@ export class NotificationResponseDto {
   type: NotificationType;
   title: string;
   message: string;
-  isRead: boolean;
+  readAt: Date | null;
   metadata: Record<string, any> | null;
   createdAt: Date;
 }

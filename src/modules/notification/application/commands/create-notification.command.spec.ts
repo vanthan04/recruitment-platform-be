@@ -41,7 +41,7 @@ describe('CreateNotificationHandler', () => {
         title: 'New application',
         message: 'You received a new application',
         metadata: { jobId: 'job-1' },
-        isRead: false,
+        readAt: null,
       }),
     );
   });

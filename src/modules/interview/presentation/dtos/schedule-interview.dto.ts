@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsUUID,
   IsDateString,
+  IsInt,
+  Min,
   MaxLength,
 } from 'class-validator';
 
@@ -36,4 +38,10 @@ export class ScheduleInterviewDto {
   @IsOptional()
   @MaxLength(1000)
   note?: string;
+
+  @ApiPropertyOptional({ example: 45 })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  durationMinutes?: number;
 }

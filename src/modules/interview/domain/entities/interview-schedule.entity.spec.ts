@@ -77,4 +77,74 @@ describe('InterviewSchedule entity', () => {
       expect(() => interview.cancel()).toThrow(BusinessRuleViolationException);
     });
   });
+
+  describe('complete', () => {
+    it('sets status to COMPLETED from SCHEDULED', () => {
+      const interview = makeInterview();
+      interview.complete();
+      expect(interview.status).toBe(InterviewStatus.COMPLETED);
+    });
+
+    it('sets status to COMPLETED from RESCHEDULED', () => {
+      const interview = makeInterview({ status: InterviewStatus.RESCHEDULED });
+      interview.complete();
+      expect(interview.status).toBe(InterviewStatus.COMPLETED);
+    });
+
+    it('throws when completing a cancelled interview', () => {
+      const interview = makeInterview();
+      interview.cancel();
+      expect(() => interview.complete()).toThrow(
+        BusinessRuleViolationException,
+      );
+    });
+
+    it('throws when completing an already-completed interview', () => {
+      const interview = makeInterview();
+      interview.complete();
+      expect(() => interview.complete()).toThrow(
+        BusinessRuleViolationException,
+      );
+    });
+  });
+
+  describe('markNoShow', () => {
+    it('sets status to NO_SHOW from SCHEDULED', () => {
+      const interview = makeInterview();
+      interview.markNoShow();
+      expect(interview.status).toBe(InterviewStatus.NO_SHOW);
+    });
+
+    it('throws when marking a cancelled interview as no-show', () => {
+      const interview = makeInterview();
+      interview.cancel();
+      expect(() => interview.markNoShow()).toThrow(
+        BusinessRuleViolationException,
+      );
+    });
+  });
+
+  describe('durationMinutes', () => {
+    it('defaults to null', () => {
+      const interview = makeInterview();
+      expect(interview.durationMinutes).toBeNull();
+    });
+
+    it('is settable via the constructor', () => {
+      const interview = makeInterview({ durationMinutes: 45 });
+      expect(interview.durationMinutes).toBe(45);
+    });
+
+    it('is updatable via reschedule', () => {
+      const interview = makeInterview({ durationMinutes: 30 });
+      interview.reschedule(
+        new Date(Date.now() + 1000 * 60 * 60),
+        undefined,
+        undefined,
+        undefined,
+        60,
+      );
+      expect(interview.durationMinutes).toBe(60);
+    });
+  });
 });

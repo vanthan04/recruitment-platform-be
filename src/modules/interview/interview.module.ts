@@ -21,6 +21,8 @@ import { InterviewMailAdapter } from '@/modules/interview/infrastructure/adapter
 import { ScheduleInterviewHandler } from '@/modules/interview/application/commands/schedule-interview.command';
 import { RescheduleInterviewHandler } from '@/modules/interview/application/commands/reschedule-interview.command';
 import { CancelInterviewHandler } from '@/modules/interview/application/commands/cancel-interview.command';
+import { CompleteInterviewHandler } from '@/modules/interview/application/commands/complete-interview.command';
+import { MarkInterviewNoShowHandler } from '@/modules/interview/application/commands/mark-interview-no-show.command';
 import { ListInterviewsByApplicationHandler } from '@/modules/interview/application/queries/list-interviews-by-application.query';
 
 @Module({
@@ -57,6 +59,8 @@ import { ListInterviewsByApplicationHandler } from '@/modules/interview/applicat
     ScheduleInterviewHandler,
     RescheduleInterviewHandler,
     CancelInterviewHandler,
+    CompleteInterviewHandler,
+    MarkInterviewNoShowHandler,
     ListInterviewsByApplicationHandler,
   ],
 })

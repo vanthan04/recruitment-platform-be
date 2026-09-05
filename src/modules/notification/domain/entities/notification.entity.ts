@@ -11,20 +11,24 @@ export class Notification extends BaseEntity {
   type: NotificationType;
   title: string;
   message: string;
-  isRead: boolean;
+  readAt: Date | null;
   metadata: Record<string, any> | null;
 
   constructor(partial: Partial<Notification>) {
     super();
     Object.assign(this, partial);
-    this.isRead = partial.isRead ?? false;
+    this.readAt = partial.readAt ?? null;
     this.metadata = partial.metadata ?? null;
   }
 
   markAsRead(): void {
-    if (this.isRead) {
+    if (this.readAt) {
       throw new NotificationAlreadyReadException();
     }
-    this.isRead = true;
+    this.readAt = new Date();
+  }
+
+  get isRead(): boolean {
+    return this.readAt !== null;
   }
 }
