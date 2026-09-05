@@ -27,6 +27,18 @@ import { InterviewModule } from '@/modules/interview/interview.module';
 import { envValidationSchema } from '@/common/config/env.validation';
 import appConfig from '@/common/config/app.config';
 
+// Prisma's own `log` option writes straight to stdout via its own
+// formatter — it bypasses pino entirely, so none of the redaction rules in
+// logger.config.ts apply to it. Full query logging (bound parameter values
+// included) is a genuine debugging aid locally, but in production it's
+// both a performance tax at real traffic volume and a way for request data
+// (emails, names, tokens passed as query params) to end up in unstructured,
+// unredacted logs. Only warnings/errors are worth the always-on cost there.
+const isProduction = process.env.NODE_ENV === 'production';
+const PRISMA_LOG_LEVELS = isProduction
+  ? (['warn', 'error'] as const)
+  : (['query', 'info', 'warn', 'error'] as const);
+
 @Module({
   imports: [
     LoggerModule.forRoot(buildLoggerOptions()),
@@ -39,7 +51,7 @@ import appConfig from '@/common/config/app.config';
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     PrismaModule.forRoot({
-      log: ['query', 'info', 'warn', 'error'],
+      log: [...PRISMA_LOG_LEVELS],
       errorFormat: 'pretty',
     }),
     PermissionModule,

@@ -7,6 +7,10 @@ import {
   IsIn,
 } from 'class-validator';
 import { UserRole } from '@/common/enums/user-role.enum';
+import {
+  IsStrongPassword,
+  PASSWORD_MIN_LENGTH,
+} from '@/common/validators/password-strength.validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterRequestDto {
@@ -17,7 +21,8 @@ export class RegisterRequestDto {
 
   @ApiProperty({ example: 'password123' })
   @IsNotEmpty({ message: 'PASSWORD_IS_REQUIRED' })
-  @MinLength(6, { message: 'PASSWORD_MIN_LENGTH' })
+  @MinLength(PASSWORD_MIN_LENGTH, { message: 'PASSWORD_MIN_LENGTH' })
+  @IsStrongPassword()
   password: string;
 
   @ApiProperty({ example: 'John Doe' })
