@@ -4,13 +4,13 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 
 ## Features
 
-- **Auth** — JWT access + refresh tokens, email verification, forgot/reset password, multi-device sessions (each login gets its own revocable refresh token), logout (current device) / logout-all (every device), rate-limited login/register/forgot-password.
+- **Auth** — JWT access + refresh tokens, email verification, forgot/reset password, multi-device sessions (each login gets its own revocable refresh token), logout (current device) / logout-all (every device), rate-limited login/register/forgot-password. Public registration only accepts `CANDIDATE`/`RECRUITER`. Google/Facebook OAuth login (one-time exchange code, never a token in a redirect URL) with a role hint that only applies to new accounts. A daily cron purges expired refresh/verification tokens.
 - **User** — profile management, admin user list + status/role management.
-- **Company** — recruiters own a company profile (logo, size, address); a recruiter must have a company before posting jobs. IT-only platform — no `industry` field.
+- **Company** — recruiters own a company profile (logo, size, type, address/province/ward); a recruiter must have one *active* company before posting jobs (DB-enforced via a partial unique index on `ownerId`, so soft-deleting one and creating a replacement is still allowed). IT-only platform — no `industry` field.
 - **Category** / **Skill** — admin-managed job categories and a skill taxonomy (many-to-many with jobs) for search filtering; jobs can also carry a seniority `level` (INTERN → MANAGER).
-- **Job** — CRUD, public search (keyword/location/employment type/work mode/level/category/salary/company), lifecycle (`DRAFT → OPEN → CLOSED`) with manual close/reopen and an hourly cron that auto-closes expired postings, per-job view count, a recruiter-only "my jobs" listing regardless of status.
+- **Job** — CRUD, public search (keyword/location/employment type/work mode/level/category/company/salary/skills, excluding jobs already past `expiresAt` even before the hourly cron gets to them), lifecycle (`DRAFT → OPEN → CLOSED`) with manual close/reopen and an hourly cron that auto-closes expired postings, per-job view count, a recruiter-only "my jobs" listing regardless of status.
 - **CV** — a single uploaded file (PDF/DOC/DOCX) per CV with a publish workflow; no structured builder, no PDF export. Owner or a recruiter with a matching application can download it via a short-lived presigned URL.
-- **Application** — apply to a job with a published CV, list mine / list by job (recruiter), advance status through an 8-stage recruiting pipeline (`APPLIED → SCREENING → SHORTLISTED → INTERVIEW → OFFER → HIRED`, branching to `REJECTED` at any step) with an optional note, withdraw before a terminal state, per-job stats (view count + status breakdown) for recruiters. Every status change is recorded (no read endpoint yet).
+- **Application** — apply to a job with a published CV, list mine / list by job (recruiter), advance status through an 8-stage recruiting pipeline (`APPLIED → SCREENING → SHORTLISTED → INTERVIEW → OFFER → HIRED`, branching to `REJECTED` at any step) with an optional note, withdraw before a terminal state, per-job stats (view count + status breakdown) for recruiters. Every status change is recorded and readable via a per-application history endpoint.
 - **Bookmark** — candidates bookmark/unbookmark jobs.
 - **Notification** — in-app notifications (new application → recruiter, status change → candidate), mark as read / read all.
 - **Job Alert** — candidates save a search; a daily cron emails a digest of newly posted jobs matching it.
@@ -18,7 +18,7 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 - **Admin** — list/paginate users, update user status or role.
 - **RBAC (Permission)** — database-driven role → permission mapping (`roles`/`permissions`/`role_permissions`); every controller route declares required permissions via `@RequirePermissions`, checked by `PermissionGuard` (cached, no redeploy needed to change what a role can do); admin endpoints to list roles/permissions and replace a role's permission set.
 - **Chat** — realtime conversations between candidate and recruiter over WebSocket (Socket.IO), scoped to a job/application (`applicationId`/`jobId`); message send/edit/soft-delete, cursor-paginated history, read receipts, typing indicators, online presence, cookie-based WS auth, rate-limited send.
-- **Interview scheduling** — recruiter schedules/reschedules/cancels/completes/marks-no-show an interview for a job application (in-person `location` and/or online `meetingLink`, at least one required, optional `durationMinutes`); candidate is emailed on every change.
+- **Interview scheduling** — recruiter schedules/reschedules/cancels/completes/marks-no-show an interview for a job application (in-person `location` and/or online `meetingLink`, at least one required, optional `durationMinutes`); candidate is emailed on every change. All four post-scheduling actions are only valid while the interview is still `SCHEDULED`/`RESCHEDULED` — a `COMPLETED`/`NO_SHOW` interview can't be cancelled or rescheduled back.
 
 ## Tech Stack
 
@@ -58,7 +58,7 @@ Every business module under `src/modules/<name>/` follows the same shape:
 
 Cross-cutting pieces live in `src/common/` (base entity, domain exceptions, pagination, decorators, guards, global exception filter) and `src/modules/prisma/` (the shared `PrismaService`).
 
-For a deeper module-by-module breakdown, see **[CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md)**. For the feature history and what was built in what order, see **[ROADMAP.md](ROADMAP.md)**.
+For a deeper module-by-module breakdown, see **[CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md)**. For the feature history and what was built in what order, see **[CHANGE_SUMMARY_2026-09.md](CHANGE_SUMMARY_2026-09.md)**.
 
 ### Project structure
 
@@ -149,7 +149,7 @@ Lambda-based deploy.
 ### Testing
 
 ```bash
-npm test        # unit tests (domain entities + command/query handlers) — 203 tests / 49 suites currently
+npm test        # unit tests (domain entities + command/query handlers) — 246 tests / 62 suites currently
 npm run test:e2e  # end-to-end: register → verify → login → create company/job → upload+publish CV → apply; chat flow
 ```
 

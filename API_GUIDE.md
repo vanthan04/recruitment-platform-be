@@ -89,7 +89,7 @@ JWT Bearer token. Header: `Authorization: Bearer <access_token>`.
 ### Luồng đăng ký
 
 ```
-POST /auth/register  { email, password, fullName, role: "CANDIDATE"|"RECRUITER"|"ADMIN" }
+POST /auth/register  { email, password, fullName, role: "CANDIDATE"|"RECRUITER" }
   → gửi email chứa mã xác thực (6 ký tự)
 POST /auth/verify     { code }
   → set status ACTIVE
@@ -98,6 +98,20 @@ POST /auth/login      { email, password }
 ```
 
 ⚠️ **Lưu ý quan trọng**: `POST /auth/login` **không kiểm tra `status`** — user chưa verify email vẫn đăng nhập được bình thường. Verify chỉ chuyển status sang `ACTIVE`, không phải điều kiện bắt buộc để login (đây là hành vi hiện tại của backend, không phải điều FE cần tự xử lý).
+
+⚠️ `role: "ADMIN"` **không** còn tự chọn được qua đăng ký công khai — `RegisterRequestDto` chỉ chấp nhận `CANDIDATE`/`RECRUITER` (`@IsIn`). Tài khoản ADMIN chỉ tạo được bằng cách đổi role thủ công qua `PATCH /admin/users/:id` từ một ADMIN có sẵn (hoặc trực tiếp trong DB/seed).
+
+### Đăng nhập bằng Google / Facebook
+
+```
+GET  /auth/google?role=CANDIDATE|RECRUITER        → redirect sang Google consent screen
+GET  /auth/google/callback                        → redirect về `${FRONTEND_URL}/auth/callback?code=...`
+GET  /auth/facebook?role=CANDIDATE|RECRUITER      → redirect sang Facebook consent screen
+GET  /auth/facebook/callback                      → redirect về `${FRONTEND_URL}/auth/callback?code=...`
+POST /auth/social/exchange  { code }               → { access_token, refresh_token }  (rate-limited 5 req/60s)
+```
+
+Backend **không** trả JWT thẳng trong URL redirect. Callback tạo 1 mã dùng-một-lần (opaque, sống 60 giây, lưu hash ở bảng `oauth_login_codes`) rồi redirect FE sang `/auth/callback?code=...`; FE đọc `code` từ query và gọi `POST /auth/social/exchange` để đổi lấy access/refresh token thật (mint tại bước exchange, không phải ở callback). Nếu Google/Facebook không trả email (user từ chối quyền) → redirect `/auth/callback?error=EMAIL_REQUIRED` thay vì token. `role` trong query chỉ áp dụng khi **tạo user mới** — nếu email/providerId đã tồn tại, role hiện có của họ được giữ nguyên, tham số `role` bị bỏ qua.
 
 ### Access token vs refresh token
 
@@ -171,11 +185,11 @@ Recruiter phải có company mới đăng job được (1 recruiter ↔ 1 compan
 | `PATCH /companies/:id` | `RECRUITER` | `UpdateCompanyDto` | Chỉ owner mới sửa được (403 nếu không phải) |
 | `DELETE /companies/:id` | `RECRUITER` | — | Soft delete, chỉ owner, trả `204` |
 
-**`CreateCompanyDto`**: `name` (bắt buộc), `logoUrl?`, `description?`, `website?`, `size?` (`SIZE_1_10`/`SIZE_11_50`/`SIZE_51_200`/`SIZE_201_500`/`SIZE_500_PLUS`), `address?`.
+**`CreateCompanyDto`**: `name` (bắt buộc), `logoUrl?`, `description?`, `website?`, `size?` (`SIZE_1_10`/`SIZE_11_50`/`SIZE_51_200`/`SIZE_201_500`/`SIZE_500_PLUS`), `companyType?` (`PRODUCT`/`OUTSOURCING`/`STARTUP`/`CONSULTING`), `address?`, `province?`, `ward?`. `UpdateCompanyDto` nhận cùng field, tất cả optional.
 
 ⚠️ **`industry` đã bị xoá hoàn toàn** (field, query filter, migration) — nền tảng cam kết chỉ phục vụ ngành IT, không còn multi-industry. Xem [docs/industry-expansion.md](docs/industry-expansion.md) để biết bối cảnh quyết định.
 
-⚠️ **`Company.companyType`** (`PRODUCT`/`OUTSOURCING`/`STARTUP`/`CONSULTING`) tồn tại ở tầng DB (`prisma/schema.prisma`) nhưng **chưa được expose** qua `CreateCompanyDto`/`UpdateCompanyDto`/`SearchCompanyDto` — không gửi field này lên API vì backend hiện chưa đọc/ghi nó qua HTTP.
+⚠️ **"1 company/recruiter" chỉ tính company đang active** — ràng buộc unique ở DB là partial index trên `ownerId` (`WHERE deletedAt IS NULL`), nên `DELETE /companies/:id` (soft-delete) rồi `POST /companies` lại là hợp lệ, không phải lỗi.
 
 ### 4.3. Category (`/categories`)
 
@@ -195,7 +209,7 @@ Danh mục ngành nghề — ADMIN quản lý, dùng cho dropdown filter job.
 | Method & Path | Auth | Body / Query |
 |---|---|---|
 | `POST /jobs` | `RECRUITER` | `CreateJobDto` — **không gửi `companyId`**, backend tự lấy company của recruiter đang đăng nhập (400 nếu recruiter chưa có company) |
-| `GET /jobs?keyword&location&employmentType&workMode&level&categoryId&companyId&salaryMin&salaryMax&sort&page&limit` | 🔓 | Chỉ trả job có status `OPEN` |
+| `GET /jobs?keyword&location&employmentType&workMode&level&categoryId&companyId&salaryMin&salaryMax&skillIds&sort&page&limit` | 🔓 | Chỉ trả job `status=OPEN` **và** chưa quá `expiresAt` (job hết hạn không còn hiện ở search dù cron đóng job chạy mỗi giờ chưa kịp chạy tới) |
 | `GET /jobs/mine?page&limit` | `RECRUITER` | Job của chính recruiter (kể cả `DRAFT`/`CLOSED`) — dùng cho trang "quản lý job của tôi", khác `GET /jobs` vốn chỉ trả `OPEN` |
 | `GET /jobs/:id` | 🔓 | Mỗi lần gọi tăng `viewCount` (atomic, không lệch dù nhiều request đồng thời) |
 | `PATCH /jobs/:id` | `RECRUITER` | `UpdateJobDto` (chỉ owner) |
@@ -205,11 +219,11 @@ Danh mục ngành nghề — ADMIN quản lý, dùng cho dropdown filter job.
 
 ⚠️ **`jobType` đã tách thành 2 field độc lập**: `employmentType` (`FULL_TIME`/`PART_TIME`/`CONTRACT`/`INTERNSHIP`) và `workMode` (`ONSITE`/`HYBRID`/`REMOTE`) — trước đây `REMOTE` là 1 giá trị trong cùng enum `jobType`, giờ 1 job có thể vừa `FULL_TIME` vừa `REMOTE` cùng lúc (2 chiều độc lập).
 
-**`CreateJobDto`**: `title`, `description`, `location` (bắt buộc); `employmentType?` (mặc định `FULL_TIME`), `workMode?` (mặc định `ONSITE`), `level?` (`INTERN`/`FRESHER`/`JUNIOR`/`MIDDLE`/`SENIOR`/`MANAGER`), `categoryId?`, `salaryMin?`, `salaryMax?`, `currency?` (mặc định `VND`), `requirements?`, `benefits?`, `extraInfo?` (object tự do dạng `Record<string,string>`), `expiresAt?` (ISO date), `skillIds?` (`string[]`, id các `Skill` — xem mục 4.4b).
+**`CreateJobDto`**: `title`, `description`, `location` (bắt buộc); `employmentType?` (mặc định `FULL_TIME`), `workMode?` (mặc định `ONSITE`), `level?` (`INTERN`/`FRESHER`/`JUNIOR`/`MIDDLE`/`SENIOR`/`MANAGER`), `categoryId?`, `salaryMin?`, `salaryMax?`, `currency?` (mặc định `VND`), `requirements?`, `benefits?`, `workingHours?` (text tự do, vd. "Thứ 2 - Thứ 6 (08:00 - 17:00)"), `applicationMethod?` (text tự do), `expiresAt?` (ISO date), `skillIds?` (`string[]`, id các `Skill` — xem mục 4.4b).
 
 **Response `Job`**: gồm cả object lồng `company: { id, name, logoUrl } | null`, `category: { id, name, slug } | null`, và `skills: { id, name, slug }[]` (không cần gọi thêm API để lấy tên company/category/skill khi hiển thị list).
 
-⚠️ **`GET /jobs` chưa hỗ trợ filter theo `skillIds`** — dù `Job` đã có quan hệ nhiều-nhiều với `Skill`, query params của `GET /jobs` hiện chưa nhận `skillIds` (chỉ nhận được lúc tạo/sửa job). Cần bổ sung sau nếu FE cần search theo kỹ năng.
+`GET /jobs` hỗ trợ filter `skillIds` (job khớp nếu có **ít nhất 1** trong các skill được truyền — match kiểu OR, không phải AND).
 
 ### 4.4b. Skill (`/skills`)
 
@@ -252,12 +266,13 @@ Không có `GET /skills/:id`. `slug` tự sinh từ `name` giống `Category`. T
 | `GET /job-applications/my-applications` | `CANDIDATE` | Đơn của chính mình |
 | `GET /job-applications/job/:jobId` | `RECRUITER` | Chỉ recruiter sở hữu job đó |
 | `GET /job-applications/job/:jobId/stats` | `RECRUITER` | `data`: `{ jobId, viewCount, totalApplications, applied, screening, shortlisted, interview, offer, hired, rejected, withdrawn }` |
+| `GET /job-applications/:id/history` | 🔒 | Chủ đơn (candidate) hoặc recruiter sở hữu job — timeline `{ fromStatus, toStatus, note, changedById, createdAt }[]`, mới nhất trước |
 | `PATCH /job-applications/:id/withdraw` | `CANDIDATE` | Chỉ chủ đơn, chỉ khi chưa ở trạng thái cuối (`HIRED`/`REJECTED`/`WITHDRAWN`) |
 | `PATCH /job-applications/:id/status` | `RECRUITER` | `{ status, note? }` — chỉ recruiter sở hữu job, phải đi đúng chiều pipeline (xem bên dưới) |
 
 ⚠️ **Pipeline tuyển dụng đã mở rộng từ 4 trạng thái (`PENDING/ACCEPTED/REJECTED/WITHDRAWN`) thành 8 trạng thái theo từng bước phễu tuyển dụng.** `ApplicationStatus`: `APPLIED → SCREENING → SHORTLISTED → INTERVIEW → OFFER → HIRED`, mỗi bước (trừ `HIRED`) đều có thể rẽ sang `REJECTED`. `WITHDRAWN` là nhánh riêng, candidate tự rút đơn ở bất kỳ bước nào chưa tới trạng thái cuối. `HIRED`/`REJECTED`/`WITHDRAWN` đều là trạng thái cuối — không đổi tiếp được (đổi sai chiều trả `400 BUSINESS_RULE_VIOLATION`).
 
-Mỗi lần đổi status (kể cả withdraw), backend ghi 1 dòng lịch sử vào bảng `ApplicationStatusHistory` (`fromStatus, toStatus, note, changedById, createdAt`) — **nhưng hiện chưa có endpoint nào đọc lại lịch sử này**, chỉ ghi ở tầng DB. Nếu FE cần hiển thị timeline thay đổi trạng thái, cần báo lại backend để mở endpoint đọc.
+Mỗi lần đổi status (kể cả withdraw), backend ghi 1 dòng lịch sử vào bảng `ApplicationStatusHistory` (`fromStatus, toStatus, note, changedById, createdAt`) — đọc lại qua `GET /job-applications/:id/history` ở trên.
 
 Trả về job apply → phát event thông báo cho recruiter; đổi status → phát event thông báo cho candidate (xem mục Notification). Conversation chat chỉ mở được khi đơn đã `HIRED` (trước đây là `ACCEPTED`).
 
@@ -366,7 +381,7 @@ Quản lý role → permission mapping (database-driven, đổi quyền không c
 | `JobSortOption` (query `sort` của `GET /jobs`) | `newest`, `salary_desc`, `views_desc` |
 | `ApplicationStatus` (mở rộng từ 4 → 8 giá trị) | `APPLIED`, `SCREENING`, `SHORTLISTED`, `INTERVIEW`, `OFFER`, `HIRED`, `REJECTED`, `WITHDRAWN` |
 | `CompanySize` | `SIZE_1_10`, `SIZE_11_50`, `SIZE_51_200`, `SIZE_201_500`, `SIZE_500_PLUS` |
-| `CompanyType` (DB-only, chưa expose qua API — xem mục 4.2) | `PRODUCT`, `OUTSOURCING`, `STARTUP`, `CONSULTING` |
+| `CompanyType` (xem mục 4.2) | `PRODUCT`, `OUTSOURCING`, `STARTUP`, `CONSULTING` |
 | `NotificationType` | `NEW_APPLICATION`, `APPLICATION_STATUS_CHANGED`, `NEW_MESSAGE` |
 | `ConversationStatus` | `ACTIVE`, `ARCHIVED` |
 | `MessageType` | `TEXT`, `IMAGE`, `FILE`, `SYSTEM` (chỉ server tạo, không nhận từ client) |
@@ -383,8 +398,10 @@ Quản lý role → permission mapping (database-driven, đổi quyền không c
 2. **`PATCH /users/profile` và `PATCH /admin/users/:id` không trả entity mới** — `data: null`, thông báo nằm ở field `message` cấp envelope (giống mọi endpoint action-only khác như `/auth/verify`, `/auth/forgot-password`...). Muốn cập nhật UI, gọi lại `GET /users/me` (hoặc `GET /admin/users`) sau khi PATCH thành công.
 3. **`Bookmark` response không kèm chi tiết job** dù DTO có khai báo field `job` — luôn là `undefined`. Phải tự join dữ liệu ở FE bằng cách gọi thêm `GET /jobs/:jobId`. (`JobApplication` thì khác: `candidate` đã được populate sẵn trên `listByJob`, nhưng `job`/`cv` lồng vẫn không có — dùng `jobId`/`cvId` để tự gọi thêm nếu cần.)
 4. **Apply lại job đã rút đơn (`WITHDRAWN`) sẽ bị từ chối (409)** — hệ thống chưa cho phép apply lại cùng 1 job dù đơn cũ đã withdraw.
-5. **Đăng ký không tự chặn role `ADMIN`** — `POST /auth/register` cho phép `role: "ADMIN"` như một lựa chọn công khai (không có cơ chế duyệt/whitelist). Đây là vấn đề tồn tại từ trước, **chưa được fix** trong đợt refactor này. FE nên **ẩn lựa chọn ADMIN khỏi form đăng ký công khai** (chỉ cho chọn CANDIDATE/RECRUITER), việc tạo admin nên làm qua kênh khác.
-6. **`ApplicationStatusHistory` được ghi ở tầng DB nhưng chưa có endpoint đọc lại** — nếu FE cần hiển thị timeline lịch sử thay đổi trạng thái đơn ứng tuyển, tính năng này chưa sẵn sàng, cần báo lại backend.
-7. **`GET /jobs` chỉ trả job `status = OPEN`** — job `DRAFT`/`CLOSED` không xuất hiện, kể cả khi filter theo `companyId`. Dùng **`GET /jobs/mine`** (mới, mục 4.4) để recruiter xem toàn bộ job của mình bất kể status.
+5. ~~Đăng ký không tự chặn role `ADMIN`~~ — **đã fix**: `POST /auth/register` chỉ còn nhận `CANDIDATE`/`RECRUITER` (`@IsIn`, 400 nếu gửi `ADMIN`). Tạo admin phải qua `PATCH /admin/users/:id` từ 1 ADMIN có sẵn.
+6. ~~`ApplicationStatusHistory` chưa có endpoint đọc lại~~ — **đã fix**: `GET /job-applications/:id/history` (mục 4.6).
+7. **`GET /jobs` chỉ trả job `status = OPEN` và chưa quá `expiresAt`** — job `DRAFT`/`CLOSED`/hết hạn không xuất hiện, kể cả khi filter theo `companyId`. Dùng **`GET /jobs/mine`** (mục 4.4) để recruiter xem toàn bộ job của mình bất kể status.
 8. **CV không còn hỗ trợ thay file qua `PATCH`** — `PATCH /cvs/:id` chỉ đổi được `title`. Muốn đổi file phải xoá CV cũ và tạo CV mới (`POST /cvs`).
-9. **`Company.companyType`** tồn tại ở DB nhưng chưa có trong bất kỳ DTO nào — đừng gửi field này lên API cho tới khi backend expose chính thức.
+9. ~~`Company.companyType` chưa có trong DTO nào~~ — **đã fix**: `companyType` (`PRODUCT`/`OUTSOURCING`/`STARTUP`/`CONSULTING`) đã nhận/trả được qua `POST/PATCH /companies` và response `Company` (mục 4.2).
+10. **Company chỉ chặn trùng owner ở mức "1 công ty đang active"** — soft-delete công ty cũ rồi tạo công ty mới vẫn được (ràng buộc unique ở DB là partial index `WHERE deletedAt IS NULL`, không phải unique tuyệt đối trên `ownerId`).
+11. **Lỗi trùng dữ liệu race-condition trả `409 DUPLICATE_ENTITY`** — nếu 2 request gần như đồng thời cùng vi phạm 1 ràng buộc unique ở DB (vd. apply 2 lần cùng lúc, tạo 2 company cùng lúc), request thua sẽ nhận `409` với `code: "DUPLICATE_ENTITY"` thay vì lỗi nghiệp vụ cụ thể hơn (vd. không phải luôn là `ALREADY_APPLIED`) — FE nên xử lý `DUPLICATE_ENTITY` như 1 trường hợp chung "dữ liệu đã tồn tại, thử tải lại".

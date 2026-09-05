@@ -119,28 +119,16 @@ review of actual usage in the codebase:
   exists to back it; adding the field without the workflow would be a dead flag.
 - **`InterviewType`** (`HR`/`TECHNICAL`/`FINAL`/`CODING`) — considered in Phase 7, deliberately
   skipped; nothing in the current UI or backend logic branches on interview type.
-- **`ApplicationStatusHistory` read endpoint** — the table is written on every transition (so the
-  data exists and costs nothing to add later), but no route/query exposes it yet. This is a gap,
-  not a design decision — flagged as a follow-up in §6, not silently dropped.
-- **`skillIds` filter on `GET /jobs`** — `Skill`/`JobSkill` exist and are settable at job
-  create/update time, but job search does not yet filter by skill. Same category as above: a real
-  gap worth closing next, not an intentional omission.
+- ~~**`ApplicationStatusHistory` read endpoint**~~ — **closed, see §9**: `GET /job-applications/:id/history`.
+- ~~**`skillIds` filter on `GET /jobs`**~~ — **closed, see §9**: job search now accepts `skillIds`.
 
 ---
 
 ## 6. Known follow-ups / pre-existing issues (flagged, not fixed)
 
-- **`POST /auth/register` allows self-selecting `role: "ADMIN"`** with no gating — this predates
-  this refactor and was out of scope to fix here (touching registration security deserves its own
-  reviewed change, not a drive-by inside an unrelated refactor). Frontend should hide the ADMIN
-  option from any public registration form.
-- **`Company.companyType`** (`PRODUCT`/`OUTSOURCING`/`STARTUP`/`CONSULTING`) exists at the DB level
-  but is not exposed on any Company DTO. This appears to be in-progress work from a separate,
-  concurrently active session on this same repository (encountered mid-refactor — see the note
-  below) rather than something this refactor should finish. `docs/industry-expansion.md` documents
-  the current state.
-- **`ApplicationStatusHistory` and skill-filtered job search** — see §5, both are real gaps worth a
-  small follow-up PR rather than silent omissions.
+- ~~**`POST /auth/register` allows self-selecting `role: "ADMIN"`**~~ — **closed, see §9**: restricted to `CANDIDATE`/`RECRUITER`.
+- ~~**`Company.companyType`** not exposed on any DTO~~ — **closed, see §9**: wired into create/update/response, along with `province`/`ward`.
+- ~~**`ApplicationStatusHistory` and skill-filtered job search**~~ — see §5, **both closed, see §9**.
 
 ---
 
@@ -180,3 +168,40 @@ capturing that other session's in-progress work, and `git fetch`/merge was run b
 pick up its changes cleanly. If anything in this repository looks unfinished around
 `companyType`, onboarding, or province/ward address fields, that is the other session's WIP, not a
 gap in this refactor.
+
+---
+
+## 9. Addendum — hardening pass, OAuth, and a follow-up business-logic review (2026-09-05, later commits)
+
+Everything above this line was the original 7-phase refactor. The same day, later commits closed
+the gaps this document had flagged and shipped a feature that wasn't part of the original scope:
+
+- **`fix: harden business rules found in schema/logic review`** (`c5f5e35`) — salary range now
+  throws `BusinessRuleViolationException` (400) instead of a raw `Error` (500); interview
+  schedule/reschedule/cancel/complete/no-show reject applications already at a terminal status
+  (`HIRED`/`REJECTED`/`WITHDRAWN`); deleting a CV referenced by a non-terminal application is now
+  blocked instead of silently breaking recruiter downloads; added the daily
+  expired-token-cleanup cron; closed every §5/§6 gap listed above (`companyType`/`province`/`ward`
+  DTO wiring, `ApplicationStatusHistory` read endpoint, `skillIds` filter on `GET /jobs`, ADMIN
+  self-registration); replaced `Job.extraInfo` (untyped JSON) with typed `workingHours`/
+  `applicationMethod` columns.
+- **`feat(auth): implement Google/Facebook OAuth login`** (`97feff5`) — see
+  [API_GUIDE.md](API_GUIDE.md) §2 for the flow (one-time exchange code via `POST
+  /auth/social/exchange`, never a token in a redirect URL). The design doc this was built from
+  (`GOOGLE_FACEBOOK_LOGIN_PLAN.md`, repo root one level up) has been deleted now that it's shipped —
+  API_GUIDE.md is the current reference.
+- **A follow-up business-logic review** (this session) found and fixed 4 more gaps, none overlapping
+  the above: `InterviewSchedule.cancel()`/`reschedule()` had their own terminal-status guard
+  independent of the application-status guard `c5f5e35` added, and it only blocked `CANCELLED` —
+  not `COMPLETED`/`NO_SHOW` — so a recruiter could still cancel or reschedule an interview that had
+  already happened; `GET /jobs` search didn't filter `expiresAt`, so an expired-but-not-yet-cron-closed
+  job stayed visible in search for up to an hour; `Company.ownerId` had no DB-level uniqueness behind
+  the "1 active company per recruiter" rule (now a partial unique index, migration
+  `20260905090000_company_owner_active_unique`); `GlobalExceptionFilter` didn't recognize a Prisma
+  `P2002` unique-constraint error, so any check-then-insert race (double-apply, double-create-company)
+  surfaced as a raw 500 instead of `409 DUPLICATE_ENTITY`. See `CODEBASE_SUMMARY.md` for where each
+  fix lives.
+- `ROADMAP.md` has been deleted — every phase in it was already marked done and several details
+  (AWS Lambda deploy, a CV builder/export use-case) describe designs since reverted or removed
+  entirely. This document and `CODEBASE_SUMMARY.md` are the sources of truth for history and current
+  state, respectively.

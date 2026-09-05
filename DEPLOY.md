@@ -18,8 +18,8 @@ One `t3.micro` EC2 instance running the Docker image directly is
 materially cheaper and simple enough to reason about by hand.
 
 The old Lambda entry point (`src/lambda.ts`) and its EventBridge-targeted
-cron handlers (`src/handlers/`) have been removed — see `ROADMAP.md` P11
-for that migration's history. Cron jobs now run in-process via
+cron handlers (`src/handlers/`) have been removed — see `CODEBASE_SUMMARY.md`
+§4a for that migration's history. Cron jobs now run in-process via
 `@nestjs/schedule` (`src/modules/job/application/jobs/close-expired-jobs.cron.ts`,
 `src/modules/job-alert/application/jobs/job-alert-digest.cron.ts`), and
 rate limiting uses `@nestjs/throttler`'s default in-memory storage —
