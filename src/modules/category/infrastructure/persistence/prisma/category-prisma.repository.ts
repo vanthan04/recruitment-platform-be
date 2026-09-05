@@ -25,6 +25,16 @@ export class CategoryPrismaRepository {
     return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
   }
 
+  /**
+   * Queries the `job` table directly at the Prisma layer instead of a
+   * cross-module port, to avoid a CategoryModule <-> JobModule import cycle
+   * (JobModule already imports CategoryModule) — same rationale as
+   * CvPrismaRepository.hasActiveApplicationReference.
+   */
+  async countReferencingJobs(categoryId: string): Promise<number> {
+    return this.prisma.job.count({ where: { categoryId, deletedAt: null } });
+  }
+
   async create(data: any) {
     return this.prisma.category.create({ data });
   }

@@ -25,6 +25,18 @@ export class SkillPrismaRepository {
     return this.prisma.skill.findMany({ orderBy: { name: 'asc' } });
   }
 
+  /**
+   * Queries the `jobSkill`/`job` tables directly at the Prisma layer instead
+   * of a cross-module port, to avoid a SkillModule <-> JobModule import
+   * cycle (JobModule already imports SkillModule) — same rationale as
+   * CvPrismaRepository.hasActiveApplicationReference.
+   */
+  async countReferencingJobs(skillId: string): Promise<number> {
+    return this.prisma.jobSkill.count({
+      where: { skillId, job: { deletedAt: null } },
+    });
+  }
+
   async create(data: any) {
     return this.prisma.skill.create({ data });
   }

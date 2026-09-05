@@ -3,7 +3,10 @@ import {
   DeleteCategoryHandler,
 } from '@/modules/category/application/commands/delete-category.command';
 import { ICategoryRepository } from '@/modules/category/domain/repositories/category.repository';
-import { CategoryNotFoundException } from '@/modules/category/domain/exceptions/category.exceptions';
+import {
+  CategoryNotFoundException,
+  CategoryInUseException,
+} from '@/modules/category/domain/exceptions/category.exceptions';
 import { Category } from '@/modules/category/domain/entities/category.entity';
 
 describe('DeleteCategoryHandler', () => {
@@ -15,6 +18,7 @@ describe('DeleteCategoryHandler', () => {
       findById: jest.fn(),
       existsBySlug: jest.fn(),
       findAll: jest.fn(),
+      countReferencingJobs: jest.fn().mockResolvedValue(0),
       save: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -32,7 +36,7 @@ describe('DeleteCategoryHandler', () => {
     expect(categoryRepository.delete).not.toHaveBeenCalled();
   });
 
-  it('deletes the category when it exists', async () => {
+  it('deletes the category when it exists and no job references it', async () => {
     categoryRepository.findById.mockResolvedValue(
       new Category({ id: 'cat-1', name: 'Backend', slug: 'backend' }),
     );
@@ -40,5 +44,17 @@ describe('DeleteCategoryHandler', () => {
     await handler.execute(new DeleteCategoryCommand('cat-1'));
 
     expect(categoryRepository.delete).toHaveBeenCalledWith('cat-1');
+  });
+
+  it('throws CategoryInUseException and does not delete when jobs still reference it', async () => {
+    categoryRepository.findById.mockResolvedValue(
+      new Category({ id: 'cat-1', name: 'Backend', slug: 'backend' }),
+    );
+    categoryRepository.countReferencingJobs.mockResolvedValue(3);
+
+    await expect(
+      handler.execute(new DeleteCategoryCommand('cat-1')),
+    ).rejects.toThrow(CategoryInUseException);
+    expect(categoryRepository.delete).not.toHaveBeenCalled();
   });
 });

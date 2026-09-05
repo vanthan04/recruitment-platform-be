@@ -1,4 +1,7 @@
-import { EntityNotFoundException } from '@/common/exceptions/domain.exception';
+import {
+  EntityNotFoundException,
+  BusinessRuleViolationException,
+} from '@/common/exceptions/domain.exception';
 
 /**
  * Category-module domain exceptions. See auth/cv/job modules for the
@@ -11,5 +14,15 @@ export class CategoryNotFoundException extends EntityNotFoundException {
   constructor(id?: string) {
     super('Category', id, 'CATEGORY_NOT_FOUND');
     this.name = 'CategoryNotFoundException';
+  }
+}
+
+export class CategoryInUseException extends BusinessRuleViolationException {
+  constructor(jobCount: number) {
+    super(
+      `Cannot delete this category — it is still used by ${jobCount} job(s)`,
+      'CATEGORY_IN_USE',
+    );
+    this.name = 'CategoryInUseException';
   }
 }

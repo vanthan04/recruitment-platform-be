@@ -28,6 +28,10 @@ export class CategoryInfraRepository implements ICategoryRepository {
     return raws.map((r) => CategoryMapper.toDomain(r)!);
   }
 
+  async countReferencingJobs(categoryId: string): Promise<number> {
+    return this.categoryPrisma.countReferencingJobs(categoryId);
+  }
+
   async save(category: Category): Promise<Category> {
     const data = CategoryMapper.toPersistence(category);
     const raw = await this.categoryPrisma.create(data);

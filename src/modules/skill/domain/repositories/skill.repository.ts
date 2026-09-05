@@ -9,6 +9,8 @@ export abstract class ISkillRepository {
   abstract findManyByIds(ids: string[]): Promise<Skill[]>;
   abstract existsBySlug(slug: string): Promise<boolean>;
   abstract findAll(): Promise<Skill[]>;
+  /** How many (non-deleted) jobs currently tag this skill — used to block deleting a skill still in use. */
+  abstract countReferencingJobs(skillId: string): Promise<number>;
   abstract save(skill: Skill): Promise<Skill>;
   abstract update(skill: Skill): Promise<Skill>;
   abstract delete(id: string): Promise<void>;

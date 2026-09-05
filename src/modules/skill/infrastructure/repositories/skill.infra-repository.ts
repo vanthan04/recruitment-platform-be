@@ -28,6 +28,10 @@ export class SkillInfraRepository implements ISkillRepository {
     return raws.map((r) => SkillMapper.toDomain(r)!);
   }
 
+  async countReferencingJobs(skillId: string): Promise<number> {
+    return this.skillPrisma.countReferencingJobs(skillId);
+  }
+
   async save(skill: Skill): Promise<Skill> {
     const data = SkillMapper.toPersistence(skill);
     const raw = await this.skillPrisma.create(data);
