@@ -30,6 +30,16 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
     return this.toRecord(await this.userRepository.findByEmail(email));
   }
 
+  async findByGoogleId(googleId: string): Promise<AuthUserRecord | null> {
+    return this.toRecord(await this.userRepository.findByGoogleId(googleId));
+  }
+
+  async findByFacebookId(facebookId: string): Promise<AuthUserRecord | null> {
+    return this.toRecord(
+      await this.userRepository.findByFacebookId(facebookId),
+    );
+  }
+
   async existsByEmail(email: string): Promise<boolean> {
     return this.userRepository.existsByEmail(email);
   }
@@ -43,6 +53,8 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
       id: data.id,
       email: data.email,
       password: data.password,
+      googleId: data.googleId,
+      facebookId: data.facebookId,
       role: data.role as any,
       status: data.status as any,
       profile: data.fullName

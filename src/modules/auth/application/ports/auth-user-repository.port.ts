@@ -8,6 +8,8 @@ export interface CreateUserOptions {
   fullName?: string;
   role?: string;
   status?: string;
+  googleId?: string | null;
+  facebookId?: string | null;
 }
 
 /** Local, auth-scoped shape — only the fields auth flows actually touch (no leaked `user` module entity). */
@@ -22,6 +24,8 @@ export interface AuthUserRecord {
 export abstract class IAuthUserRepositoryPort {
   abstract findById(id: string): Promise<AuthUserRecord | null>;
   abstract findByEmail(email: string): Promise<AuthUserRecord | null>;
+  abstract findByGoogleId(googleId: string): Promise<AuthUserRecord | null>;
+  abstract findByFacebookId(facebookId: string): Promise<AuthUserRecord | null>;
   abstract existsByEmail(email: string): Promise<boolean>;
   abstract save(data: CreateUserOptions): Promise<AuthUserRecord>;
 }

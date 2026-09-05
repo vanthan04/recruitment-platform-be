@@ -60,3 +60,13 @@ export class RefreshTokenAccessDeniedException extends UnauthorizedDomainExcepti
     this.name = 'RefreshTokenAccessDeniedException';
   }
 }
+
+export class InvalidOrExpiredExchangeCodeException extends UnauthorizedDomainException {
+  constructor() {
+    super(
+      'This login code is invalid, expired, or already used',
+      'AUTH_INVALID_EXCHANGE_CODE',
+    );
+    this.name = 'InvalidOrExpiredExchangeCodeException';
+  }
+}

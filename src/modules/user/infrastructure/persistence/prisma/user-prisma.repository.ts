@@ -51,6 +51,22 @@ export class UserPrismaRepository
     return UserMapper.toDomain(user);
   }
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    const user = await this.prismaService.user.findUnique({
+      where: { googleId },
+      include: { profile: true, roleRef: true },
+    });
+    return UserMapper.toDomain(user);
+  }
+
+  async findByFacebookId(facebookId: string): Promise<User | null> {
+    const user = await this.prismaService.user.findUnique({
+      where: { facebookId },
+      include: { profile: true, roleRef: true },
+    });
+    return UserMapper.toDomain(user);
+  }
+
   async existsByEmail(email: string): Promise<boolean> {
     const user = await this.prismaService.user.findUnique({
       where: { email },
@@ -70,6 +86,13 @@ export class UserPrismaRepository
           // `role` enum column to keep in sync.
           ...(data.role
             ? { roleRef: { connect: { name: data.role as any } } }
+            : {}),
+          // Guarded by `!== undefined` (not just truthy) so unrelated saves
+          // (verify-email, reset-password, profile update) never silently
+          // null out an already-linked social account.
+          ...(data.googleId !== undefined ? { googleId: data.googleId } : {}),
+          ...(data.facebookId !== undefined
+            ? { facebookId: data.facebookId }
             : {}),
           status: data.status as any,
           profile: data.profile
@@ -107,6 +130,8 @@ export class UserPrismaRepository
       data: {
         email: data.email!,
         password: data.password!,
+        googleId: data.googleId ?? undefined,
+        facebookId: data.facebookId ?? undefined,
         // roleId is resolved from the role name via the unique constraint on
         // Role.name, so callers here don't need to know the role's id.
         roleRef: { connect: { name: role } },

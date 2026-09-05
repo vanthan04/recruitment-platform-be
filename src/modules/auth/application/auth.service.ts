@@ -6,10 +6,14 @@ import * as crypto from 'crypto';
 import { hashToken } from '@/common/utils/token-hash.util';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
+import { IOauthLoginCodeRepositoryPort } from '@/modules/auth/application/ports/oauth-login-code-repository.port';
 import {
   InvalidRefreshTokenException,
   RefreshTokenAccessDeniedException,
+  InvalidOrExpiredExchangeCodeException,
 } from '@/modules/auth/domain/exceptions/auth.exceptions';
+import { SocialLoginCommand } from '@/modules/auth/application/commands/social-login.command';
+import { SocialProfile } from '@/common/strategies/google.strategy';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
 import { RegisterCommand } from '@/modules/auth/application/commands/register.command';
@@ -30,6 +34,7 @@ export class AuthService {
   constructor(
     private readonly userRepository: IAuthUserRepositoryPort,
     private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
+    private readonly oauthLoginCodeRepository: IOauthLoginCodeRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly commandBus: CommandBus,
@@ -42,6 +47,34 @@ export class AuthService {
 
   async login(dto: LoginRequestDto) {
     const user = await this.queryBus.execute(new LoginQuery(dto));
+
+    const tokens = await this.getTokens(user.id, user.email, user.role);
+    await this.storeRefreshToken(user.id, tokens.refresh_token);
+
+    return tokens;
+  }
+
+  /** Finds/links/creates the user for a validated Google/Facebook profile, returns a one-time exchange code — no JWT is minted here (see exchangeSocialCode). */
+  async socialLogin(profile: SocialProfile, requestedRole?: string) {
+    return this.commandBus.execute(
+      new SocialLoginCommand(profile, requestedRole),
+    );
+  }
+
+  /** Redeems a social-login exchange code for a real token pair — the only place a JWT is minted for a social login. */
+  async exchangeSocialCode(code: string) {
+    const codeHash = hashToken(code);
+    const stored =
+      await this.oauthLoginCodeRepository.findValidByHash(codeHash);
+    if (!stored) {
+      throw new InvalidOrExpiredExchangeCodeException();
+    }
+    await this.oauthLoginCodeRepository.markUsed(stored.id);
+
+    const user = await this.userRepository.findById(stored.userId);
+    if (!user) {
+      throw new InvalidOrExpiredExchangeCodeException();
+    }
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refresh_token);

@@ -6,6 +6,8 @@ import { Profile } from '@/modules/user/domain/entities/profile.entity';
 export class User extends BaseEntity {
   email: string;
   password?: string;
+  googleId: string | null;
+  facebookId: string | null;
   role: UserRole;
   status: UserStatus;
   companyId?: string | null;
@@ -14,6 +16,8 @@ export class User extends BaseEntity {
   constructor(partial: Partial<User>) {
     super();
     Object.assign(this, partial);
+    this.googleId = partial.googleId ?? null;
+    this.facebookId = partial.facebookId ?? null;
   }
 
   changeStatus(newStatus: UserStatus): void {

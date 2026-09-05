@@ -1,13 +1,17 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   HttpCode,
   HttpStatus,
   UseGuards,
   Req,
+  Res,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 import { AuthService } from '@/modules/auth/application/auth.service';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
@@ -16,14 +20,21 @@ import { VerifyEmailDto } from '@/modules/auth/presentation/dtos/verify-email.dt
 import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-password.dto';
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
+import { SocialExchangeDto } from '@/modules/auth/presentation/dtos/social-exchange.dto';
 import { ApiResponse } from '@/common/dtos/api-response';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { GoogleAuthGuard } from '@/common/guards/google-auth.guard';
+import { FacebookAuthGuard } from '@/common/guards/facebook-auth.guard';
+import { SocialProfile } from '@/common/strategies/google.strategy';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -107,5 +118,77 @@ export class AuthController {
   async refresh(@Body() dto: RefreshTokenDto) {
     const result = await this.authService.refreshTokens(dto.refreshToken);
     return ApiResponse.ok(result, 'Token refreshed successfully');
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Start Google login (redirects to Google)' })
+  googleAuth() {
+    // Never reached — GoogleAuthGuard redirects to Google's consent screen
+    // before the handler body would run.
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Google OAuth callback (redirects to frontend)' })
+  async googleCallback(
+    @Req()
+    req: { user: SocialProfile | { error: string }; query: { state?: string } },
+    @Res() res: Response,
+  ) {
+    return this.handleSocialCallback(req, res);
+  }
+
+  @Get('facebook')
+  @UseGuards(FacebookAuthGuard)
+  @ApiOperation({ summary: 'Start Facebook login (redirects to Facebook)' })
+  facebookAuth() {
+    // Never reached — FacebookAuthGuard redirects to Facebook's consent
+    // screen before the handler body would run.
+  }
+
+  @Get('facebook/callback')
+  @UseGuards(FacebookAuthGuard)
+  @ApiOperation({ summary: 'Facebook OAuth callback (redirects to frontend)' })
+  async facebookCallback(
+    @Req()
+    req: { user: SocialProfile | { error: string }; query: { state?: string } },
+    @Res() res: Response,
+  ) {
+    return this.handleSocialCallback(req, res);
+  }
+
+  @Post('social/exchange')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Exchange a social-login code for JWT tokens' })
+  async socialExchange(@Body() dto: SocialExchangeDto) {
+    const result = await this.authService.exchangeSocialCode(dto.code);
+    return ApiResponse.ok(result, 'Logged in successfully');
+  }
+
+  private async handleSocialCallback(
+    req: { user: SocialProfile | { error: string }; query: { state?: string } },
+    res: Response,
+  ) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    if ('error' in req.user) {
+      return res.redirect(
+        `${frontendUrl}/auth/callback?error=${req.user.error}`,
+      );
+    }
+
+    try {
+      const { code } = await this.authService.socialLogin(
+        req.user,
+        req.query.state,
+      );
+      return res.redirect(`${frontendUrl}/auth/callback?code=${code}`);
+    } catch {
+      // Never let a callback route return a raw JSON 500 into a full-page
+      // browser redirect — always land the user back on the frontend.
+      return res.redirect(`${frontendUrl}/auth/callback?error=OAUTH_FAILED`);
+    }
   }
 }

@@ -11,6 +11,8 @@ export class UserMapper {
       id: raw.id,
       email: raw.email,
       password: raw.password,
+      googleId: raw.googleId ?? null,
+      facebookId: raw.facebookId ?? null,
       role: raw.roleRef.name as UserRole,
       status: raw.status as UserStatus,
       companyId: raw.companyId ?? null,
