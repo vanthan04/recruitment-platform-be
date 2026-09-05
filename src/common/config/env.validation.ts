@@ -43,7 +43,10 @@ export const envValidationSchema = Joi.object({
   S3_BUCKET: Joi.string().required(),
   S3_ACCESS_KEY: Joi.string().required(),
   S3_SECRET_KEY: Joi.string().required(),
+  // Set both when pointing at an S3-compatible endpoint (LocalStack, MinIO);
+  // leave unset for real AWS S3.
   S3_ENDPOINT: Joi.string().optional(),
+  S3_FORCE_PATH_STYLE: Joi.boolean().default(false),
 
   // Max CV upload size in bytes (default 10MB)
   CV_MAX_FILE_SIZE: Joi.number().default(10 * 1024 * 1024),

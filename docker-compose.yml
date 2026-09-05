@@ -15,5 +15,32 @@ services:
       timeout: 5s
       retries: 10
 
+  # Simulates AWS locally. Only S3 is used today (CV storage); add more
+  # services to the SERVICES list below as the app starts using them
+  # (e.g. SERVICES: s3,ses,sqs). Point S3_ENDPOINT/S3_FORCE_PATH_STYLE at
+  # this container for local dev, then drop both when deploying to real AWS.
+  # Host port is 4567 (not the LocalStack default 4566) to avoid clashing
+  # with any other project's LocalStack container also running on this
+  # machine — the container still listens on 4566 internally.
+  localstack:
+    image: localstack/localstack:3
+    environment:
+      SERVICES: s3
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      DEFAULT_REGION: ${S3_REGION:-ap-southeast-1}
+      S3_BUCKET: ${S3_BUCKET:-recruitment-platform-local}
+    ports:
+      - "4567:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./docker/localstack/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
+  localstack_data:
