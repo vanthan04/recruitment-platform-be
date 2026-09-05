@@ -31,12 +31,6 @@ export class CreateCompanyDto {
   @IsOptional()
   website?: string;
 
-  @ApiPropertyOptional({ example: 'Information Technology' })
-  @IsString()
-  @IsOptional()
-  @MaxLength(200)
-  industry?: string;
-
   @ApiPropertyOptional({ enum: CompanySize })
   @IsEnum(CompanySize)
   @IsOptional()

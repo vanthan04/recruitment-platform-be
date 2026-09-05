@@ -10,7 +10,6 @@ export class CompanyResponseDto {
   logoUrl: string | null;
   description: string | null;
   website: string | null;
-  industry: string | null;
   size: CompanySize | null;
   address: string | null;
   ownerId: string;

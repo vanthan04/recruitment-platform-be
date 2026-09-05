@@ -63,7 +63,6 @@ export class CompanyController {
         page: query.page ?? 1,
         limit: query.limit ?? 10,
         keyword: query.keyword,
-        industry: query.industry,
       }),
     );
     return ApiResponse.ok(

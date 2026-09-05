@@ -16,7 +16,6 @@ export class Company extends BaseEntity {
   logoUrl: string | null;
   description: string | null;
   website: string | null;
-  industry: string | null;
   size: CompanySize | null;
   address: string | null;
   deletedAt: Date | null;
@@ -28,7 +27,6 @@ export class Company extends BaseEntity {
     this.logoUrl = partial.logoUrl ?? null;
     this.description = partial.description ?? null;
     this.website = partial.website ?? null;
-    this.industry = partial.industry ?? null;
     this.size = partial.size ?? null;
     this.address = partial.address ?? null;
     this.deletedAt = partial.deletedAt ?? null;
@@ -58,7 +56,6 @@ export class Company extends BaseEntity {
     logoUrl?: string | null;
     description?: string | null;
     website?: string | null;
-    industry?: string | null;
     size?: CompanySize | null;
     address?: string | null;
   }): void {
@@ -66,7 +63,6 @@ export class Company extends BaseEntity {
     if (data.logoUrl !== undefined) this.logoUrl = data.logoUrl;
     if (data.description !== undefined) this.description = data.description;
     if (data.website !== undefined) this.website = data.website;
-    if (data.industry !== undefined) this.industry = data.industry;
     if (data.size !== undefined) this.size = data.size;
     if (data.address !== undefined) this.address = data.address;
   }

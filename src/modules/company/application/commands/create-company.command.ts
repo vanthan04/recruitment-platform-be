@@ -13,7 +13,6 @@ export interface CreateCompanyInput {
   logoUrl?: string;
   description?: string;
   website?: string;
-  industry?: string;
   size?: CompanySize;
   address?: string;
 }
@@ -53,7 +52,6 @@ export class CreateCompanyHandler implements ICommandHandler<
       logoUrl: input.logoUrl ?? null,
       description: input.description ?? null,
       website: input.website ?? null,
-      industry: input.industry ?? null,
       size: input.size ?? null,
       address: input.address ?? null,
       ownerId,

@@ -11,7 +11,6 @@ export interface UpdateCompanyInput {
   logoUrl?: string;
   description?: string;
   website?: string;
-  industry?: string;
   size?: CompanySize;
   address?: string;
 }

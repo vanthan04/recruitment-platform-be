@@ -224,7 +224,6 @@ model Company {
   logoUrl     String?
   description String?
   website     String?
-  industry    String?
   size        CompanySize?
   companyType CompanyType?
   address     String?

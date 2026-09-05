@@ -70,13 +70,12 @@ describe('UpdateCompanyHandler', () => {
     const result = await handler.execute(
       new UpdateCompanyCommand('owner-1', 'company-1', {
         name: 'Acme Renamed',
-        industry: 'Fintech',
       }),
     );
 
     expect(result.name).toBe('Acme Renamed');
     expect(companyRepository.update).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Acme Renamed', industry: 'Fintech' }),
+      expect.objectContaining({ name: 'Acme Renamed' }),
     );
   });
 });

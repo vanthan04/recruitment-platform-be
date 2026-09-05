@@ -13,7 +13,6 @@ export class CompanyResponseMapper {
     dto.logoUrl = company.logoUrl;
     dto.description = company.description;
     dto.website = company.website;
-    dto.industry = company.industry;
     dto.size = company.size;
     dto.address = company.address;
     dto.ownerId = company.ownerId;

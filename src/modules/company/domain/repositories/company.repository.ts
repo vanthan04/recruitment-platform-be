@@ -13,7 +13,6 @@ export abstract class ICompanyRepository {
     page: number;
     limit: number;
     keyword?: string;
-    industry?: string;
   }): Promise<{ companies: Company[]; total: number }>;
   abstract save(company: Company): Promise<Company>;
   abstract update(company: Company): Promise<Company>;

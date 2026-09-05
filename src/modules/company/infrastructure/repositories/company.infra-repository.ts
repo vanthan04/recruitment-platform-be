@@ -33,20 +33,12 @@ export class CompanyInfraRepository implements ICompanyRepository {
     page: number;
     limit: number;
     keyword?: string;
-    industry?: string;
   }): Promise<{ companies: Company[]; total: number }> {
     const { skip, limit } = normalizePagination(params);
     const where: Prisma.CompanyWhereInput = { deletedAt: null };
 
     if (params.keyword) {
-      where.OR = [
-        { name: { contains: params.keyword, mode: 'insensitive' } },
-        { industry: { contains: params.keyword, mode: 'insensitive' } },
-      ];
-    }
-
-    if (params.industry) {
-      where.industry = { contains: params.industry, mode: 'insensitive' };
+      where.name = { contains: params.keyword, mode: 'insensitive' };
     }
 
     const { companies: raws, total } =

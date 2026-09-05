@@ -8,7 +8,6 @@ export interface ListCompaniesInput {
   page: number;
   limit: number;
   keyword?: string;
-  industry?: string;
 }
 
 export class ListCompaniesQuery {

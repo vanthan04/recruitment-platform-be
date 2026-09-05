@@ -22,7 +22,6 @@ describe('Company entity', () => {
       expect(company.logoUrl).toBeNull();
       expect(company.description).toBeNull();
       expect(company.website).toBeNull();
-      expect(company.industry).toBeNull();
       expect(company.size).toBeNull();
       expect(company.address).toBeNull();
       expect(company.deletedAt).toBeNull();
@@ -66,14 +65,12 @@ describe('Company entity', () => {
     it('only overwrites fields that are present in the patch', () => {
       const company = makeCompany({
         name: 'Old Name',
-        industry: 'Tech',
         address: '123 Main St',
       });
 
       company.updateDetails({ name: 'New Name' });
 
       expect(company.name).toBe('New Name');
-      expect(company.industry).toBe('Tech');
       expect(company.address).toBe('123 Main St');
     });
 

@@ -35,7 +35,6 @@ describe('ListCompaniesHandler', () => {
         page: 2,
         limit: 10,
         keyword: 'acme',
-        industry: 'Tech',
       }),
     );
 
@@ -43,7 +42,6 @@ describe('ListCompaniesHandler', () => {
       page: 2,
       limit: 10,
       keyword: 'acme',
-      industry: 'Tech',
     });
   });
 

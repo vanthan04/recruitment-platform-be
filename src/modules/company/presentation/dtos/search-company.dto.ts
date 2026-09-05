@@ -7,9 +7,4 @@ export class SearchCompanyDto extends PageOptionsDto {
   @IsString()
   @IsOptional()
   keyword?: string;
-
-  @ApiPropertyOptional({ example: 'Information Technology' })
-  @IsString()
-  @IsOptional()
-  industry?: string;
 }
