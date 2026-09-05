@@ -30,7 +30,7 @@ export class UserPrismaRepository
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.prismaService.user.findUnique({
       where: { email },
-      include: { profile: true },
+      include: { profile: true, roleRef: true },
     });
     return UserMapper.toDomain(user);
   }
@@ -38,7 +38,7 @@ export class UserPrismaRepository
   async findById(id: string): Promise<User | null> {
     const user = await this.prismaService.user.findUnique({
       where: { id },
-      include: { profile: true },
+      include: { profile: true, roleRef: true },
     });
     return UserMapper.toDomain(user);
   }
@@ -46,7 +46,7 @@ export class UserPrismaRepository
   async findByIdWithProfile(id: string): Promise<User | null> {
     const user = await this.prismaService.user.findUnique({
       where: { id },
-      include: { profile: true },
+      include: { profile: true, roleRef: true },
     });
     return UserMapper.toDomain(user);
   }
@@ -67,7 +67,11 @@ export class UserPrismaRepository
           email: data.email,
           password: data.password,
           verifyCode: data.verifyCode,
-          role: data.role as any,
+          // Role changes go through roleRef (the FK) — there is no more
+          // `role` enum column to keep in sync.
+          ...(data.role
+            ? { roleRef: { connect: { name: data.role as any } } }
+            : {}),
           status: data.status as any,
           profile: data.profile
             ? {
@@ -94,7 +98,7 @@ export class UserPrismaRepository
               }
             : undefined,
         },
-        include: { profile: true },
+        include: { profile: true, roleRef: true },
       });
       return UserMapper.toDomain(updated)!;
     }
@@ -105,13 +109,8 @@ export class UserPrismaRepository
         email: data.email!,
         password: data.password!,
         verifyCode: data.verifyCode,
-        // `role` stays the operational field the rest of the app reads/writes;
-        // roleRef/roleId is the RBAC join, connected by the role's unique name
-        // so callers here don't need to know its id. A DB trigger additionally
-        // keeps roleId in sync whenever `role` is updated later (see the
-        // add_rbac_system migration), so this connect only has to be correct
-        // at creation time.
-        role,
+        // roleId is resolved from the role name via the unique constraint on
+        // Role.name, so callers here don't need to know the role's id.
         roleRef: { connect: { name: role } },
         status: (data.status as any) || UserStatus.PENDING,
         profile: {
@@ -124,7 +123,7 @@ export class UserPrismaRepository
           },
         },
       },
-      include: { profile: true },
+      include: { profile: true, roleRef: true },
     });
     return UserMapper.toDomain(created)!;
   }
@@ -154,7 +153,7 @@ export class UserPrismaRepository
   async findByVerifyCode(code: string): Promise<User | null> {
     const user = await this.prismaService.user.findFirst({
       where: { verifyCode: code },
-      include: { profile: true },
+      include: { profile: true, roleRef: true },
     });
     return UserMapper.toDomain(user);
   }
@@ -178,7 +177,7 @@ export class UserPrismaRepository
       this.prismaService.user.findMany({
         skip: normalized.skip,
         take: normalized.limit,
-        include: { profile: true },
+        include: { profile: true, roleRef: true },
         orderBy: { createdAt: 'desc' },
       }),
       this.prismaService.user.count(),

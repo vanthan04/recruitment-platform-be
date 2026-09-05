@@ -12,7 +12,7 @@ export class UserMapper {
       email: raw.email,
       password: raw.password,
       verifyCode: raw.verifyCode || undefined,
-      role: raw.role as UserRole,
+      role: raw.roleRef.name as UserRole,
       status: raw.status as UserStatus,
       companyId: raw.companyId ?? null,
       profile: raw.profile ? ProfileMapper.toDomain(raw.profile)! : undefined,

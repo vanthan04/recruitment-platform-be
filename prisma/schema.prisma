@@ -10,12 +10,6 @@ datasource db {
 // Enums
 // ─────────────────────────────────────────────
 
-enum UserRole {
-  CANDIDATE
-  RECRUITER
-  ADMIN
-}
-
 enum UserStatus {
   PENDING
   ACTIVE
@@ -180,11 +174,9 @@ model User {
   // one or both providers, and a provider id never resolves to two users.
   googleId     String?    @unique
   facebookId   String?    @unique
-  // Legacy enum column, kept in sync with roleId by a DB trigger (see migration).
-  // Application code still reads/writes this column so the existing auth flow
-  // (JWT payload, register, admin role change) needs no changes. roleId/roleRef
-  // is the DB-driven RBAC join used by PermissionGuard and the RBAC admin API.
-  role         UserRole   @default(CANDIDATE)
+  // roleId/roleRef is the single source of truth for a user's role (the
+  // former legacy `role` enum column + DB trigger have been removed —
+  // application code derives the role name from `roleRef.name` instead).
   roleRef      Role       @relation(fields: [roleId], references: [id])
   roleId       String
   status       UserStatus @default(PENDING)
