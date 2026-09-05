@@ -1,0 +1,19 @@
+-- Company.ownerId had no DB-level uniqueness — the "1 company per recruiter"
+-- rule (CreateCompanyHandler.execute: findByOwnerId, then create) was enforced
+-- only at the application layer, which has a check-then-insert race window:
+-- two near-simultaneous POST /companies from the same recruiter could both
+-- pass the check and create two companies (User.companyId ends up pointing
+-- at whichever save wins, leaving the other company orphaned but live).
+--
+-- A plain `@unique` on ownerId would be wrong: Company supports soft-delete
+-- (deletedAt) and the app intentionally allows creating a new company after
+-- the old one is soft-deleted (findByOwnerId filters deletedAt: null).
+-- Prisma's schema DSL cannot express a partial unique index, so this is raw
+-- SQL — see the comment on `Company.ownerId` in schema.prisma pointing here.
+--
+-- IMPORTANT: `prisma migrate dev` diffs the *shadow DB it rebuilds from
+-- migration history* against schema.prisma, which doesn't know this index
+-- exists. Any future migration that touches the `companies` table should be
+-- created with `--create-only` and reviewed to confirm it doesn't silently
+-- DROP this index before applying it.
+CREATE UNIQUE INDEX "companies_owner_id_active_unique" ON "companies" ("ownerId") WHERE "deletedAt" IS NULL;

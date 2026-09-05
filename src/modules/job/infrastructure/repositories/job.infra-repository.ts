@@ -65,6 +65,13 @@ export class JobInfraRepository implements IJobRepository {
     const where: Prisma.JobWhereInput = {
       deletedAt: null,
       status: 'OPEN', // Only show open jobs in general search
+      // A job past its expiresAt is only actually closed by the hourly
+      // close-expired-jobs cron — without this, an expired-but-still-OPEN
+      // job stays visible in search for up to an hour and candidates hit
+      // JobPostingExpiredException when they try to apply to it. Kept under
+      // `AND` (not `where.OR`) because the keyword branch below reassigns
+      // `where.OR` for its own purposes.
+      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }],
     };
 
     if (params.keyword) {

@@ -41,6 +41,9 @@ export class InterviewSchedule extends BaseEntity {
     if (this.status === InterviewStatus.CANCELLED) {
       throw new CannotRescheduleCancelledInterviewException();
     }
+    if (!ACTIONABLE_STATUSES.includes(this.status)) {
+      throw new InterviewNotActionableException('rescheduled');
+    }
     if (scheduledAt.getTime() <= Date.now()) {
       throw new InterviewTimeInPastException();
     }
@@ -57,6 +60,9 @@ export class InterviewSchedule extends BaseEntity {
   cancel(): void {
     if (this.status === InterviewStatus.CANCELLED) {
       throw new InterviewAlreadyCancelledException();
+    }
+    if (!ACTIONABLE_STATUSES.includes(this.status)) {
+      throw new InterviewNotActionableException('cancelled');
     }
     this.status = InterviewStatus.CANCELLED;
   }

@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
+import { Prisma } from '@prisma/client';
 import { ApiResponse } from '@/common/dtos/api-response';
 import {
   DomainException,
@@ -54,6 +55,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = this.mapDomainExceptionToStatus(exception);
       message = exception.message;
       code = exception.code;
+    } else if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code === 'P2002'
+    ) {
+      // Unique-constraint violation that reached the DB despite an
+      // application-level check-then-insert (e.g. two near-simultaneous
+      // requests racing past a check) — surface as a clean 409 instead of a
+      // raw 500, without needing every call site to guess which race it hit.
+      status = HttpStatus.CONFLICT;
+      code = 'DUPLICATE_ENTITY';
+      const target = exception.meta?.target;
+      message = Array.isArray(target)
+        ? `A record with this ${target.join(', ')} already exists`
+        : 'A record with this value already exists';
     } else if (exception instanceof Error) {
       message = exception.message;
     }

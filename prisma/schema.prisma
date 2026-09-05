@@ -230,6 +230,11 @@ model Company {
 
   // Relations
   owner       User         @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  // "1 active company per recruiter" is enforced by a partial unique index
+  // (`ownerId` WHERE `deletedAt IS NULL`), not a plain `@unique` here — a
+  // recruiter is allowed to create a new company after soft-deleting the
+  // old one, and Prisma's DSL can't express that condition. See raw-SQL
+  // migration 20260905090000_company_owner_active_unique.
   ownerId     String
   recruiters  User[]
   jobs        Job[]

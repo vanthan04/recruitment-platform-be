@@ -62,6 +62,22 @@ describe('InterviewSchedule entity', () => {
         interview.reschedule(new Date(Date.now() + 1000 * 60 * 60)),
       ).toThrow(BusinessRuleViolationException);
     });
+
+    it('throws when rescheduling a completed interview', () => {
+      const interview = makeInterview();
+      interview.complete();
+      expect(() =>
+        interview.reschedule(new Date(Date.now() + 1000 * 60 * 60)),
+      ).toThrow(BusinessRuleViolationException);
+    });
+
+    it('throws when rescheduling a no-show interview', () => {
+      const interview = makeInterview();
+      interview.markNoShow();
+      expect(() =>
+        interview.reschedule(new Date(Date.now() + 1000 * 60 * 60)),
+      ).toThrow(BusinessRuleViolationException);
+    });
   });
 
   describe('cancel', () => {
@@ -74,6 +90,18 @@ describe('InterviewSchedule entity', () => {
     it('throws when cancelling an already-cancelled interview', () => {
       const interview = makeInterview();
       interview.cancel();
+      expect(() => interview.cancel()).toThrow(BusinessRuleViolationException);
+    });
+
+    it('throws when cancelling a completed interview', () => {
+      const interview = makeInterview();
+      interview.complete();
+      expect(() => interview.cancel()).toThrow(BusinessRuleViolationException);
+    });
+
+    it('throws when cancelling a no-show interview', () => {
+      const interview = makeInterview();
+      interview.markNoShow();
       expect(() => interview.cancel()).toThrow(BusinessRuleViolationException);
     });
   });
