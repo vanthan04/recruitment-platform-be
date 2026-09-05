@@ -80,6 +80,41 @@ const CATEGORIES = [
   { name: 'Hỗ trợ kỹ thuật / IT Support', slug: 'ho-tro-ky-thuat-it-support' },
 ] as const;
 
+// A starter taxonomy, not exhaustive — admins can add more via
+// POST /skills. Covers the most commonly listed skills across the
+// categories above so a fresh environment isn't launched with zero skills
+// (the skill<->job many-to-many is otherwise unusable until someone seeds
+// or manually creates rows).
+const SKILLS = [
+  { name: 'JavaScript', slug: 'javascript' },
+  { name: 'TypeScript', slug: 'typescript' },
+  { name: 'React', slug: 'react' },
+  { name: 'Next.js', slug: 'next-js' },
+  { name: 'Vue.js', slug: 'vue-js' },
+  { name: 'Node.js', slug: 'node-js' },
+  { name: 'NestJS', slug: 'nestjs' },
+  { name: 'Java', slug: 'java' },
+  { name: 'Spring Boot', slug: 'spring-boot' },
+  { name: 'Python', slug: 'python' },
+  { name: 'PHP', slug: 'php' },
+  { name: 'Golang', slug: 'golang' },
+  { name: '.NET / C#', slug: 'dotnet-csharp' },
+  { name: 'SQL', slug: 'sql' },
+  { name: 'PostgreSQL', slug: 'postgresql' },
+  { name: 'MySQL', slug: 'mysql' },
+  { name: 'MongoDB', slug: 'mongodb' },
+  { name: 'Docker', slug: 'docker' },
+  { name: 'Kubernetes', slug: 'kubernetes' },
+  { name: 'AWS', slug: 'aws' },
+  { name: 'CI/CD', slug: 'ci-cd' },
+  { name: 'React Native', slug: 'react-native' },
+  { name: 'Flutter', slug: 'flutter' },
+  { name: 'iOS (Swift)', slug: 'ios-swift' },
+  { name: 'Android (Kotlin)', slug: 'android-kotlin' },
+  { name: 'Figma', slug: 'figma' },
+  { name: 'Automation Testing', slug: 'automation-testing' },
+] as const;
+
 const ROLE_PERMISSIONS: Record<(typeof ROLES)[number]['name'], string[]> = {
   ADMIN: [
     'category:create',
@@ -103,6 +138,10 @@ const ROLE_PERMISSIONS: Record<(typeof ROLES)[number]['name'], string[]> = {
     'company:update',
     'company:delete',
     'application:read',
+    // Not "recruiter reads own applications" (recruiters don't have
+    // applications) — granted here so GET /job-applications/:id/history
+    // works for recruiters too; see the route's decorator comment.
+    'application:read:own',
     'application:update',
     'conversation:create',
     'interview:create',
@@ -176,6 +215,17 @@ async function main() {
   }
 
   console.log('Category seed complete.');
+
+  console.log('Seeding skills...');
+  for (const skill of SKILLS) {
+    await prisma.skill.upsert({
+      where: { slug: skill.slug },
+      update: { name: skill.name },
+      create: skill,
+    });
+  }
+
+  console.log('Skill seed complete.');
 }
 
 main()

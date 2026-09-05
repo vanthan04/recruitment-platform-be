@@ -89,7 +89,12 @@ export class JobApplicationController {
   }
 
   @Get(':id/history')
-  @RequirePermissions(Permission.APPLICATION_READ)
+  // Both roles can call this: gated on APPLICATION_READ_OWN (not
+  // APPLICATION_READ, which is recruiter-only "read applications for jobs I
+  // own") because the handler itself allows either the candidate who owns
+  // the application or the recruiter who owns the job — RECRUITER is granted
+  // APPLICATION_READ_OWN too (see prisma/seed.ts) specifically for this route.
+  @RequirePermissions(Permission.APPLICATION_READ_OWN)
   @ApiOperation({
     summary:
       'View the status change history of an application (Candidate owner or Recruiter owner only)',
