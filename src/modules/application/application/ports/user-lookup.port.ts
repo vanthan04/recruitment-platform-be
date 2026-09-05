@@ -12,4 +12,8 @@ export abstract class IApplicationUserLookupPort {
   abstract findById(
     userId: string,
   ): Promise<ApplicationUserLookupResult | null>;
+  /** One batched lookup instead of N — used by the recruiter's "applications for this job" list. */
+  abstract findManyByIds(
+    userIds: string[],
+  ): Promise<Map<string, ApplicationUserLookupResult>>;
 }

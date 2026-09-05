@@ -7,11 +7,21 @@ import { ReferencedJobNotFoundException } from '@/modules/application/domain/exc
 import { ensureOwner } from '@/common/utils/ownership.util';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
+import { normalizePagination } from '@/common/utils/pagination.util';
+
+export interface ListApplicationsByJobResult {
+  applications: ApplicationResponseDto[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export class ListApplicationsByJobQuery {
   constructor(
     public readonly recruiterId: string,
     public readonly jobId: string,
+    public readonly page: number = 1,
+    public readonly limit: number = 20,
   ) {}
 }
 
@@ -19,7 +29,7 @@ export class ListApplicationsByJobQuery {
 @QueryHandler(ListApplicationsByJobQuery)
 export class ListApplicationsByJobHandler implements IQueryHandler<
   ListApplicationsByJobQuery,
-  ApplicationResponseDto[]
+  ListApplicationsByJobResult
 > {
   constructor(
     private readonly applicationRepository: IJobApplicationRepository,
@@ -30,7 +40,9 @@ export class ListApplicationsByJobHandler implements IQueryHandler<
   async execute({
     recruiterId,
     jobId,
-  }: ListApplicationsByJobQuery): Promise<ApplicationResponseDto[]> {
+    page,
+    limit,
+  }: ListApplicationsByJobQuery): Promise<ListApplicationsByJobResult> {
     const job = await this.jobLookupPort.findById(jobId);
     if (!job) throw new ReferencedJobNotFoundException(jobId);
 
@@ -41,16 +53,31 @@ export class ListApplicationsByJobHandler implements IQueryHandler<
       'APPLICATION_LIST_ACCESS_DENIED',
     );
 
-    const apps = await this.applicationRepository.findAllByJobId(jobId);
+    const normalized = normalizePagination({ page, limit });
+    const { applications: apps, total } =
+      await this.applicationRepository.findAllByJobId(jobId, {
+        skip: normalized.skip,
+        take: normalized.limit,
+      });
     const dtos = ApplicationResponseMapper.toDtoList(apps);
 
-    await Promise.all(
-      dtos.map(async (dto) => {
-        const candidate = await this.userLookupPort.findById(dto.userId);
-        if (candidate) dto.candidate = candidate;
-      }),
+    // One batched query for every candidate on this page, instead of one
+    // query per application — a popular posting can have thousands of
+    // applicants (now bounded per-page anyway, but N+1 within a single page
+    // of `limit` is still N round trips saved for N-1).
+    const candidates = await this.userLookupPort.findManyByIds(
+      dtos.map((dto) => dto.userId),
     );
+    for (const dto of dtos) {
+      const candidate = candidates.get(dto.userId);
+      if (candidate) dto.candidate = candidate;
+    }
 
-    return dtos;
+    return {
+      applications: dtos,
+      total,
+      page: normalized.page,
+      limit: normalized.limit,
+    };
   }
 }

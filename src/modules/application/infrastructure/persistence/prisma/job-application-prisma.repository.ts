@@ -19,15 +19,21 @@ export class JobApplicationPrismaRepository {
     });
   }
 
-  async findAllByJobId(jobId: string) {
+  async findAllByJobId(jobId: string, params: { skip: number; take: number }) {
     // No `include` here on purpose — JobApplicationMapper.toDomain only ever
     // reads the JobApplication's own scalar columns. Candidate/CV summaries
     // for the recruiter view are fetched separately via ports
     // (IApplicationUserLookupPort etc.), not a cross-module Prisma join.
-    return this.prisma.jobApplication.findMany({
-      where: { jobId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [applications, total] = await Promise.all([
+      this.prisma.jobApplication.findMany({
+        where: { jobId },
+        orderBy: { createdAt: 'desc' },
+        skip: params.skip,
+        take: params.take,
+      }),
+      this.prisma.jobApplication.count({ where: { jobId } }),
+    ]);
+    return { applications, total };
   }
 
   async findAllByUserId(userId: string) {

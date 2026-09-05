@@ -51,6 +51,15 @@ export class UserPrismaRepository
     return UserMapper.toDomain(user);
   }
 
+  async findManyByIdsWithProfile(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    const users = await this.prismaService.user.findMany({
+      where: { id: { in: ids } },
+      include: { profile: true, roleRef: true },
+    });
+    return users.map((u) => UserMapper.toDomain(u)!);
+  }
+
   async findByGoogleId(googleId: string): Promise<User | null> {
     const user = await this.prismaService.user.findUnique({
       where: { googleId },

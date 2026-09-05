@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -26,6 +27,7 @@ import { GetApplicationStatusHistoryQuery } from '@/modules/application/applicat
 
 import { ApplyJobDto } from '@/modules/application/presentation/dtos/apply-job.dto';
 import { UpdateApplicationStatusDto } from '@/modules/application/presentation/dtos/update-application-status.dto';
+import { PageOptionsDto } from '@/common/dtos/page-options.dto';
 
 @ApiTags('job-applications')
 @ApiBearerAuth()
@@ -65,11 +67,21 @@ export class JobApplicationController {
   async listByJob(
     @GetMe('id') recruiterId: string,
     @Param('jobId') jobId: string,
+    @Query() pageOptions: PageOptionsDto,
   ) {
     const result = await this.queryBus.execute(
-      new ListApplicationsByJobQuery(recruiterId, jobId),
+      new ListApplicationsByJobQuery(
+        recruiterId,
+        jobId,
+        pageOptions.page,
+        pageOptions.limit,
+      ),
     );
-    return ApiResponse.ok(result, 'Applications retrieved successfully');
+    return ApiResponse.ok(
+      result.applications,
+      'Applications retrieved successfully',
+      { total: result.total, page: result.page, limit: result.limit },
+    );
   }
 
   @Get('job/:jobId/stats')

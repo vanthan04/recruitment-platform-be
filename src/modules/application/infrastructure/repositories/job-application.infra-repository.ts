@@ -26,9 +26,16 @@ export class JobApplicationInfraRepository implements IJobApplicationRepository 
     return JobApplicationMapper.toDomain(raw);
   }
 
-  async findAllByJobId(jobId: string): Promise<JobApplication[]> {
-    const raws = await this.applicationPrisma.findAllByJobId(jobId);
-    return raws.map((r) => JobApplicationMapper.toDomain(r)!);
+  async findAllByJobId(
+    jobId: string,
+    params: { skip: number; take: number },
+  ): Promise<{ applications: JobApplication[]; total: number }> {
+    const { applications: raws, total } =
+      await this.applicationPrisma.findAllByJobId(jobId, params);
+    return {
+      applications: raws.map((r) => JobApplicationMapper.toDomain(r)!),
+      total,
+    };
   }
 
   async findAllByUserId(userId: string): Promise<JobApplication[]> {
