@@ -4,9 +4,6 @@ import { CompanyController } from '@/modules/company/presentation/controllers/co
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanyInfraRepository } from '@/modules/company/infrastructure/repositories/company.infra-repository';
 import { CompanyPrismaRepository } from '@/modules/company/infrastructure/persistence/prisma/company-prisma.repository';
-import { UserModule } from '@/modules/user/user.module';
-import { IUserCompanyLinkPort } from '@/modules/company/application/ports/user-company-link.port';
-import { UserCompanyLinkAdapter } from '@/modules/company/infrastructure/adapters/user-company-link.adapter';
 
 import { CreateCompanyHandler } from '@/modules/company/application/commands/create-company.command';
 import { UpdateCompanyHandler } from '@/modules/company/application/commands/update-company.command';
@@ -15,17 +12,13 @@ import { GetCompanyHandler } from '@/modules/company/application/queries/get-com
 import { ListCompaniesHandler } from '@/modules/company/application/queries/list-companies.query';
 
 @Module({
-  imports: [CqrsModule, UserModule],
+  imports: [CqrsModule],
   controllers: [CompanyController],
   providers: [
     CompanyPrismaRepository,
     {
       provide: ICompanyRepository,
       useClass: CompanyInfraRepository,
-    },
-    {
-      provide: IUserCompanyLinkPort,
-      useClass: UserCompanyLinkAdapter,
     },
     CreateCompanyHandler,
     UpdateCompanyHandler,

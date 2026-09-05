@@ -7,7 +7,12 @@ import { IInterviewApplicationLookupPort } from '@/modules/interview/application
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
 import { IInterviewUserLookupPort } from '@/modules/interview/application/ports/user-lookup.port';
 import { IInterviewMailPort } from '@/modules/interview/application/ports/mail.port';
-import { InterviewApplicationNotInterviewableException } from '@/modules/interview/domain/exceptions/interview.exceptions';
+import { InterviewSchedule } from '@/modules/interview/domain/entities/interview-schedule.entity';
+import { InterviewStatus } from '@/modules/interview/domain/value-objects/interview-status.vo';
+import {
+  InterviewApplicationNotInterviewableException,
+  InterviewAlreadyScheduledException,
+} from '@/modules/interview/domain/exceptions/interview.exceptions';
 
 describe('ScheduleInterviewHandler', () => {
   let interviewRepository: jest.Mocked<IInterviewScheduleRepository>;
@@ -20,7 +25,7 @@ describe('ScheduleInterviewHandler', () => {
   beforeEach(() => {
     interviewRepository = {
       findById: jest.fn(),
-      findByApplicationId: jest.fn(),
+      findByApplicationId: jest.fn().mockResolvedValue([]),
       save: jest.fn((i) => Promise.resolve(i)),
       update: jest.fn((i) => Promise.resolve(i)),
     };
@@ -83,6 +88,104 @@ describe('ScheduleInterviewHandler', () => {
       }),
     );
 
+    expect(interviewRepository.save).toHaveBeenCalled();
+  });
+
+  it('rejects scheduling a second active interview for the same application', async () => {
+    applicationLookupPort.findById.mockResolvedValue({
+      id: 'app-1',
+      userId: 'candidate-1',
+      jobId: 'job-1',
+      status: 'SHORTLISTED',
+    });
+    jobLookupPort.findById.mockResolvedValue({
+      id: 'job-1',
+      title: 'Backend Developer',
+      postedById: 'recruiter-1',
+    });
+    interviewRepository.findByApplicationId.mockResolvedValue([
+      new InterviewSchedule({
+        jobApplicationId: 'app-1',
+        scheduledAt: new Date(Date.now() + 3600000),
+        location: 'Office',
+        status: InterviewStatus.SCHEDULED,
+        createdById: 'recruiter-1',
+      }),
+    ]);
+
+    await expect(
+      handler.execute(
+        new ScheduleInterviewCommand('recruiter-1', {
+          jobApplicationId: 'app-1',
+          scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+          location: 'Office',
+        }),
+      ),
+    ).rejects.toThrow(InterviewAlreadyScheduledException);
+    expect(interviewRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('allows scheduling when the only prior interview for this application was cancelled', async () => {
+    applicationLookupPort.findById.mockResolvedValue({
+      id: 'app-1',
+      userId: 'candidate-1',
+      jobId: 'job-1',
+      status: 'SHORTLISTED',
+    });
+    jobLookupPort.findById.mockResolvedValue({
+      id: 'job-1',
+      title: 'Backend Developer',
+      postedById: 'recruiter-1',
+    });
+    interviewRepository.findByApplicationId.mockResolvedValue([
+      new InterviewSchedule({
+        jobApplicationId: 'app-1',
+        scheduledAt: new Date(Date.now() + 3600000),
+        location: 'Office',
+        status: InterviewStatus.CANCELLED,
+        createdById: 'recruiter-1',
+      }),
+    ]);
+
+    await handler.execute(
+      new ScheduleInterviewCommand('recruiter-1', {
+        jobApplicationId: 'app-1',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        location: 'Office',
+      }),
+    );
+
+    expect(interviewRepository.save).toHaveBeenCalled();
+  });
+
+  it('still returns the created interview when notifying the candidate by email fails', async () => {
+    applicationLookupPort.findById.mockResolvedValue({
+      id: 'app-1',
+      userId: 'candidate-1',
+      jobId: 'job-1',
+      status: 'SHORTLISTED',
+    });
+    jobLookupPort.findById.mockResolvedValue({
+      id: 'job-1',
+      title: 'Backend Developer',
+      postedById: 'recruiter-1',
+    });
+    userLookupPort.findById.mockResolvedValue({
+      id: 'candidate-1',
+      email: 'candidate@example.com',
+      fullName: 'Candidate',
+    });
+    mailPort.sendEmail.mockRejectedValue(new Error('SMTP timeout'));
+
+    const result = await handler.execute(
+      new ScheduleInterviewCommand('recruiter-1', {
+        jobApplicationId: 'app-1',
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        location: 'Office',
+      }),
+    );
+
+    expect(result).toBeDefined();
     expect(interviewRepository.save).toHaveBeenCalled();
   });
 });

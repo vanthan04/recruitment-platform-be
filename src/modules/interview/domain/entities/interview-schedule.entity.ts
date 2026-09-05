@@ -83,6 +83,11 @@ export class InterviewSchedule extends BaseEntity {
     this.status = InterviewStatus.NO_SHOW;
   }
 
+  /** SCHEDULED or RESCHEDULED — still pending, as opposed to a terminal outcome. */
+  isActive(): boolean {
+    return ACTIONABLE_STATUSES.includes(this.status);
+  }
+
   private ensureLocationOrMeetingLink(): void {
     if (!this.location && !this.meetingLink) {
       throw new InterviewLocationOrMeetingLinkRequiredException();

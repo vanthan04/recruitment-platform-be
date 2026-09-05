@@ -54,6 +54,25 @@ export class CompanyPrismaRepository {
     return this.prisma.company.create({ data });
   }
 
+  /**
+   * Creates the company and links it to its owner (`User.companyId` — what
+   * job-creation eligibility actually checks, not `Company.ownerId`) in one
+   * transaction. Without this, a failure between the two writes can leave a
+   * recruiter owning a Company row with no `companyId` on their own User
+   * row — unable to post jobs, and unable to retry `POST /companies` either
+   * since `findByOwnerId` would already find the orphaned company.
+   */
+  async createWithOwnerLink(data: any, ownerId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const company = await tx.company.create({ data });
+      await tx.user.update({
+        where: { id: ownerId },
+        data: { companyId: company.id },
+      });
+      return company;
+    });
+  }
+
   async update(id: string, data: any) {
     return this.prisma.company.update({
       where: { id },

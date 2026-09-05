@@ -107,14 +107,11 @@ export class CreateJobHandler implements ICommandHandler<
     // Auto-open the job on creation
     job.open();
 
-    const saved = await this.jobRepository.save(job);
+    const saved = await this.jobRepository.save(
+      job,
+      skillIds.length > 0 ? skillIds : undefined,
+    );
 
-    if (skillIds.length > 0) {
-      await this.jobRepository.setSkills(saved.id, skillIds);
-    }
-
-    const final =
-      skillIds.length > 0 ? await this.jobRepository.findById(saved.id) : saved;
-    return JobResponseMapper.toDto(final!);
+    return JobResponseMapper.toDto(saved);
   }
 }

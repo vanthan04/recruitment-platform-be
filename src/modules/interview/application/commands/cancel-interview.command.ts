@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IInterviewScheduleRepository } from '@/modules/interview/domain/repositories/interview-schedule.repository';
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
@@ -29,6 +29,8 @@ export class CancelInterviewHandler implements ICommandHandler<
   CancelInterviewCommand,
   InterviewResponseDto
 > {
+  private readonly logger = new Logger(CancelInterviewHandler.name);
+
   constructor(
     private readonly interviewRepository: IInterviewScheduleRepository,
     private readonly applicationLookupPort: IInterviewApplicationLookupPort,
@@ -68,11 +70,18 @@ export class CancelInterviewHandler implements ICommandHandler<
 
     const candidate = await this.userLookupPort.findById(application.userId);
     if (candidate) {
-      const { subject, html } = buildInterviewEmail('cancelled', {
-        jobTitle: job.title,
-        scheduledAt: saved.scheduledAt,
-      });
-      await this.mailPort.sendEmail({ to: candidate.email, subject, html });
+      try {
+        const { subject, html } = buildInterviewEmail('cancelled', {
+          jobTitle: job.title,
+          scheduledAt: saved.scheduledAt,
+        });
+        await this.mailPort.sendEmail({ to: candidate.email, subject, html });
+      } catch (err) {
+        this.logger.error(
+          `Failed to email candidate ${candidate.email} about interview ${saved.id}`,
+          err instanceof Error ? err.stack : err,
+        );
+      }
     }
 
     return InterviewResponseMapper.toDto(saved);

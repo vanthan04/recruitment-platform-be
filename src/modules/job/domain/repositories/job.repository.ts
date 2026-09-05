@@ -29,9 +29,11 @@ export abstract class IJobRepository {
   }): Promise<{ jobs: Job[]; total: number }>;
   abstract findExpiredOpenJobs(): Promise<Job[]>;
   abstract incrementViewCount(id: string): Promise<void>;
-  abstract save(job: Job): Promise<Job>;
-  abstract update(job: Job): Promise<Job>;
+  /**
+   * `skillIds`, when provided, replaces the job's skill tags in the same
+   * transaction as the job write itself — omit it to leave skills untouched.
+   */
+  abstract save(job: Job, skillIds?: string[]): Promise<Job>;
+  abstract update(job: Job, skillIds?: string[]): Promise<Job>;
   abstract delete(id: string): Promise<void>;
-  /** Full-replace the job's skill assignments (no-op for an omitted/undefined list at call sites). */
-  abstract setSkills(jobId: string, skillIds: string[]): Promise<void>;
 }

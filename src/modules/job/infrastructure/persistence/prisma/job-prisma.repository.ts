@@ -45,14 +45,39 @@ export class JobPrismaRepository {
     });
   }
 
-  async create(data: any) {
-    return this.prisma.job.create({ data });
+  async create(data: any, skillIds?: string[]) {
+    if (skillIds === undefined) {
+      return this.prisma.job.create({ data });
+    }
+    // Job row + its skill tags land in one transaction — otherwise a failure
+    // between the two writes leaves a job whose skills don't match what the
+    // create request actually asked for, with no rollback.
+    const uniqueIds = [...new Set(skillIds)];
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.job.create({ data });
+      if (uniqueIds.length > 0) {
+        await tx.jobSkill.createMany({
+          data: uniqueIds.map((skillId) => ({ jobId: job.id, skillId })),
+        });
+      }
+      return job;
+    });
   }
 
-  async update(id: string, data: any) {
-    return this.prisma.job.update({
-      where: { id },
-      data,
+  async update(id: string, data: any, skillIds?: string[]) {
+    if (skillIds === undefined) {
+      return this.prisma.job.update({ where: { id }, data });
+    }
+    const uniqueIds = [...new Set(skillIds)];
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.job.update({ where: { id }, data });
+      await tx.jobSkill.deleteMany({ where: { jobId: id } });
+      if (uniqueIds.length > 0) {
+        await tx.jobSkill.createMany({
+          data: uniqueIds.map((skillId) => ({ jobId: id, skillId })),
+        });
+      }
+      return job;
     });
   }
 
@@ -73,20 +98,5 @@ export class JobPrismaRepository {
       where: { jobId: { in: jobIds } },
       select: { jobId: true, skillId: true },
     });
-  }
-
-  /** Full-replace a job's skill assignments. */
-  async setSkills(jobId: string, skillIds: string[]) {
-    const uniqueIds = [...new Set(skillIds)];
-    await this.prisma.$transaction([
-      this.prisma.jobSkill.deleteMany({ where: { jobId } }),
-      ...(uniqueIds.length > 0
-        ? [
-            this.prisma.jobSkill.createMany({
-              data: uniqueIds.map((skillId) => ({ jobId, skillId })),
-            }),
-          ]
-        : []),
-    ]);
   }
 }

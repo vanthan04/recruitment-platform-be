@@ -175,16 +175,16 @@ export class JobInfraRepository implements IJobRepository {
     return raws.map((r) => JobMapper.toDomain(r)!);
   }
 
-  async save(job: Job): Promise<Job> {
+  async save(job: Job, skillIds?: string[]): Promise<Job> {
     const data = JobMapper.toPersistence(job);
-    const raw = await this.jobPrisma.create(data);
+    const raw = await this.jobPrisma.create(data, skillIds);
     const [enriched] = await this.attachSummaries([JobMapper.toDomain(raw)!]);
     return enriched;
   }
 
-  async update(job: Job): Promise<Job> {
+  async update(job: Job, skillIds?: string[]): Promise<Job> {
     const data = JobMapper.toPersistence(job);
-    const raw = await this.jobPrisma.update(job.id, data);
+    const raw = await this.jobPrisma.update(job.id, data, skillIds);
     const [enriched] = await this.attachSummaries([JobMapper.toDomain(raw)!]);
     return enriched;
   }
@@ -195,10 +195,6 @@ export class JobInfraRepository implements IJobRepository {
 
   async incrementViewCount(id: string): Promise<void> {
     await this.jobPrisma.incrementViewCount(id);
-  }
-
-  async setSkills(jobId: string, skillIds: string[]): Promise<void> {
-    await this.jobPrisma.setSkills(jobId, skillIds);
   }
 
   /** Batch-attaches company/category/skill summaries — one lookup per unique id, not per job. */

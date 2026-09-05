@@ -60,6 +60,15 @@ export class CompanyInfraRepository implements ICompanyRepository {
     return CompanyMapper.toDomain(raw)!;
   }
 
+  async saveWithOwnerLink(company: Company): Promise<Company> {
+    const data = CompanyMapper.toPersistence(company);
+    const raw = await this.companyPrisma.createWithOwnerLink(
+      data,
+      company.ownerId,
+    );
+    return CompanyMapper.toDomain(raw)!;
+  }
+
   async update(company: Company): Promise<Company> {
     const data = CompanyMapper.toPersistence(company);
     const raw = await this.companyPrisma.update(company.id, data);

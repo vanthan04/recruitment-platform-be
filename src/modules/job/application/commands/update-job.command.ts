@@ -102,16 +102,8 @@ export class UpdateJobHandler implements ICommandHandler<
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
     });
 
-    const updated = await this.jobRepository.update(job);
+    const updated = await this.jobRepository.update(job, skillIds);
 
-    if (skillIds !== undefined) {
-      await this.jobRepository.setSkills(updated.id, skillIds);
-    }
-
-    const final =
-      skillIds !== undefined
-        ? await this.jobRepository.findById(updated.id)
-        : updated;
-    return JobResponseMapper.toDto(final!);
+    return JobResponseMapper.toDto(updated);
   }
 }

@@ -88,6 +88,16 @@ export class InterviewLocationOrMeetingLinkRequiredException extends BusinessRul
   }
 }
 
+export class InterviewAlreadyScheduledException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'This application already has an active interview — cancel it before scheduling a new one',
+      'INTERVIEW_ALREADY_SCHEDULED',
+    );
+    this.name = 'InterviewAlreadyScheduledException';
+  }
+}
+
 export class InterviewApplicationNotInterviewableException extends BusinessRuleViolationException {
   constructor() {
     super(

@@ -15,6 +15,8 @@ export abstract class ICompanyRepository {
     keyword?: string;
   }): Promise<{ companies: Company[]; total: number }>;
   abstract save(company: Company): Promise<Company>;
+  /** Atomically creates the company and links it to `company.ownerId`'s User row. */
+  abstract saveWithOwnerLink(company: Company): Promise<Company>;
   abstract update(company: Company): Promise<Company>;
   abstract delete(id: string): Promise<void>;
 }

@@ -4,7 +4,6 @@ import { ICompanyRepository } from '@/modules/company/domain/repositories/compan
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
-import { IUserCompanyLinkPort } from '@/modules/company/application/ports/user-company-link.port';
 import { CompanyAlreadyExistsException } from '@/modules/company/domain/exceptions/company.exceptions';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
@@ -34,10 +33,7 @@ export class CreateCompanyHandler implements ICommandHandler<
   CreateCompanyCommand,
   CompanyResponseDto
 > {
-  constructor(
-    private readonly companyRepository: ICompanyRepository,
-    private readonly userCompanyLinkPort: IUserCompanyLinkPort,
-  ) {}
+  constructor(private readonly companyRepository: ICompanyRepository) {}
 
   async execute({
     ownerId,
@@ -64,8 +60,7 @@ export class CreateCompanyHandler implements ICommandHandler<
       ownerId,
     });
 
-    const saved = await this.companyRepository.save(company);
-    await this.userCompanyLinkPort.updateCompanyId(ownerId, saved.id);
+    const saved = await this.companyRepository.saveWithOwnerLink(company);
 
     return CompanyResponseMapper.toDto(saved);
   }
