@@ -70,6 +70,57 @@ describe('GlobalExceptionFilter', () => {
     );
   });
 
+  it('maps a Prisma P2025 "record not found" error to 404 instead of a raw 500', () => {
+    const { filter } = makeFilter();
+    const { host, status, json } = makeHost();
+
+    const prismaError = new Prisma.PrismaClientKnownRequestError(
+      'An operation failed because it depends on one or more records that were required but not found.',
+      { code: 'P2025', clientVersion: 'test' },
+    );
+
+    filter.catch(prismaError, host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'ENTITY_NOT_FOUND' }),
+    );
+  });
+
+  it('maps a Prisma P2003 foreign-key violation to 400 instead of a raw 500', () => {
+    const { filter } = makeFilter();
+    const { host, status, json } = makeHost();
+
+    const prismaError = new Prisma.PrismaClientKnownRequestError(
+      'Foreign key constraint failed on the field: `jobs_categoryId_fkey`',
+      { code: 'P2003', clientVersion: 'test' },
+    );
+
+    filter.catch(prismaError, host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'INVALID_REFERENCE' }),
+    );
+  });
+
+  it('does not leak the raw Prisma error message for an unmapped Prisma error code', () => {
+    const { filter } = makeFilter();
+    const { host, status, json } = makeHost();
+
+    const prismaError = new Prisma.PrismaClientKnownRequestError(
+      'Some internal Prisma detail mentioning table/column names',
+      { code: 'P2099', clientVersion: 'test' },
+    );
+
+    filter.catch(prismaError, host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Internal server error' }),
+    );
+  });
+
   it('falls back to 500 for an unrecognized error', () => {
     const { filter } = makeFilter();
     const { host, status } = makeHost();

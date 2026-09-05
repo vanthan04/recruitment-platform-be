@@ -55,20 +55,36 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = this.mapDomainExceptionToStatus(exception);
       message = exception.message;
       code = exception.code;
-    } else if (
-      exception instanceof Prisma.PrismaClientKnownRequestError &&
-      exception.code === 'P2002'
-    ) {
-      // Unique-constraint violation that reached the DB despite an
-      // application-level check-then-insert (e.g. two near-simultaneous
-      // requests racing past a check) — surface as a clean 409 instead of a
-      // raw 500, without needing every call site to guess which race it hit.
-      status = HttpStatus.CONFLICT;
-      code = 'DUPLICATE_ENTITY';
-      const target = exception.meta?.target;
-      message = Array.isArray(target)
-        ? `A record with this ${target.join(', ')} already exists`
-        : 'A record with this value already exists';
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      if (exception.code === 'P2002') {
+        // Unique-constraint violation that reached the DB despite an
+        // application-level check-then-insert (e.g. two near-simultaneous
+        // requests racing past a check) — surface as a clean 409 instead of
+        // a raw 500, without needing every call site to guess which race it
+        // hit.
+        status = HttpStatus.CONFLICT;
+        code = 'DUPLICATE_ENTITY';
+        const target = exception.meta?.target;
+        message = Array.isArray(target)
+          ? `A record with this ${target.join(', ')} already exists`
+          : 'A record with this value already exists';
+      } else if (exception.code === 'P2025') {
+        // "Record to update/delete not found" — the read-then-write window
+        // between a handler's own existence check and the actual write hit
+        // a concurrent delete of that same row. Semantically a 404, not a 500.
+        status = HttpStatus.NOT_FOUND;
+        code = 'ENTITY_NOT_FOUND';
+        message = 'The requested record no longer exists';
+      } else if (exception.code === 'P2003') {
+        // Foreign-key violation — a referenced id (category, skill, etc.)
+        // that passed DTO shape validation but doesn't actually exist. A
+        // client input problem, not a server error.
+        status = HttpStatus.BAD_REQUEST;
+        code = 'INVALID_REFERENCE';
+        message = 'One or more referenced ids do not exist';
+      }
+      // Any other Prisma error code falls through to the generic 500 below —
+      // deliberately not echoing Prisma's own message text to the client.
     } else if (exception instanceof Error) {
       message = exception.message;
     }

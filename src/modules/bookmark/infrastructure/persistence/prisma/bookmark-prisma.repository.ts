@@ -28,10 +28,13 @@ export class BookmarkPrismaRepository {
   }
 
   async delete(userId: string, jobId: string) {
-    return this.prisma.bookmark.delete({
-      where: {
-        userId_jobId: { userId, jobId },
-      },
+    // deleteMany (not delete) — idempotent under a concurrent double-toggle:
+    // two near-simultaneous "un-bookmark" calls can both pass the
+    // application-level existence check before either delete completes, and
+    // `delete()` throws P2025 on the row the loser no longer finds.
+    // `deleteMany` just reports zero rows affected instead.
+    await this.prisma.bookmark.deleteMany({
+      where: { userId, jobId },
     });
   }
 }

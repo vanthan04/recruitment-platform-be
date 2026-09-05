@@ -9,6 +9,7 @@ import {
   IsDateString,
   MaxLength,
   IsArray,
+  IsUUID,
 } from 'class-validator';
 import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
 import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
@@ -48,7 +49,7 @@ export class CreateJobDto {
   level?: JobLevel;
 
   @ApiPropertyOptional({ example: 'c1a2b3c4-...' })
-  @IsString()
+  @IsUUID()
   @IsOptional()
   categoryId?: string;
 
