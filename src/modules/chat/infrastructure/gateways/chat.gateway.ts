@@ -16,22 +16,24 @@ import type { Server, Socket } from 'socket.io';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat-presence.service';
 import { authenticateSocket } from '@/modules/chat/infrastructure/gateways/ws-auth.util';
+import {
+  validateWsPayload,
+  getSafeErrorMessage,
+} from '@/modules/chat/infrastructure/gateways/ws-validate.util';
+import {
+  ConversationIdWsDto,
+  SendMessageWsDto,
+} from '@/modules/chat/presentation/dtos/ws-payloads.dto';
 import { CreateMessageCommand } from '@/modules/chat/application/commands/create-message.command';
 import { MarkConversationReadCommand } from '@/modules/chat/application/commands/mark-conversation-read.command';
-import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
-import { CreateMessageAttachmentInput } from '@/modules/chat/application/commands/create-message.command';
 import {
   MESSAGE_SENT_EVENT,
   MessageSentEvent,
 } from '@/modules/chat/infrastructure/events/message-sent.event';
-
-interface SendMessagePayload {
-  conversationId: string;
-  clientMessageId: string;
-  content: string;
-  messageType?: MessageType;
-  attachments?: CreateMessageAttachmentInput[];
-}
+import {
+  USER_SESSION_REVOKED_EVENT,
+  UserSessionRevokedEvent,
+} from '@/modules/user/infrastructure/events/user-session-revoked.event';
 
 const userRoom = (userId: string) => `user:${userId}`;
 const conversationRoom = (conversationId: string) =>
@@ -39,13 +41,20 @@ const conversationRoom = (conversationId: string) =>
 
 const SEND_RATE_LIMIT = 20;
 const SEND_RATE_WINDOW_MS = 10_000;
+const READ_RATE_LIMIT = 30;
+const READ_RATE_WINDOW_MS = 10_000;
 
 @WebSocketGateway({ namespace: '/ws' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
+  // Sliding-window limiters keyed by userId, not socket id — a socket id
+  // resets on every reconnect, which would otherwise let a client bypass
+  // the limit just by reconnecting. @nestjs/throttler isn't wired to
+  // gateways, so this is additive coverage.
   private readonly sendTimestamps = new Map<string, number[]>();
+  private readonly readTimestamps = new Map<string, number[]>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -77,7 +86,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
-    this.sendTimestamps.delete(client.id);
+    // The rate-limit maps are keyed by userId (not this socket's id) so a
+    // reconnect can't reset a user's quota — nothing to clean up per-socket
+    // here; a user's entry is naturally bounded (one per distinct user who
+    // has ever sent/read) and its own timestamps age out via consumeQuota's
+    // sliding-window filter regardless of connection state.
     const userId = client.data?.userId;
     if (!userId) return;
 
@@ -90,45 +103,79 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  /**
+   * Logout, logout-all, or an admin blocking the account all end up here —
+   * a standing WS connection never makes a REST call that would naturally
+   * re-check anything, so this is the only way a revoked session's chat
+   * access actually ends before the socket happens to disconnect on its own.
+   */
+  @OnEvent(USER_SESSION_REVOKED_EVENT)
+  handleSessionRevoked(event: UserSessionRevokedEvent): void {
+    this.server.in(userRoom(event.userId)).disconnectSockets(true);
+  }
+
   @SubscribeMessage('conversation:subscribe')
   async onSubscribe(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() rawData: unknown,
   ) {
-    const conversation = await this.conversationRepository.findById(
-      data.conversationId,
-    );
-    if (!conversation || !conversation.isMember(client.data.userId)) {
-      client.emit('error', { message: 'Not a member of this conversation' });
+    const userId = client.data.userId as string;
+    if (!this.consumeQuota(this.readTimestamps, userId, READ_RATE_LIMIT, READ_RATE_WINDOW_MS)) {
+      client.emit('error', { message: 'Too many requests — slow down' });
       return;
     }
-    await client.join(conversationRoom(data.conversationId));
+
+    try {
+      const data = await validateWsPayload(ConversationIdWsDto, rawData);
+      const conversation = await this.conversationRepository.findById(
+        data.conversationId,
+      );
+      if (!conversation || !conversation.isMember(userId)) {
+        client.emit('error', { message: 'Not a member of this conversation' });
+        return;
+      }
+      await client.join(conversationRoom(data.conversationId));
+    } catch (error) {
+      client.emit('error', { message: getSafeErrorMessage(error) });
+    }
   }
 
   @SubscribeMessage('conversation:unsubscribe')
-  onUnsubscribe(
+  async onUnsubscribe(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() rawData: unknown,
   ) {
-    void client.leave(conversationRoom(data.conversationId));
+    try {
+      const data = await validateWsPayload(ConversationIdWsDto, rawData);
+      void client.leave(conversationRoom(data.conversationId));
+    } catch (error) {
+      client.emit('error', { message: getSafeErrorMessage(error) });
+    }
   }
 
   @SubscribeMessage('message:send')
   async onMessageSend(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: SendMessagePayload,
+    @MessageBody() rawData: unknown,
   ) {
     const userId = client.data.userId as string;
 
-    if (!this.consumeSendQuota(client.id)) {
+    if (!this.consumeQuota(this.sendTimestamps, userId, SEND_RATE_LIMIT, SEND_RATE_WINDOW_MS)) {
+      const clientMessageId =
+        rawData && typeof rawData === 'object'
+          ? (rawData as Record<string, unknown>).clientMessageId
+          : undefined;
       client.emit('message:error', {
-        clientMessageId: data.clientMessageId,
+        clientMessageId,
         message: 'Too many messages — slow down',
       });
       return;
     }
 
+    let data: SendMessageWsDto | undefined;
     try {
+      data = await validateWsPayload(SendMessageWsDto, rawData);
+
       // Broadcasting happens from handleMessageSent below (triggered by the
       // MESSAGE_SENT_EVENT this command emits after persisting) — not here —
       // so a message created via the REST fallback broadcasts identically to
@@ -139,7 +186,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           data.conversationId,
           data.clientMessageId,
           data.content,
-          data.messageType ?? MessageType.TEXT,
+          data.messageType,
           data.attachments ?? [],
         ),
       );
@@ -150,8 +197,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     } catch (error) {
       client.emit('message:error', {
-        clientMessageId: data.clientMessageId,
-        message: (error as Error).message,
+        clientMessageId: data?.clientMessageId,
+        message: getSafeErrorMessage(error),
       });
     }
   }
@@ -176,10 +223,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('message:read')
   async onMessageRead(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() rawData: unknown,
   ) {
     const userId = client.data.userId as string;
+    if (!this.consumeQuota(this.readTimestamps, userId, READ_RATE_LIMIT, READ_RATE_WINDOW_MS)) {
+      client.emit('error', { message: 'Too many requests — slow down' });
+      return;
+    }
+
     try {
+      const data = await validateWsPayload(ConversationIdWsDto, rawData);
       await this.commandBus.execute(
         new MarkConversationReadCommand(userId, data.conversationId),
       );
@@ -191,41 +244,64 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           readAt: new Date(),
         });
     } catch (error) {
-      client.emit('error', { message: (error as Error).message });
+      client.emit('error', { message: getSafeErrorMessage(error) });
     }
   }
 
   @SubscribeMessage('typing:start')
-  onTypingStart(
+  async onTypingStart(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() rawData: unknown,
   ) {
-    client.to(conversationRoom(data.conversationId)).emit('typing:start', {
-      conversationId: data.conversationId,
-      userId: client.data.userId,
-    });
+    await this.broadcastTyping(client, rawData, 'typing:start');
   }
 
   @SubscribeMessage('typing:stop')
-  onTypingStop(
+  async onTypingStop(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() rawData: unknown,
   ) {
-    client.to(conversationRoom(data.conversationId)).emit('typing:stop', {
-      conversationId: data.conversationId,
-      userId: client.data.userId,
-    });
+    await this.broadcastTyping(client, rawData, 'typing:stop');
   }
 
-  /** Sliding-window limiter per socket — @nestjs/throttler isn't wired to gateways, this is additive coverage. */
-  private consumeSendQuota(socketId: string): boolean {
+  private async broadcastTyping(
+    client: Socket,
+    rawData: unknown,
+    event: 'typing:start' | 'typing:stop',
+  ): Promise<void> {
+    const userId = client.data.userId as string;
+    try {
+      const data = await validateWsPayload(ConversationIdWsDto, rawData);
+      // Unlike message:send/message:read, a bad typing:* event isn't worth
+      // reporting back to the client — just drop it silently on failure.
+      const conversation = await this.conversationRepository.findById(
+        data.conversationId,
+      );
+      if (!conversation || !conversation.isMember(userId)) return;
+
+      client.to(conversationRoom(data.conversationId)).emit(event, {
+        conversationId: data.conversationId,
+        userId,
+      });
+    } catch {
+      // no-op — see comment above
+    }
+  }
+
+  /** Sliding-window limiter. Returns false (and does not consume) once the caller is over budget. */
+  private consumeQuota(
+    store: Map<string, number[]>,
+    key: string,
+    limit: number,
+    windowMs: number,
+  ): boolean {
     const now = Date.now();
-    const timestamps = (this.sendTimestamps.get(socketId) ?? []).filter(
-      (t) => now - t < SEND_RATE_WINDOW_MS,
+    const timestamps = (store.get(key) ?? []).filter(
+      (t) => now - t < windowMs,
     );
     timestamps.push(now);
-    this.sendTimestamps.set(socketId, timestamps);
-    return timestamps.length <= SEND_RATE_LIMIT;
+    store.set(key, timestamps);
+    return timestamps.length <= limit;
   }
 
   private async broadcastPresence(

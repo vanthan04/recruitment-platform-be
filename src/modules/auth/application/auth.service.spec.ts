@@ -9,6 +9,7 @@ import {
 } from '@/modules/auth/domain/exceptions/auth.exceptions';
 import { UserRole } from '@/common/enums/user-role.enum';
 import { UserStatus } from '@/common/enums/user-status.enum';
+import { USER_SESSION_REVOKED_EVENT } from '@/modules/user/infrastructure/events/user-session-revoked.event';
 
 // Only exchangeSocialCode is covered here — the rest of AuthService is a
 // thin CommandBus/QueryBus facade already exercised indirectly through each
@@ -53,6 +54,7 @@ describe('AuthService.exchangeSocialCode', () => {
       configService as any,
       {} as any,
       {} as any,
+      { emit: jest.fn() } as any,
     );
   });
 
@@ -182,6 +184,7 @@ describe('AuthService.refreshTokens', () => {
       configService as any,
       {} as any,
       {} as any,
+      { emit: jest.fn() } as any,
     );
   });
 
@@ -224,6 +227,65 @@ describe('AuthService.refreshTokens', () => {
 
     await expect(service.refreshTokens('old-refresh-token')).rejects.toThrow(
       RefreshTokenAccessDeniedException,
+    );
+  });
+});
+
+describe('AuthService.logout / logoutAll', () => {
+  it('logout revokes the given refresh token and emits USER_SESSION_REVOKED_EVENT', async () => {
+    const refreshTokenRepository: any = {
+      revokeByHash: jest.fn(),
+      revokeAllForUser: jest.fn(),
+    };
+    const eventEmitter: any = { emit: jest.fn() };
+    const service = new AuthService(
+      {} as any,
+      refreshTokenRepository,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      eventEmitter,
+    );
+
+    await service.logout('user-1', 'some-refresh-token');
+
+    expect(refreshTokenRepository.revokeByHash).toHaveBeenCalledWith(
+      'user-1',
+      expect.any(String),
+    );
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      USER_SESSION_REVOKED_EVENT,
+      expect.objectContaining({ userId: 'user-1' }),
+    );
+  });
+
+  it('logoutAll revokes every refresh token and emits USER_SESSION_REVOKED_EVENT', async () => {
+    const refreshTokenRepository: any = {
+      revokeByHash: jest.fn(),
+      revokeAllForUser: jest.fn(),
+    };
+    const eventEmitter: any = { emit: jest.fn() };
+    const service = new AuthService(
+      {} as any,
+      refreshTokenRepository,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      eventEmitter,
+    );
+
+    await service.logoutAll('user-1');
+
+    expect(refreshTokenRepository.revokeAllForUser).toHaveBeenCalledWith(
+      'user-1',
+    );
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      USER_SESSION_REVOKED_EVENT,
+      expect.objectContaining({ userId: 'user-1' }),
     );
   });
 });

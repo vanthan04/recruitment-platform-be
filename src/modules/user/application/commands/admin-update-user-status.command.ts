@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { ISessionRevocationPort } from '@/modules/user/application/ports/session-revocation.port';
+import {
+  USER_SESSION_REVOKED_EVENT,
+  UserSessionRevokedEvent,
+} from '@/modules/user/infrastructure/events/user-session-revoked.event';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@/common/enums/user-role.enum';
 import {
@@ -29,6 +34,7 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly sessionRevocation: ISessionRevocationPort,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute({ actingAdminId, userId, input }: AdminUpdateUserStatusCommand) {
@@ -68,6 +74,10 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
 
     if (input.status === UserStatus.BLOCKED) {
       await this.sessionRevocation.revokeAllForUser(userId);
+      this.eventEmitter.emit(
+        USER_SESSION_REVOKED_EVENT,
+        new UserSessionRevokedEvent(userId),
+      );
     }
 
     return {

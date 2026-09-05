@@ -9,6 +9,7 @@ import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { MessageResponseDto } from '@/modules/chat/application/dto/message-response.dto';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
+import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import {
   MESSAGE_SENT_EVENT,
   MessageSentEvent,
@@ -18,6 +19,7 @@ import {
   SystemMessageNotAllowedException,
   TooManyAttachmentsException,
   EmptyMessageException,
+  InvalidAttachmentUrlException,
 } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 export interface CreateMessageAttachmentInput {
@@ -51,6 +53,7 @@ export class CreateMessageHandler implements ICommandHandler<
     private readonly messageRepository: IMessageRepository,
     private readonly jobLookupPort: IChatJobLookupPort,
     private readonly eventEmitter: EventEmitter2,
+    private readonly fileStorage: IFileStorageProvider,
   ) {}
 
   async execute(command: CreateMessageCommand): Promise<MessageResponseDto> {
@@ -86,6 +89,14 @@ export class CreateMessageHandler implements ICommandHandler<
     }
     if (!content.trim() && attachments.length === 0) {
       throw new EmptyMessageException();
+    }
+    // A client-supplied fileUrl that isn't actually one of our own upload
+    // URLs is a tracking-pixel/phishing vector dressed up as an attachment
+    // (a legitimate-looking fileName/mimeType pointing at an attacker host).
+    for (const attachment of attachments) {
+      if (!this.fileStorage.isOwnedUrl(attachment.fileUrl)) {
+        throw new InvalidAttachmentUrlException();
+      }
     }
 
     const message = new Message({

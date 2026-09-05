@@ -3,10 +3,12 @@ import { CreateMessageHandler } from '@/modules/chat/application/commands/create
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
+import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import { Message } from '@/modules/chat/domain/entities/message.entity';
 import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
 import { MESSAGE_SENT_EVENT } from '@/modules/chat/infrastructure/events/message-sent.event';
+import { InvalidAttachmentUrlException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 import {
   EntityNotFoundException,
   UnauthorizedDomainException,
@@ -30,6 +32,7 @@ describe('CreateMessageHandler', () => {
   let messageRepository: jest.Mocked<IMessageRepository>;
   let jobLookupPort: jest.Mocked<IChatJobLookupPort>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
+  let fileStorage: jest.Mocked<Pick<IFileStorageProvider, 'isOwnedUrl'>>;
 
   beforeEach(() => {
     conversationRepository = {
@@ -59,12 +62,14 @@ describe('CreateMessageHandler', () => {
       }),
     };
     eventEmitter = { emit: jest.fn() } as any;
+    fileStorage = { isOwnedUrl: jest.fn().mockReturnValue(true) };
 
     handler = new CreateMessageHandler(
       conversationRepository,
       messageRepository,
       jobLookupPort,
       eventEmitter,
+      fileStorage as any,
     );
   });
 
@@ -152,6 +157,31 @@ describe('CreateMessageHandler', () => {
         attachments: [],
       } as any),
     ).rejects.toThrow(BusinessRuleViolationException);
+  });
+
+  it('rejects an attachment whose fileUrl is not one of our own upload URLs', async () => {
+    conversationRepository.findById.mockResolvedValue(makeConversation());
+    messageRepository.findByClientMessageId.mockResolvedValue(null);
+    fileStorage.isOwnedUrl.mockReturnValue(false);
+
+    await expect(
+      handler.execute({
+        senderId: 'candidate-1',
+        conversationId: 'conv-1',
+        clientMessageId: 'c-1',
+        content: '',
+        messageType: MessageType.TEXT,
+        attachments: [
+          {
+            fileName: 'track.png',
+            fileUrl: 'https://attacker.example/track.png',
+            mimeType: 'image/png',
+            fileSize: 1,
+          },
+        ],
+      } as any),
+    ).rejects.toThrow(InvalidAttachmentUrlException);
+    expect(messageRepository.create).not.toHaveBeenCalled();
   });
 
   it('persists the message, touches the conversation, and emits MESSAGE_SENT_EVENT', async () => {

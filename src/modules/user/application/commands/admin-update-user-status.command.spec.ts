@@ -9,6 +9,7 @@ import {
   CannotModifyOwnAccountException,
   CannotRemoveLastAdminException,
 } from '@/modules/user/domain/exceptions/user.exceptions';
+import { USER_SESSION_REVOKED_EVENT } from '@/modules/user/infrastructure/events/user-session-revoked.event';
 import { User } from '@/modules/user/domain/entities/user.entity';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@/common/enums/user-role.enum';
@@ -27,6 +28,7 @@ describe('AdminUpdateUserStatusHandler', () => {
   let handler: AdminUpdateUserStatusHandler;
   let userRepository: jest.Mocked<IUserRepository>;
   let sessionRevocation: jest.Mocked<ISessionRevocationPort>;
+  let eventEmitter: { emit: jest.Mock };
 
   beforeEach(() => {
     userRepository = {
@@ -43,8 +45,13 @@ describe('AdminUpdateUserStatusHandler', () => {
     sessionRevocation = {
       revokeAllForUser: jest.fn(),
     };
+    eventEmitter = { emit: jest.fn() } as any;
 
-    handler = new AdminUpdateUserStatusHandler(userRepository, sessionRevocation);
+    handler = new AdminUpdateUserStatusHandler(
+      userRepository,
+      sessionRevocation,
+      eventEmitter,
+    );
   });
 
   it('throws UserNotFoundException when the user does not exist', async () => {
@@ -110,7 +117,7 @@ describe('AdminUpdateUserStatusHandler', () => {
     });
   });
 
-  it('revokes all refresh tokens when a user is blocked', async () => {
+  it('revokes all refresh tokens and emits USER_SESSION_REVOKED_EVENT when a user is blocked', async () => {
     const user = makeUser();
     userRepository.findById.mockResolvedValue(user);
     userRepository.save.mockImplementation(async (u) => u as User);
@@ -122,6 +129,10 @@ describe('AdminUpdateUserStatusHandler', () => {
     );
 
     expect(sessionRevocation.revokeAllForUser).toHaveBeenCalledWith('user-1');
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      USER_SESSION_REVOKED_EVENT,
+      expect.objectContaining({ userId: 'user-1' }),
+    );
   });
 
   it('does not revoke sessions for a non-blocking status change', async () => {

@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as crypto from 'crypto';
+import {
+  USER_SESSION_REVOKED_EVENT,
+  UserSessionRevokedEvent,
+} from '@/modules/user/infrastructure/events/user-session-revoked.event';
 import { hashToken } from '@/common/utils/token-hash.util';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
@@ -42,6 +47,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async register(dto: RegisterRequestDto) {
@@ -108,11 +114,29 @@ export class AuthService {
       userId,
       hashToken(refreshToken),
     );
+    this.emitSessionRevoked(userId);
   }
 
   /** Logout everywhere — revokes every active session for the user. */
   async logoutAll(userId: string) {
     await this.refreshTokenRepository.revokeAllForUser(userId);
+    this.emitSessionRevoked(userId);
+  }
+
+  /**
+   * The chat WebSocket gateway holds a long-lived connection authenticated
+   * once at handshake time — logging out doesn't make a fresh REST call that
+   * would naturally re-check anything, so without this, a logged-out user's
+   * socket keeps working until it happens to disconnect on its own. There's
+   * no per-device socket scoping (the access_token cookie isn't tied to a
+   * specific refresh token), so even a single-device `logout` disconnects
+   * every live chat socket for this user, not just the one on that device.
+   */
+  private emitSessionRevoked(userId: string): void {
+    this.eventEmitter.emit(
+      USER_SESSION_REVOKED_EVENT,
+      new UserSessionRevokedEvent(userId),
+    );
   }
 
   async refreshTokens(refreshToken: string) {

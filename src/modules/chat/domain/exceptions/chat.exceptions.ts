@@ -85,6 +85,16 @@ export class TooManyAttachmentsException extends BusinessRuleViolationException 
   }
 }
 
+export class InvalidAttachmentUrlException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'Attachment fileUrl must point to a file uploaded through this app',
+      'CHAT_INVALID_ATTACHMENT_URL',
+    );
+    this.name = 'InvalidAttachmentUrlException';
+  }
+}
+
 export class EmptyMessageException extends BusinessRuleViolationException {
   constructor() {
     super(

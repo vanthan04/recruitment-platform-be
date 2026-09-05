@@ -121,6 +121,30 @@ export class S3StorageProvider implements IFileStorageProvider {
     }
   }
 
+  isOwnedUrl(url: string): boolean {
+    let host: string;
+    try {
+      host = new URL(url).hostname.toLowerCase();
+    } catch {
+      return false;
+    }
+
+    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    if (endpoint) {
+      try {
+        // Path-style access (LocalStack/MinIO): the bucket is a path
+        // segment, not part of the host, so any URL on the configured
+        // endpoint host is considered ours.
+        return host === new URL(endpoint).hostname.toLowerCase();
+      } catch {
+        return false;
+      }
+    }
+
+    // Virtual-hosted-style AWS S3: `<bucket>.s3.<region>.amazonaws.com`.
+    return host === `${this.bucketName}.s3.${this.region}.amazonaws.com`.toLowerCase();
+  }
+
   async getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucketName,

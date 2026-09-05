@@ -26,6 +26,7 @@ import { JobModule } from '@/modules/job/job.module';
 import { UserModule } from '@/modules/user/user.module';
 import { JobApplicationModule } from '@/modules/application/job-application.module';
 import { NotificationModule } from '@/modules/notification/notification.module';
+import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
 
 import { ChatGateway } from '@/modules/chat/infrastructure/gateways/chat.gateway';
 import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat-presence.service';
@@ -47,6 +48,7 @@ import { ListMessagesHandler } from '@/modules/chat/application/queries/list-mes
     UserModule,
     JobApplicationModule,
     NotificationModule,
+    FileUploadModule,
     // The gateway verifies the `access_token` cookie itself (see ws-auth.util.ts) —
     // this JwtModule registration is scoped to Chat, mirroring AuthModule's own
     // (which isn't exported, so it can't be reused directly).

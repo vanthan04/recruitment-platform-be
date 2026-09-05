@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import {
   IMessageRepository,
   MessagePage,
@@ -6,6 +7,8 @@ import {
 import { Message } from '@/modules/chat/domain/entities/message.entity';
 import { MessagePrismaRepository } from '@/modules/chat/infrastructure/persistence/prisma/message-prisma.repository';
 import { MessageMapper } from '@/modules/chat/infrastructure/persistence/mappers/message.mapper';
+
+const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 @Injectable()
 export class MessageInfraRepository implements IMessageRepository {
@@ -35,8 +38,31 @@ export class MessageInfraRepository implements IMessageRepository {
       mimeType: a.mimeType,
       fileSize: a.fileSize,
     }));
-    const raw = await this.messagePrisma.create(data, attachmentsData);
-    return MessageMapper.toDomain(raw)!;
+
+    try {
+      const raw = await this.messagePrisma.create(data, attachmentsData);
+      return MessageMapper.toDomain(raw)!;
+    } catch (error) {
+      // CreateMessageHandler already checks findByClientMessageId before
+      // calling this — this only fires when two concurrent sends (a WS
+      // reconnect racing a REST retry, e.g.) both passed that check before
+      // either write landed. The unique index on (conversationId,
+      // clientMessageId) is the real guard; mirrors
+      // ConversationInfraRepository.findOrCreateForApplication's handling
+      // of the analogous applicationId race.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === UNIQUE_CONSTRAINT_VIOLATION
+      ) {
+        const existing =
+          await this.messagePrisma.findByConversationIdAndClientMessageId(
+            message.conversationId,
+            message.clientMessageId,
+          );
+        if (existing) return MessageMapper.toDomain(existing)!;
+      }
+      throw error;
+    }
   }
 
   async update(message: Message): Promise<Message> {

@@ -140,4 +140,60 @@ describe('S3StorageProvider', () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe('isOwnedUrl', () => {
+    it('accepts the default AWS virtual-hosted URL for this bucket/region', () => {
+      const provider = new S3StorageProvider(makeConfigService());
+
+      expect(
+        provider.isOwnedUrl(
+          'https://my-bucket.s3.ap-southeast-1.amazonaws.com/chat/x.pdf',
+        ),
+      ).toBe(true);
+    });
+
+    it('rejects a different bucket pretending to be an S3 URL', () => {
+      const provider = new S3StorageProvider(makeConfigService());
+
+      expect(
+        provider.isOwnedUrl(
+          'https://attacker-bucket.s3.ap-southeast-1.amazonaws.com/x.pdf',
+        ),
+      ).toBe(false);
+    });
+
+    it('rejects an arbitrary external URL', () => {
+      const provider = new S3StorageProvider(makeConfigService());
+
+      expect(provider.isOwnedUrl('https://attacker.example/track.png')).toBe(
+        false,
+      );
+    });
+
+    it('accepts a custom-endpoint URL on the configured endpoint host', () => {
+      const provider = new S3StorageProvider(
+        makeConfigService({ S3_ENDPOINT: 'https://minio.internal' }),
+      );
+
+      expect(
+        provider.isOwnedUrl('https://minio.internal/my-bucket/chat/x.pdf'),
+      ).toBe(true);
+    });
+
+    it('rejects a different host when a custom endpoint is configured', () => {
+      const provider = new S3StorageProvider(
+        makeConfigService({ S3_ENDPOINT: 'https://minio.internal' }),
+      );
+
+      expect(
+        provider.isOwnedUrl('https://attacker.example/my-bucket/chat/x.pdf'),
+      ).toBe(false);
+    });
+
+    it('rejects a malformed URL instead of throwing', () => {
+      const provider = new S3StorageProvider(makeConfigService());
+
+      expect(provider.isOwnedUrl('not-a-url')).toBe(false);
+    });
+  });
 });

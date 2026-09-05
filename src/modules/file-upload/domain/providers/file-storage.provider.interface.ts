@@ -39,4 +39,13 @@ export abstract class IFileStorageProvider {
     key: string,
     options?: SignedUrlOptions,
   ): Promise<string>;
+
+  /**
+   * True if `url` actually points at this app's own storage bucket/endpoint
+   * — i.e. it's a value `upload()` itself could have produced, not an
+   * arbitrary client-supplied URL. Used wherever a client submits a URL it
+   * claims came from a prior upload (chat attachments, for example) to stop
+   * that field from becoming a way to attach any external link.
+   */
+  abstract isOwnedUrl(url: string): boolean;
 }
