@@ -6,6 +6,7 @@ import { IUserLookupPort } from '@/modules/job-alert/application/ports/user-look
 import { IMailPort } from '@/modules/job-alert/application/ports/mail.port';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const BATCH_SIZE = 200;
 
 export class SendJobAlertDigestsCommand {}
 
@@ -25,12 +26,56 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
   ) {}
 
   async execute(): Promise<void> {
-    const savedSearches = await this.savedSearchRepository.findAll();
     const since = new Date(Date.now() - ONE_DAY_MS);
     let emailsSent = 0;
+    let failures = 0;
+    let cursor: string | undefined;
 
-    for (const search of savedSearches) {
-      const newJobs = await this.jobSearchPort.findRecentMatchingJobs(
+    // Keyset-paginated in batches rather than one findAll() covering the
+    // whole table — at scale (hundreds of thousands of saved searches) a
+    // single unbounded query plus a fully sequential loop over all of it
+    // risks both a memory spike and a run long enough to overlap tomorrow's
+    // scheduled fire.
+    for (;;) {
+      const batch = await this.savedSearchRepository.findBatch({
+        cursor,
+        take: BATCH_SIZE,
+      });
+      if (batch.length === 0) break;
+
+      for (const search of batch) {
+        try {
+          await this.sendDigestFor(search, since);
+          emailsSent++;
+        } catch (err) {
+          // One recipient's bad address / a transient SMTP error must not
+          // cancel the digest for everyone processed after them.
+          failures++;
+          this.logger.error(
+            `Failed to send job alert digest for saved search ${search.id}`,
+            err instanceof Error ? err.stack : err,
+          );
+        }
+      }
+
+      cursor = batch[batch.length - 1].id;
+    }
+
+    if (emailsSent > 0 || failures > 0) {
+      this.logger.log(
+        `Sent ${emailsSent} job alert digest email(s)${failures > 0 ? `, ${failures} failed` : ''}`,
+      );
+    }
+  }
+
+  private async sendDigestFor(
+    search: Awaited<
+      ReturnType<ISavedSearchRepository['findBatch']>
+    >[number],
+    since: Date,
+  ): Promise<void> {
+    const { items: newJobs, total } =
+      await this.jobSearchPort.findRecentMatchingJobs(
         {
           keyword: search.keyword ?? undefined,
           location: search.location ?? undefined,
@@ -41,29 +86,29 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
         since,
       );
 
-      if (newJobs.length === 0) continue;
+    if (total === 0) return;
 
-      const user = await this.userLookupPort.findById(search.userId);
-      if (!user) continue;
+    const user = await this.userLookupPort.findById(search.userId);
+    if (!user) return;
 
-      const jobListHtml = newJobs
+    const moreCount = total - newJobs.length;
+    const jobListHtml =
+      newJobs
         .map(
           (job) =>
             `<li>${job.title} — ${job.companyName ?? ''} (${job.location})</li>`,
         )
-        .join('');
+        .join('') +
+      (moreCount > 0 ? `<li>...and ${moreCount} more</li>` : '');
+    const jobListText =
+      newJobs.map((job) => `${job.title} — ${job.location}`).join('\n') +
+      (moreCount > 0 ? `\n...and ${moreCount} more` : '');
 
-      await this.mailPort.sendEmail({
-        to: user.email,
-        subject: `${newJobs.length} new job(s) matching your saved search`,
-        html: `<p>Here are new jobs matching your saved search:</p><ul>${jobListHtml}</ul>`,
-        text: newJobs.map((job) => `${job.title} — ${job.location}`).join('\n'),
-      });
-      emailsSent++;
-    }
-
-    if (emailsSent > 0) {
-      this.logger.log(`Sent ${emailsSent} job alert digest email(s)`);
-    }
+    await this.mailPort.sendEmail({
+      to: user.email,
+      subject: `${total} new job(s) matching your saved search`,
+      html: `<p>Here are new jobs matching your saved search:</p><ul>${jobListHtml}</ul>`,
+      text: jobListText,
+    });
   }
 }

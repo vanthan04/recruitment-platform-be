@@ -25,6 +25,14 @@ export class SavedSearchInfraRepository implements ISavedSearchRepository {
     return raws.map((r) => SavedSearchMapper.toDomain(r)!);
   }
 
+  async findBatch(params: {
+    cursor?: string;
+    take: number;
+  }): Promise<SavedSearch[]> {
+    const raws = await this.savedSearchPrisma.findBatch(params);
+    return raws.map((r) => SavedSearchMapper.toDomain(r)!);
+  }
+
   async save(savedSearch: SavedSearch): Promise<SavedSearch> {
     const data = SavedSearchMapper.toPersistence(savedSearch);
     const raw = await this.savedSearchPrisma.create(data);

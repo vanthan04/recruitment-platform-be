@@ -20,6 +20,7 @@ export abstract class IJobRepository {
     categoryId?: string;
     level?: string;
     sort?: JobSortOption;
+    createdAfter?: Date;
   }): Promise<{ jobs: Job[]; total: number }>;
   abstract findAllByRecruiterPaginated(params: {
     recruiterId: string;

@@ -60,6 +60,7 @@ export class JobInfraRepository implements IJobRepository {
     level?: string;
     sort?: JobSortOption;
     skillIds?: string[];
+    createdAfter?: Date;
   }): Promise<{ jobs: Job[]; total: number }> {
     const { skip, limit } = normalizePagination(params);
     const where: Prisma.JobWhereInput = {
@@ -126,6 +127,10 @@ export class JobInfraRepository implements IJobRepository {
 
     if (params.level) {
       where.level = params.level as any;
+    }
+
+    if (params.createdAfter) {
+      where.createdAt = { gte: params.createdAfter };
     }
 
     const { jobs: raws, total } = await this.jobPrisma.findAllPaginated({
