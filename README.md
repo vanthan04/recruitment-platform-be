@@ -6,11 +6,11 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 
 - **Auth** — JWT access + refresh tokens, email verification, forgot/reset password, multi-device sessions (each login gets its own revocable refresh token), logout (current device) / logout-all (every device), rate-limited login/register/forgot-password.
 - **User** — profile management, admin user list + status/role management.
-- **Company** — recruiters own a company profile (logo, industry, size, address); a recruiter must have a company before posting jobs.
-- **Category** — admin-managed job categories for search filtering; jobs can also carry a seniority `level` (INTERN → MANAGER).
-- **Job** — CRUD, public search (keyword/location/type/level/category/salary/company), lifecycle (`DRAFT → OPEN → CLOSED`) with manual close/reopen and an hourly cron that auto-closes expired postings, per-job view count.
-- **CV** — structured CV (experience/education/skills) with publish workflow, upload a ready-made file (PDF/DOC/DOCX), export the structured CV to PDF.
-- **Application** — apply to a job with a published CV, list mine / list by job (recruiter), update status (accept/reject), withdraw a pending application, per-job stats (view count + status breakdown) for recruiters.
+- **Company** — recruiters own a company profile (logo, size, address); a recruiter must have a company before posting jobs. IT-only platform — no `industry` field.
+- **Category** / **Skill** — admin-managed job categories and a skill taxonomy (many-to-many with jobs) for search filtering; jobs can also carry a seniority `level` (INTERN → MANAGER).
+- **Job** — CRUD, public search (keyword/location/employment type/work mode/level/category/salary/company), lifecycle (`DRAFT → OPEN → CLOSED`) with manual close/reopen and an hourly cron that auto-closes expired postings, per-job view count, a recruiter-only "my jobs" listing regardless of status.
+- **CV** — a single uploaded file (PDF/DOC/DOCX) per CV with a publish workflow; no structured builder, no PDF export. Owner or a recruiter with a matching application can download it via a short-lived presigned URL.
+- **Application** — apply to a job with a published CV, list mine / list by job (recruiter), advance status through an 8-stage recruiting pipeline (`APPLIED → SCREENING → SHORTLISTED → INTERVIEW → OFFER → HIRED`, branching to `REJECTED` at any step) with an optional note, withdraw before a terminal state, per-job stats (view count + status breakdown) for recruiters. Every status change is recorded (no read endpoint yet).
 - **Bookmark** — candidates bookmark/unbookmark jobs.
 - **Notification** — in-app notifications (new application → recruiter, status change → candidate), mark as read / read all.
 - **Job Alert** — candidates save a search; a daily cron emails a digest of newly posted jobs matching it.
@@ -18,7 +18,7 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 - **Admin** — list/paginate users, update user status or role.
 - **RBAC (Permission)** — database-driven role → permission mapping (`roles`/`permissions`/`role_permissions`); every controller route declares required permissions via `@RequirePermissions`, checked by `PermissionGuard` (cached, no redeploy needed to change what a role can do); admin endpoints to list roles/permissions and replace a role's permission set.
 - **Chat** — realtime conversations between candidate and recruiter over WebSocket (Socket.IO), scoped to a job/application (`applicationId`/`jobId`); message send/edit/soft-delete, cursor-paginated history, read receipts, typing indicators, online presence, cookie-based WS auth, rate-limited send.
-- **Interview scheduling** — recruiter schedules/reschedules/cancels an interview for a job application (in-person `location` and/or online `meetingLink`, at least one required); candidate is emailed on every change.
+- **Interview scheduling** — recruiter schedules/reschedules/cancels/completes/marks-no-show an interview for a job application (in-person `location` and/or online `meetingLink`, at least one required, optional `durationMinutes`); candidate is emailed on every change.
 
 ## Tech Stack
 
@@ -35,9 +35,8 @@ A job portal backend (candidates apply for jobs, recruiters post and manage them
 | Rate limiting | `@nestjs/throttler`, default in-memory `ThrottlerStorage` |
 | Logging | `nestjs-pino` / `pino-http` — structured JSON logs, one `requestId` tying together the access log line, every app log, and the error log for a request; secrets (passwords, tokens, auth headers/cookies) redacted; pretty-printed in dev, JSON in production |
 | Deployment | One always-on AWS EC2 instance running the Docker image — see [`DEPLOY.md`](DEPLOY.md) and the separate `recruitment-platform-infra` repo (Terraform) |
-| File storage | AWS S3 (`@aws-sdk/client-s3`) |
+| File storage | AWS S3 (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`) |
 | Mail | `nodemailer` |
-| PDF generation | `pdfkit` |
 | Realtime | `socket.io`, `@nestjs/websockets`, `@nestjs/platform-socket.io` |
 | API docs | Swagger / OpenAPI (`@nestjs/swagger`) |
 | Testing | Jest (unit) + Supertest (e2e) |
@@ -73,16 +72,17 @@ src/
 │   ├── permission/        # Database-driven RBAC (roles/permissions/role_permissions), admin endpoints
 │   ├── company/          # Recruiter company profiles
 │   ├── category/         # Job categories (admin-managed taxonomy)
+│   ├── skill/            # Skill taxonomy, many-to-many with jobs
 │   ├── job/              # Job postings, search, lifecycle, view count, application/jobs/ (hourly close-expired-jobs cron)
-│   ├── cv/               # Structured CV, file upload, PDF export
-│   ├── application/      # Job applications (apply/withdraw/status/stats)
+│   ├── cv/               # File-only CV upload/download (S3 presigned URLs)
+│   ├── application/      # Job applications (apply/withdraw/status pipeline/stats)
 │   ├── bookmark/         # Job bookmarks
 │   ├── notification/     # In-app notifications
 │   ├── job-alert/        # Saved searches; application/jobs/ (daily digest cron)
 │   ├── file-upload/       # Generic S3 file upload
 │   ├── mail/             # Mail provider (Nodemailer)
 │   ├── chat/             # Realtime conversations/messages (Socket.IO gateway, presence)
-│   ├── interview/         # Interview scheduling (schedule/reschedule/cancel, email candidate)
+│   ├── interview/         # Interview scheduling (schedule/reschedule/cancel/complete/no-show, email candidate)
 │   └── prisma/           # Shared PrismaService
 ├── bootstrap.ts      # Shared Nest app setup (helmet, prefix, validation pipe, Swagger, pino logger,
 │                    # exception filter) used by main.ts
@@ -110,6 +110,7 @@ Create a `.env` file in the project root:
 | `MAIL_HOST` / `MAIL_PORT` / `MAIL_USER` / `MAIL_PASS` / `MAIL_FROM` | yes | SMTP for verification/reset/job-alert emails |
 | `S3_REGION` / `S3_BUCKET` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | yes | File storage |
 | `S3_ENDPOINT` | no | Set for S3-compatible providers (e.g. MinIO, R2) |
+| `CV_MAX_FILE_SIZE` | no (default `10485760`, i.e. 10MB) | Business-rule ceiling for CV uploads in bytes (Multer itself hard-caps at 20MB) |
 | `LOG_LEVEL` | no (default `debug` in dev, `info` in prod) | `fatal`/`error`/`warn`/`info`/`debug`/`trace`/`silent` |
 
 ### Installation
@@ -148,8 +149,8 @@ Lambda-based deploy.
 ### Testing
 
 ```bash
-npm test        # unit tests (domain entities + command/query handlers) — 85 tests / 14 suites currently
-npm run test:e2e  # end-to-end: register → verify → login → create company/job → create+publish CV → apply; chat flow
+npm test        # unit tests (domain entities + command/query handlers) — 203 tests / 49 suites currently
+npm run test:e2e  # end-to-end: register → verify → login → create company/job → upload+publish CV → apply; chat flow
 ```
 
 The e2e suite runs against whatever `DATABASE_URL` you have configured and overrides the mail provider with a stub, so no real emails are sent.
@@ -158,7 +159,7 @@ The e2e suite runs against whatever `DATABASE_URL` you have configured and overr
 
 All routes are prefixed with `/api/v1`. Resource roots:
 
-`auth`, `users`, `admin/users`, `admin/roles`, `admin/permissions`, `companies`, `categories`, `jobs`, `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`, `conversations`, `messages`, `interviews`
+`auth`, `users`, `admin/users`, `admin/roles`, `admin/permissions`, `companies`, `categories`, `skills`, `jobs`, `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`, `conversations`, `messages`, `interviews`
 
 Full request/response shapes are in Swagger at `/api/v1/docs`. Chat also has a WebSocket namespace (`/ws`) — see [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for the event list.
 
