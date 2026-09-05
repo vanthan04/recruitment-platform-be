@@ -92,9 +92,12 @@ export class CvController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get CV metadata by ID' })
-  async getById(@Param('id') id: string) {
-    const result = await this.queryBus.execute(new GetCvQuery(id));
+  @ApiOperation({
+    summary:
+      'Get CV metadata by ID (owner or a recruiter whose job it was applied to)',
+  })
+  async getById(@GetMe('id') userId: string, @Param('id') id: string) {
+    const result = await this.queryBus.execute(new GetCvQuery(userId, id));
     return ApiResponse.ok(result, 'CV retrieved successfully');
   }
 
