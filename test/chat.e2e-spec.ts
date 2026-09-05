@@ -8,9 +8,10 @@ import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
 
 /**
  * Exercises the Chat module end-to-end against a real (test) database:
- * register recruiter + candidate -> job -> apply -> accept -> create
- * conversation -> send messages both ways -> paginate -> mark read ->
- * authorization is enforced against a third, unrelated user.
+ * register recruiter + candidate -> job -> apply -> advance through the
+ * hiring pipeline to HIRED -> create conversation -> send messages both
+ * ways -> paginate -> mark read -> authorization is enforced against a
+ * third, unrelated user.
  */
 describe('Chat module (e2e)', () => {
   let app: INestApplication<App>;
@@ -86,7 +87,7 @@ describe('Chat module (e2e)', () => {
   let applicationId: string;
   let conversationId: string;
 
-  it('sets up recruiter, candidate, stranger, job, CV and an ACCEPTED application', async () => {
+  it('sets up recruiter, candidate, stranger, job, CV and a HIRED application', async () => {
     recruiterToken = await registerAndLogin(
       `chat-recruiter-${runId}@e2e.test`,
       'RECRUITER',
@@ -138,11 +139,22 @@ describe('Chat module (e2e)', () => {
       .expect(201);
     applicationId = applyRes.body.data.id;
 
-    await request(app.getHttpServer())
-      .patch(`/api/v1/job-applications/${applicationId}/status`)
-      .set('Authorization', `Bearer ${recruiterToken}`)
-      .send({ status: 'ACCEPTED' })
-      .expect(200);
+    // Conversations only open once an application reaches HIRED — the
+    // pipeline is a strict one-step-forward-at-a-time state machine, so walk
+    // through every intermediate stage rather than jumping straight there.
+    for (const status of [
+      'SCREENING',
+      'SHORTLISTED',
+      'INTERVIEW',
+      'OFFER',
+      'HIRED',
+    ]) {
+      await request(app.getHttpServer())
+        .patch(`/api/v1/job-applications/${applicationId}/status`)
+        .set('Authorization', `Bearer ${recruiterToken}`)
+        .send({ status })
+        .expect(200);
+    }
   });
 
   it('refuses to let a candidate create a conversation (recruiter-only endpoint)', async () => {

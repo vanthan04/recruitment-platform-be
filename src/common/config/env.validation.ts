@@ -25,13 +25,18 @@ export const envValidationSchema = Joi.object({
 
   // Social login (Google/Facebook). Optional so the app still boots without
   // them configured — the /auth/google and /auth/facebook routes just fail
-  // until real credentials are set.
-  GOOGLE_CLIENT_ID: Joi.string().optional(),
-  GOOGLE_CLIENT_SECRET: Joi.string().optional(),
-  GOOGLE_CALLBACK_URL: Joi.string().optional(),
-  FACEBOOK_CLIENT_ID: Joi.string().optional(),
-  FACEBOOK_CLIENT_SECRET: Joi.string().optional(),
-  FACEBOOK_CALLBACK_URL: Joi.string().optional(),
+  // until real credentials are set. `.allow('')` matters here: a `.env`
+  // template naturally represents "not set yet" as `KEY=` (empty string),
+  // not as an absent line — plain `.optional()` only tolerates the key
+  // being absent (`undefined`) and rejects an empty string, which would
+  // otherwise crash the ENTIRE app at boot (ConfigModule.forRoot() throws
+  // on a schema validation failure), not just the two OAuth routes.
+  GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
+  GOOGLE_CLIENT_SECRET: Joi.string().allow('').optional(),
+  GOOGLE_CALLBACK_URL: Joi.string().allow('').optional(),
+  FACEBOOK_CLIENT_ID: Joi.string().allow('').optional(),
+  FACEBOOK_CLIENT_SECRET: Joi.string().allow('').optional(),
+  FACEBOOK_CALLBACK_URL: Joi.string().allow('').optional(),
 
   // S3 File Upload Configuration
   S3_REGION: Joi.string().required(),

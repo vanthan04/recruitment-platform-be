@@ -167,7 +167,7 @@ describe('Job portal core flow (e2e)', () => {
       .send({ jobId, cvId, coverLetter: 'Please consider me' })
       .expect(201);
 
-    expect(applyRes.body.data.status).toBe('PENDING');
+    expect(applyRes.body.data.status).toBe('APPLIED');
 
     const myApps = await request(app.getHttpServer())
       .get('/api/v1/job-applications/my-applications')
