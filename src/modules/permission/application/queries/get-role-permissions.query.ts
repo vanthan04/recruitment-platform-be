@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { PrismaService } from '@/modules/prisma/prisma.service';
+import { IRoleRepository } from '@/modules/permission/domain/repositories/role.repository';
 import { RoleNotFoundException } from '@/modules/permission/domain/exceptions/permission.exceptions';
 
 export class GetRolePermissionsQuery {
@@ -10,15 +10,11 @@ export class GetRolePermissionsQuery {
 @Injectable()
 @QueryHandler(GetRolePermissionsQuery)
 export class GetRolePermissionsHandler implements IQueryHandler<GetRolePermissionsQuery> {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly roleRepository: IRoleRepository) {}
 
   async execute({ roleId }: GetRolePermissionsQuery) {
-    const role = await this.prisma.role.findUnique({
-      where: { id: roleId },
-      include: { rolePermissions: { include: { permission: true } } },
-    });
-    if (!role) throw new RoleNotFoundException(roleId);
-
-    return role.rolePermissions.map((rp) => rp.permission);
+    const permissions = await this.roleRepository.findPermissionsByRoleId(roleId);
+    if (!permissions) throw new RoleNotFoundException(roleId);
+    return permissions;
   }
 }

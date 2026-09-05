@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { PrismaService } from '@/modules/prisma/prisma.service';
+import { IRoleRepository } from '@/modules/permission/domain/repositories/role.repository';
+import { IPermissionRepository } from '@/modules/permission/domain/repositories/permission.repository';
 import { PermissionsService } from '@/modules/permission/application/permissions.service';
 import { Permission } from '@/common/enums/permission.enum';
 import {
@@ -25,43 +26,30 @@ export class UpdateRolePermissionsCommand {
 @CommandHandler(UpdateRolePermissionsCommand)
 export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRolePermissionsCommand> {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly roleRepository: IRoleRepository,
+    private readonly permissionRepository: IPermissionRepository,
     private readonly permissionsService: PermissionsService,
   ) {}
 
   async execute({ roleId, permissionIds }: UpdateRolePermissionsCommand) {
-    const role = await this.prisma.role.findUnique({ where: { id: roleId } });
+    const role = await this.roleRepository.findById(roleId);
     if (!role) throw new RoleNotFoundException(roleId);
 
     const uniqueIds = Array.from(new Set(permissionIds));
-    const existing = await this.prisma.permission.findMany({
-      where: { id: { in: uniqueIds } },
-      select: { id: true },
-    });
-    if (existing.length !== uniqueIds.length) {
-      const foundIds = new Set(existing.map((p) => p.id));
-      const missing = uniqueIds.filter((id) => !foundIds.has(id));
+    const existingIds = await this.permissionRepository.findExistingIds(uniqueIds);
+    if (existingIds.size !== uniqueIds.length) {
+      const missing = uniqueIds.filter((id) => !existingIds.has(id));
       throw new PermissionNotFoundException(missing.join(', '));
     }
 
     await this.ensureRbacAdministrationSurvives(roleId, uniqueIds);
 
     // Replace the role's full permission set atomically.
-    await this.prisma.$transaction([
-      this.prisma.rolePermission.deleteMany({ where: { roleId } }),
-      this.prisma.rolePermission.createMany({
-        data: uniqueIds.map((permissionId) => ({ roleId, permissionId })),
-      }),
-    ]);
+    await this.roleRepository.replacePermissions(roleId, uniqueIds);
 
     this.permissionsService.invalidateCache();
 
-    const updated = await this.prisma.role.findUnique({
-      where: { id: roleId },
-      include: { rolePermissions: { include: { permission: true } } },
-    });
-
-    return updated!.rolePermissions.map((rp) => rp.permission);
+    return await this.roleRepository.findPermissionsByRoleId(roleId);
   }
 
   /**
@@ -74,27 +62,27 @@ export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRoleP
     roleId: string,
     newPermissionIds: string[],
   ): Promise<void> {
-    const managePermission = await this.prisma.permission.findUnique({
-      where: { name: Permission.ROLE_PERMISSION_MANAGE },
-      select: { id: true },
-    });
+    const managePermissionId = await this.permissionRepository.findIdByName(
+      Permission.ROLE_PERMISSION_MANAGE,
+    );
     // Seed data may not exist yet in a fresh/test environment — nothing to protect.
-    if (!managePermission) return;
+    if (!managePermissionId) return;
 
-    const wouldStillGrantIt = newPermissionIds.includes(managePermission.id);
+    const wouldStillGrantIt = newPermissionIds.includes(managePermissionId);
     if (wouldStillGrantIt) return;
 
-    const currentlyGrantsIt = await this.prisma.rolePermission.findUnique({
-      where: {
-        roleId_permissionId: { roleId, permissionId: managePermission.id },
-      },
-    });
+    const currentlyGrantsIt = await this.roleRepository.roleGrantsPermissionId(
+      roleId,
+      managePermissionId,
+    );
     // This role never had it — removing it from the payload changes nothing.
     if (!currentlyGrantsIt) return;
 
-    const otherHolders = await this.prisma.rolePermission.count({
-      where: { permissionId: managePermission.id, roleId: { not: roleId } },
-    });
+    const otherHolders =
+      await this.roleRepository.countOtherRolesGrantingPermissionId(
+        managePermissionId,
+        roleId,
+      );
     if (otherHolders === 0) {
       throw new CannotRemoveLastRbacAdminPermissionException();
     }

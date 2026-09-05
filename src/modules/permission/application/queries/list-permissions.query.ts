@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { PrismaService } from '@/modules/prisma/prisma.service';
+import { IPermissionRepository } from '@/modules/permission/domain/repositories/permission.repository';
 
 export class ListPermissionsQuery {}
 
 @Injectable()
 @QueryHandler(ListPermissionsQuery)
 export class ListPermissionsHandler implements IQueryHandler<ListPermissionsQuery> {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly permissionRepository: IPermissionRepository) {}
 
   async execute() {
-    return this.prisma.permission.findMany({ orderBy: { name: 'asc' } });
+    return this.permissionRepository.findAll();
   }
 }

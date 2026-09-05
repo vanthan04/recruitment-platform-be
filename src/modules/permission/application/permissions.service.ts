@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/modules/prisma/prisma.service';
+import { IRoleRepository } from '@/modules/permission/domain/repositories/role.repository';
 
 interface CacheEntry {
   expiresAt: number;
@@ -11,14 +11,14 @@ interface CacheEntry {
 // optimization is a tiny in-process TTL cache keyed by role name: no Redis,
 // no external infra, just enough to avoid hitting Postgres on every request.
 // Cache entries self-expire after CACHE_TTL_MS, and any RBAC admin write
-// (see RbacAdminService) calls invalidate() so a permission change takes
-// effect immediately instead of waiting out the TTL.
+// (see UpdateRolePermissionsHandler) calls invalidate() so a permission
+// change takes effect immediately instead of waiting out the TTL.
 @Injectable()
 export class PermissionsService {
   private readonly cache = new Map<string, CacheEntry>();
   private readonly CACHE_TTL_MS = 30_000;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly roleRepository: IRoleRepository) {}
 
   async getPermissionsForRole(roleName: string): Promise<Set<string>> {
     const cached = this.cache.get(roleName);
@@ -26,14 +26,9 @@ export class PermissionsService {
       return cached.permissions;
     }
 
-    const role = await this.prisma.role.findUnique({
-      where: { name: roleName },
-      include: { rolePermissions: { include: { permission: true } } },
-    });
-
-    const permissions = new Set(
-      role?.rolePermissions.map((rp) => rp.permission.name) ?? [],
-    );
+    const names =
+      await this.roleRepository.findPermissionNamesByRoleName(roleName);
+    const permissions = new Set(names ?? []);
     this.cache.set(roleName, {
       expiresAt: Date.now() + this.CACHE_TTL_MS,
       permissions,

@@ -3,6 +3,13 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { RbacAdminController } from '@/modules/permission/presentation/controllers/rbac-admin.controller';
 import { PermissionsService } from '@/modules/permission/application/permissions.service';
 
+import { IRoleRepository } from '@/modules/permission/domain/repositories/role.repository';
+import { RoleInfraRepository } from '@/modules/permission/infrastructure/repositories/role.infra-repository';
+import { RolePrismaRepository } from '@/modules/permission/infrastructure/persistence/prisma/role-prisma.repository';
+import { IPermissionRepository } from '@/modules/permission/domain/repositories/permission.repository';
+import { PermissionInfraRepository } from '@/modules/permission/infrastructure/repositories/permission.infra-repository';
+import { PermissionPrismaRepository } from '@/modules/permission/infrastructure/persistence/prisma/permission-prisma.repository';
+
 import { ListRolesHandler } from '@/modules/permission/application/queries/list-roles.query';
 import { GetRoleHandler } from '@/modules/permission/application/queries/get-role.query';
 import { ListPermissionsHandler } from '@/modules/permission/application/queries/list-permissions.query';
@@ -18,6 +25,16 @@ import { UpdateRolePermissionsHandler } from '@/modules/permission/application/c
   imports: [CqrsModule],
   controllers: [RbacAdminController],
   providers: [
+    RolePrismaRepository,
+    PermissionPrismaRepository,
+    {
+      provide: IRoleRepository,
+      useClass: RoleInfraRepository,
+    },
+    {
+      provide: IPermissionRepository,
+      useClass: PermissionInfraRepository,
+    },
     PermissionsService,
     ListRolesHandler,
     GetRoleHandler,

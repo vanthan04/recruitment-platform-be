@@ -1,35 +1,39 @@
 import { PermissionsService } from './permissions.service';
+import { IRoleRepository } from '@/modules/permission/domain/repositories/role.repository';
 
 describe('PermissionsService', () => {
-  let prisma: any;
+  let roleRepository: jest.Mocked<IRoleRepository>;
   let service: PermissionsService;
 
   beforeEach(() => {
-    prisma = {
-      role: { findUnique: jest.fn() },
+    roleRepository = {
+      findAll: jest.fn(),
+      findById: jest.fn(),
+      findPermissionNamesByRoleName: jest.fn(),
+      findPermissionsByRoleId: jest.fn(),
+      roleGrantsPermissionId: jest.fn(),
+      countOtherRolesGrantingPermissionId: jest.fn(),
+      replacePermissions: jest.fn(),
     };
-    service = new PermissionsService(prisma);
+    service = new PermissionsService(roleRepository);
   });
 
-  it('returns the permission names granted to a role via a single joined query', async () => {
-    prisma.role.findUnique.mockResolvedValue({
-      rolePermissions: [
-        { permission: { name: 'job:create' } },
-        { permission: { name: 'job:update' } },
-      ],
-    });
+  it('returns the permission names granted to a role via the repository', async () => {
+    roleRepository.findPermissionNamesByRoleName.mockResolvedValue([
+      'job:create',
+      'job:update',
+    ]);
 
     const permissions = await service.getPermissionsForRole('RECRUITER');
 
     expect(permissions).toEqual(new Set(['job:create', 'job:update']));
-    expect(prisma.role.findUnique).toHaveBeenCalledWith({
-      where: { name: 'RECRUITER' },
-      include: { rolePermissions: { include: { permission: true } } },
-    });
+    expect(roleRepository.findPermissionNamesByRoleName).toHaveBeenCalledWith(
+      'RECRUITER',
+    );
   });
 
   it('returns an empty set for a role that does not exist', async () => {
-    prisma.role.findUnique.mockResolvedValue(null);
+    roleRepository.findPermissionNamesByRoleName.mockResolvedValue(null);
 
     const permissions = await service.getPermissionsForRole('UNKNOWN');
 
@@ -37,21 +41,25 @@ describe('PermissionsService', () => {
   });
 
   it('caches the result and does not re-query within the TTL', async () => {
-    prisma.role.findUnique.mockResolvedValue({ rolePermissions: [] });
+    roleRepository.findPermissionNamesByRoleName.mockResolvedValue([]);
 
     await service.getPermissionsForRole('ADMIN');
     await service.getPermissionsForRole('ADMIN');
 
-    expect(prisma.role.findUnique).toHaveBeenCalledTimes(1);
+    expect(roleRepository.findPermissionNamesByRoleName).toHaveBeenCalledTimes(
+      1,
+    );
   });
 
   it('re-queries the database after invalidateCache() so a permission change takes effect immediately', async () => {
-    prisma.role.findUnique.mockResolvedValue({ rolePermissions: [] });
+    roleRepository.findPermissionNamesByRoleName.mockResolvedValue([]);
 
     await service.getPermissionsForRole('ADMIN');
     service.invalidateCache();
     await service.getPermissionsForRole('ADMIN');
 
-    expect(prisma.role.findUnique).toHaveBeenCalledTimes(2);
+    expect(roleRepository.findPermissionNamesByRoleName).toHaveBeenCalledTimes(
+      2,
+    );
   });
 });
