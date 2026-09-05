@@ -1,11 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  Min,
+  IsArray,
+} from 'class-validator';
 import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
 import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-option.vo';
 import { PageOptionsDto } from '@/common/dtos/page-options.dto';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class SearchJobDto extends PageOptionsDto {
   @ApiPropertyOptional({ example: 'Node.js' })
@@ -61,4 +68,21 @@ export class SearchJobDto extends PageOptionsDto {
   @IsEnum(JobSortOption)
   @IsOptional()
   sort?: JobSortOption;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Filter to jobs having at least one of these skill ids (comma-separated or repeated query param).',
+  })
+  @Transform(({ value }: { value: unknown }): unknown =>
+    Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? value.split(',').filter(Boolean)
+        : value,
+  )
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  skillIds?: string[];
 }

@@ -8,12 +8,21 @@ export interface CreateApplicationStatusHistoryInput {
   note: string | null;
 }
 
+export interface ApplicationStatusHistoryEntry {
+  id: string;
+  fromStatus: ApplicationStatus | null;
+  toStatus: ApplicationStatus;
+  note: string | null;
+  changedById: string | null;
+  createdAt: Date;
+}
+
 /**
- * Append-only audit log for JobApplication status changes. No read methods
- * yet — nothing in this refactor exposes a "history" API endpoint, this
- * only satisfies "every status change must be recorded" (§14 of the
- * refactor brief). Add query methods here if/when a history view ships.
+ * Append-only audit log for JobApplication status changes.
  */
 export abstract class IApplicationStatusHistoryRepository {
   abstract create(input: CreateApplicationStatusHistoryInput): Promise<void>;
+  abstract findByApplicationId(
+    applicationId: string,
+  ): Promise<ApplicationStatusHistoryEntry[]>;
 }

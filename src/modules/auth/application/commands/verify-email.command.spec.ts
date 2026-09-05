@@ -24,6 +24,7 @@ describe('VerifyEmailHandler', () => {
       create: jest.fn(),
       findValidByHashAndType: jest.fn(),
       markUsed: jest.fn(),
+      deleteExpiredOrUsed: jest.fn(),
     };
     handler = new VerifyEmailHandler(
       userRepository,

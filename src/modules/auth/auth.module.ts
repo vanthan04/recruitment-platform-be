@@ -16,6 +16,8 @@ import { VerifyEmailHandler } from '@/modules/auth/application/commands/verify-e
 import { ForgotPasswordHandler } from '@/modules/auth/application/commands/forgot-password.command';
 import { ResetPasswordHandler } from '@/modules/auth/application/commands/reset-password.command';
 import { ChangePasswordHandler } from '@/modules/auth/application/commands/change-password.command';
+import { CleanupExpiredTokensHandler } from '@/modules/auth/application/commands/cleanup-expired-tokens.command';
+import { CleanupExpiredTokensCron } from '@/modules/auth/application/jobs/cleanup-expired-tokens.cron';
 
 // Ports & Adapters
 import { IAuthUserRepositoryPort } from './application/ports/auth-user-repository.port';
@@ -52,6 +54,8 @@ import { VerificationTokenPrismaRepository } from './infrastructure/persistence/
     ForgotPasswordHandler,
     ResetPasswordHandler,
     ChangePasswordHandler,
+    CleanupExpiredTokensHandler,
+    CleanupExpiredTokensCron,
     {
       provide: IAuthUserRepositoryPort,
       useClass: AuthUserAdapter,

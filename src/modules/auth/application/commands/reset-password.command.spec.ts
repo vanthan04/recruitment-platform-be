@@ -25,6 +25,7 @@ describe('ResetPasswordHandler', () => {
       create: jest.fn(),
       findValidByHashAndType: jest.fn(),
       markUsed: jest.fn(),
+      deleteExpiredOrUsed: jest.fn(),
     };
     handler = new ResetPasswordHandler(
       userRepository,

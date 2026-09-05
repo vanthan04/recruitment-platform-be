@@ -14,7 +14,10 @@ export class CompanyResponseMapper {
     dto.description = company.description;
     dto.website = company.website;
     dto.size = company.size;
+    dto.companyType = company.companyType;
     dto.address = company.address;
+    dto.province = company.province;
+    dto.ward = company.ward;
     dto.ownerId = company.ownerId;
     dto.createdAt = company.createdAt;
     dto.updatedAt = company.updatedAt;

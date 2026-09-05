@@ -40,4 +40,11 @@ export class VerificationTokenPrismaRepository implements IVerificationTokenRepo
       data: { usedAt: new Date() },
     });
   }
+
+  async deleteExpiredOrUsed(before: Date): Promise<number> {
+    const { count } = await this.prisma.verificationToken.deleteMany({
+      where: { OR: [{ expiresAt: { lt: before } }, { usedAt: { not: null } }] },
+    });
+    return count;
+  }
 }

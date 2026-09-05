@@ -8,6 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
+import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
 
 export class CreateCompanyDto {
   @ApiProperty({ example: 'Tech Corp' })
@@ -36,9 +37,26 @@ export class CreateCompanyDto {
   @IsOptional()
   size?: CompanySize;
 
+  @ApiPropertyOptional({ enum: CompanyType })
+  @IsEnum(CompanyType)
+  @IsOptional()
+  companyType?: CompanyType;
+
   @ApiPropertyOptional({ example: 'Ho Chi Minh City' })
   @IsString()
   @IsOptional()
   @MaxLength(300)
   address?: string;
+
+  @ApiPropertyOptional({ example: 'Ho Chi Minh City' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  province?: string;
+
+  @ApiPropertyOptional({ example: 'Ben Nghe Ward' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  ward?: string;
 }

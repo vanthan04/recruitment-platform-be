@@ -55,4 +55,18 @@ export class CvPrismaRepository {
     });
     return count > 0;
   }
+
+  /**
+   * True if this CV is referenced by a JobApplication that hasn't reached a
+   * terminal status yet. Same rationale as hasRecruiterAccess above: query
+   * the jobApplication table directly at the Prisma layer instead of a
+   * cross-module port, to avoid a CvModule <-> JobApplicationModule import
+   * cycle (JobApplicationModule already imports CvModule).
+   */
+  async hasActiveApplicationReference(cvId: string): Promise<boolean> {
+    const count = await this.prisma.jobApplication.count({
+      where: { cvId, status: { notIn: ['HIRED', 'REJECTED', 'WITHDRAWN'] } },
+    });
+    return count > 0;
+  }
 }

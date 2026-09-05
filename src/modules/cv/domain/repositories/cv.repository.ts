@@ -25,4 +25,11 @@ export abstract class ICvRepository {
     cvId: string,
     recruiterId: string,
   ): Promise<boolean>;
+
+  /**
+   * True if this CV is referenced by a JobApplication that hasn't reached a
+   * terminal status (HIRED/REJECTED/WITHDRAWN) yet. Same query-at-the-Prisma-
+   * layer rationale as hasRecruiterAccess above.
+   */
+  abstract hasActiveApplicationReference(cvId: string): Promise<boolean>;
 }

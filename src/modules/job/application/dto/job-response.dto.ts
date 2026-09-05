@@ -20,7 +20,8 @@ export class JobResponseDto {
   currency: string;
   requirements: string | null;
   benefits: string | null;
-  extraInfo: Record<string, string> | null;
+  workingHours: string | null;
+  applicationMethod: string | null;
   expiresAt: Date | null;
   postedById: string;
   skills: { id: string; name: string; slug: string }[];

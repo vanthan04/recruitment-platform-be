@@ -17,4 +17,6 @@ export abstract class IRefreshTokenRepositoryPort {
   ): Promise<StoredRefreshToken | null>;
   abstract revokeByHash(userId: string, tokenHash: string): Promise<void>;
   abstract revokeAllForUser(userId: string): Promise<void>;
+  /** Purges rows past their expiry — called by the daily cleanup cron. */
+  abstract deleteExpired(before: Date): Promise<number>;
 }

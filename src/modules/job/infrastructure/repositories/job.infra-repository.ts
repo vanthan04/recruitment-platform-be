@@ -59,6 +59,7 @@ export class JobInfraRepository implements IJobRepository {
     categoryId?: string;
     level?: string;
     sort?: JobSortOption;
+    skillIds?: string[];
   }): Promise<{ jobs: Job[]; total: number }> {
     const { skip, limit } = normalizePagination(params);
     const where: Prisma.JobWhereInput = {
@@ -107,6 +108,13 @@ export class JobInfraRepository implements IJobRepository {
 
     if (params.categoryId) {
       where.categoryId = params.categoryId;
+    }
+
+    if (params.skillIds?.length) {
+      // Job matches if it has at least one of the requested skills — stays
+      // entirely inside this module's own Prisma access (Job -> JobSkill),
+      // no cross-module port needed.
+      where.skills = { some: { skillId: { in: params.skillIds } } };
     }
 
     if (params.level) {

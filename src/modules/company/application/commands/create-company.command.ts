@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
+import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
 import { IUserCompanyLinkPort } from '@/modules/company/application/ports/user-company-link.port';
 import { CompanyAlreadyExistsException } from '@/modules/company/domain/exceptions/company.exceptions';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
@@ -14,7 +15,10 @@ export interface CreateCompanyInput {
   description?: string;
   website?: string;
   size?: CompanySize;
+  companyType?: CompanyType;
   address?: string;
+  province?: string;
+  ward?: string;
 }
 
 export class CreateCompanyCommand {
@@ -53,7 +57,10 @@ export class CreateCompanyHandler implements ICommandHandler<
       description: input.description ?? null,
       website: input.website ?? null,
       size: input.size ?? null,
+      companyType: input.companyType ?? null,
       address: input.address ?? null,
+      province: input.province ?? null,
+      ward: input.ward ?? null,
       ownerId,
     });
 

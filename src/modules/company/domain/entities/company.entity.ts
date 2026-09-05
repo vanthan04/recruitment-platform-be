@@ -1,5 +1,6 @@
 import { BaseEntity } from '@/common/domain/base.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
+import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
 import {
   CompanyOwnershipException,
   CompanyAlreadyDeletedException,
@@ -17,7 +18,10 @@ export class Company extends BaseEntity {
   description: string | null;
   website: string | null;
   size: CompanySize | null;
+  companyType: CompanyType | null;
   address: string | null;
+  province: string | null;
+  ward: string | null;
   deletedAt: Date | null;
   ownerId: string;
 
@@ -28,7 +32,10 @@ export class Company extends BaseEntity {
     this.description = partial.description ?? null;
     this.website = partial.website ?? null;
     this.size = partial.size ?? null;
+    this.companyType = partial.companyType ?? null;
     this.address = partial.address ?? null;
+    this.province = partial.province ?? null;
+    this.ward = partial.ward ?? null;
     this.deletedAt = partial.deletedAt ?? null;
   }
 
@@ -57,13 +64,19 @@ export class Company extends BaseEntity {
     description?: string | null;
     website?: string | null;
     size?: CompanySize | null;
+    companyType?: CompanyType | null;
     address?: string | null;
+    province?: string | null;
+    ward?: string | null;
   }): void {
     if (data.name) this.name = data.name;
     if (data.logoUrl !== undefined) this.logoUrl = data.logoUrl;
     if (data.description !== undefined) this.description = data.description;
     if (data.website !== undefined) this.website = data.website;
     if (data.size !== undefined) this.size = data.size;
+    if (data.companyType !== undefined) this.companyType = data.companyType;
     if (data.address !== undefined) this.address = data.address;
+    if (data.province !== undefined) this.province = data.province;
+    if (data.ward !== undefined) this.ward = data.ward;
   }
 }

@@ -1,7 +1,10 @@
+import { InvalidSalaryRangeException } from '@/modules/job/domain/exceptions/job.exceptions';
+
 /**
  * SalaryRange value object.
  * Immutable — represents a salary range with currency.
- * Framework-agnostic.
+ * Framework-agnostic (the exception it throws is a plain Error subclass
+ * with zero Nest/Prisma imports, so this stays a pure domain type).
  */
 export class SalaryRange {
   readonly min: number | null;
@@ -10,7 +13,7 @@ export class SalaryRange {
 
   constructor(min: number | null, max: number | null, currency = 'VND') {
     if (min !== null && max !== null && min > max) {
-      throw new Error('Minimum salary cannot be greater than maximum salary');
+      throw new InvalidSalaryRangeException();
     }
     this.min = min;
     this.max = max;

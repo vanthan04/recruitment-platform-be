@@ -18,6 +18,7 @@ export interface ListJobsInput {
   categoryId?: string;
   level?: string;
   sort?: JobSortOption;
+  skillIds?: string[];
 }
 
 export class ListJobsQuery {

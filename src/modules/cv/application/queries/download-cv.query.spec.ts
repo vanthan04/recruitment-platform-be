@@ -35,6 +35,7 @@ describe('DownloadCvHandler', () => {
       delete: jest.fn(),
       softDelete: jest.fn(),
       hasRecruiterAccess: jest.fn(),
+      hasActiveApplicationReference: jest.fn(),
     };
     cvStorage = {
       upload: jest.fn(),

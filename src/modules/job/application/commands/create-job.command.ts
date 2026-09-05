@@ -30,7 +30,8 @@ export interface CreateJobInput {
   currency?: string;
   requirements?: string;
   benefits?: string;
-  extraInfo?: Record<string, string>;
+  workingHours?: string;
+  applicationMethod?: string;
   expiresAt?: string;
   skillIds?: string[];
 }
@@ -97,7 +98,8 @@ export class CreateJobHandler implements ICommandHandler<
       ),
       requirements: input.requirements ?? null,
       benefits: input.benefits ?? null,
-      extraInfo: input.extraInfo ?? null,
+      workingHours: input.workingHours ?? null,
+      applicationMethod: input.applicationMethod ?? null,
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
       postedById: recruiterId,
     });

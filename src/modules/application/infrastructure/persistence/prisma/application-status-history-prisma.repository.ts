@@ -8,4 +8,11 @@ export class ApplicationStatusHistoryPrismaRepository {
   async create(data: any) {
     return this.prisma.applicationStatusHistory.create({ data });
   }
+
+  async findByApplicationId(applicationId: string) {
+    return this.prisma.applicationStatusHistory.findMany({
+      where: { applicationId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
 }

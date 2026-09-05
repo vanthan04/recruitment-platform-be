@@ -321,7 +321,8 @@ model Job {
   currency    String    @default("VND")
   requirements String?
   benefits    String?
-  extraInfo   Json?
+  workingHours String?
+  applicationMethod String?
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

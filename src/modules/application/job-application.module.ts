@@ -23,6 +23,7 @@ import { WithdrawApplicationHandler } from '@/modules/application/application/co
 import { ListMyApplicationsHandler } from '@/modules/application/application/queries/list-my-applications.query';
 import { ListApplicationsByJobHandler } from '@/modules/application/application/queries/list-applications-by-job.query';
 import { GetJobStatsHandler } from '@/modules/application/application/queries/get-job-stats.query';
+import { GetApplicationStatusHistoryHandler } from '@/modules/application/application/queries/get-application-status-history.query';
 
 @Module({
   imports: [CqrsModule, JobModule, CvModule, UserModule],
@@ -56,6 +57,7 @@ import { GetJobStatsHandler } from '@/modules/application/application/queries/ge
     ListMyApplicationsHandler,
     ListApplicationsByJobHandler,
     GetJobStatsHandler,
+    GetApplicationStatusHistoryHandler,
   ],
   exports: [IJobApplicationRepository],
 })

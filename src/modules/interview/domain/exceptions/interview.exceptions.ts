@@ -87,3 +87,13 @@ export class InterviewLocationOrMeetingLinkRequiredException extends BusinessRul
     this.name = 'InterviewLocationOrMeetingLinkRequiredException';
   }
 }
+
+export class InterviewApplicationNotInterviewableException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'This application has already reached a final status (hired, rejected, or withdrawn) and can no longer have interviews scheduled or changed',
+      'INTERVIEW_APPLICATION_NOT_INTERVIEWABLE',
+    );
+    this.name = 'InterviewApplicationNotInterviewableException';
+  }
+}

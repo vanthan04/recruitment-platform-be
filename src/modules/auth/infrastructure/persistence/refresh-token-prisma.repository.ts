@@ -42,4 +42,11 @@ export class RefreshTokenPrismaRepository implements IRefreshTokenRepositoryPort
       data: { revokedAt: new Date() },
     });
   }
+
+  async deleteExpired(before: Date): Promise<number> {
+    const { count } = await this.prisma.refreshToken.deleteMany({
+      where: { expiresAt: { lt: before } },
+    });
+    return count;
+  }
 }

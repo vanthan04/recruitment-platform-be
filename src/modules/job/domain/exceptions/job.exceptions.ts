@@ -101,3 +101,13 @@ export class JobRemovedException extends BusinessRuleViolationException {
     this.name = 'JobRemovedException';
   }
 }
+
+export class InvalidSalaryRangeException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'Minimum salary cannot be greater than maximum salary',
+      'JOB_INVALID_SALARY_RANGE',
+    );
+    this.name = 'InvalidSalaryRangeException';
+  }
+}

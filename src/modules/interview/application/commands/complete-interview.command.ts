@@ -11,6 +11,7 @@ import {
 import { ensureOwner } from '@/common/utils/ownership.util';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
+import { ensureApplicationInterviewable } from '@/modules/interview/application/utils/ensure-application-interviewable.util';
 
 export class CompleteInterviewCommand {
   constructor(
@@ -45,6 +46,7 @@ export class CompleteInterviewHandler implements ICommandHandler<
       throw new InterviewApplicationNotFoundException(
         interview.jobApplicationId,
       );
+    ensureApplicationInterviewable(application.status);
 
     const job = await this.jobLookupPort.findById(application.jobId);
     if (!job) throw new InterviewJobNotFoundException(application.jobId);

@@ -22,6 +22,7 @@ import { WithdrawApplicationCommand } from '@/modules/application/application/co
 import { ListMyApplicationsQuery } from '@/modules/application/application/queries/list-my-applications.query';
 import { ListApplicationsByJobQuery } from '@/modules/application/application/queries/list-applications-by-job.query';
 import { GetJobStatsQuery } from '@/modules/application/application/queries/get-job-stats.query';
+import { GetApplicationStatusHistoryQuery } from '@/modules/application/application/queries/get-application-status-history.query';
 
 import { ApplyJobDto } from '@/modules/application/presentation/dtos/apply-job.dto';
 import { UpdateApplicationStatusDto } from '@/modules/application/presentation/dtos/update-application-status.dto';
@@ -85,6 +86,25 @@ export class JobApplicationController {
       new GetJobStatsQuery(recruiterId, jobId),
     );
     return ApiResponse.ok(result, 'Job stats retrieved successfully');
+  }
+
+  @Get(':id/history')
+  @RequirePermissions(Permission.APPLICATION_READ)
+  @ApiOperation({
+    summary:
+      'View the status change history of an application (Candidate owner or Recruiter owner only)',
+  })
+  async getStatusHistory(
+    @GetMe('id') requesterId: string,
+    @Param('id') id: string,
+  ) {
+    const result = await this.queryBus.execute(
+      new GetApplicationStatusHistoryQuery(requesterId, id),
+    );
+    return ApiResponse.ok(
+      result,
+      'Application status history retrieved successfully',
+    );
   }
 
   @Patch(':id/withdraw')

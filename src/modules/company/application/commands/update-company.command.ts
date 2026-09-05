@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
+import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
 import { CompanyNotFoundException } from '@/modules/company/domain/exceptions/company.exceptions';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
@@ -12,7 +13,10 @@ export interface UpdateCompanyInput {
   description?: string;
   website?: string;
   size?: CompanySize;
+  companyType?: CompanyType;
   address?: string;
+  province?: string;
+  ward?: string;
 }
 
 export class UpdateCompanyCommand {

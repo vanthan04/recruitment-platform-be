@@ -14,6 +14,7 @@ import { ensureOwner } from '@/common/utils/ownership.util';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 import { buildInterviewEmail } from '@/modules/interview/application/utils/interview-mail.util';
+import { ensureApplicationInterviewable } from '@/modules/interview/application/utils/ensure-application-interviewable.util';
 
 export interface RescheduleInterviewInput {
   scheduledAt?: string;
@@ -60,6 +61,7 @@ export class RescheduleInterviewHandler implements ICommandHandler<
       throw new InterviewApplicationNotFoundException(
         interview.jobApplicationId,
       );
+    ensureApplicationInterviewable(application.status);
 
     const job = await this.jobLookupPort.findById(application.jobId);
     if (!job) throw new InterviewJobNotFoundException(application.jobId);

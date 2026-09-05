@@ -115,3 +115,13 @@ export class InvalidApplicationStatusTransitionException extends BusinessRuleVio
     this.name = 'InvalidApplicationStatusTransitionException';
   }
 }
+
+export class ApplicationHistoryViewNotAllowedException extends UnauthorizedDomainException {
+  constructor() {
+    super(
+      'You are not allowed to view the status history for this application',
+      'APPLICATION_HISTORY_VIEW_NOT_ALLOWED',
+    );
+    this.name = 'ApplicationHistoryViewNotAllowedException';
+  }
+}

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
-import { CvNotFoundException } from '@/modules/cv/domain/exceptions/cv.exceptions';
+import {
+  CvNotFoundException,
+  CvReferencedByActiveApplicationException,
+} from '@/modules/cv/domain/exceptions/cv.exceptions';
 
 export class DeleteCvCommand {
   constructor(
@@ -22,6 +25,11 @@ export class DeleteCvHandler implements ICommandHandler<DeleteCvCommand, void> {
     }
 
     cv.ensureOwner(userId);
+
+    if (await this.cvRepository.hasActiveApplicationReference(cvId)) {
+      throw new CvReferencedByActiveApplicationException();
+    }
+
     cv.softDelete();
 
     await this.cvRepository.update(cv);

@@ -15,6 +15,7 @@ import { ensureOwner } from '@/common/utils/ownership.util';
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 import { buildInterviewEmail } from '@/modules/interview/application/utils/interview-mail.util';
+import { ensureApplicationInterviewable } from '@/modules/interview/application/utils/ensure-application-interviewable.util';
 
 export interface ScheduleInterviewInput {
   jobApplicationId: string;
@@ -55,6 +56,7 @@ export class ScheduleInterviewHandler implements ICommandHandler<
     );
     if (!application)
       throw new InterviewApplicationNotFoundException(input.jobApplicationId);
+    ensureApplicationInterviewable(application.status);
 
     const job = await this.jobLookupPort.findById(application.jobId);
     if (!job) throw new InterviewJobNotFoundException(application.jobId);

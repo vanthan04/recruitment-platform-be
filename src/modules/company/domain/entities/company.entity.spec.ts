@@ -1,5 +1,6 @@
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
+import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
 import {
   CompanyOwnershipException,
   CompanyAlreadyDeletedException,
@@ -23,7 +24,10 @@ describe('Company entity', () => {
       expect(company.description).toBeNull();
       expect(company.website).toBeNull();
       expect(company.size).toBeNull();
+      expect(company.companyType).toBeNull();
       expect(company.address).toBeNull();
+      expect(company.province).toBeNull();
+      expect(company.ward).toBeNull();
       expect(company.deletedAt).toBeNull();
     });
   });
@@ -96,6 +100,20 @@ describe('Company entity', () => {
       company.updateDetails({ size: CompanySize.SIZE_500_PLUS });
 
       expect(company.size).toBe(CompanySize.SIZE_500_PLUS);
+    });
+
+    it('updates companyType, province, and ward', () => {
+      const company = makeCompany();
+
+      company.updateDetails({
+        companyType: CompanyType.OUTSOURCING,
+        province: 'Ho Chi Minh City',
+        ward: 'Ben Nghe Ward',
+      });
+
+      expect(company.companyType).toBe(CompanyType.OUTSOURCING);
+      expect(company.province).toBe('Ho Chi Minh City');
+      expect(company.ward).toBe('Ben Nghe Ward');
     });
   });
 });

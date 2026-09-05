@@ -33,12 +33,6 @@ export interface CategorySummary {
 }
 
 /**
- * Free-form extra fields (working hours, application method, and whatever
- * else gets added later) stored as JSON so new keys never need a migration.
- */
-export type JobExtraInfo = Record<string, string>;
-
-/**
  * Lightweight read-only snapshot of an assigned Skill, attached when the
  * infrastructure layer joins the relation. Not part of Job's own persistence.
  */
@@ -69,7 +63,8 @@ export class Job extends BaseEntity {
   salary: SalaryRange;
   requirements: string | null;
   benefits: string | null;
-  extraInfo: JobExtraInfo | null;
+  workingHours: string | null;
+  applicationMethod: string | null;
   expiresAt: Date | null;
   deletedAt: Date | null;
   postedById: string;
@@ -152,7 +147,8 @@ export class Job extends BaseEntity {
     categoryId?: string | null;
     requirements?: string;
     benefits?: string;
-    extraInfo?: JobExtraInfo;
+    workingHours?: string;
+    applicationMethod?: string;
     salaryMin?: number;
     salaryMax?: number;
     currency?: string;
@@ -167,7 +163,9 @@ export class Job extends BaseEntity {
     if (data.categoryId !== undefined) this.categoryId = data.categoryId;
     if (data.requirements !== undefined) this.requirements = data.requirements;
     if (data.benefits !== undefined) this.benefits = data.benefits;
-    if (data.extraInfo !== undefined) this.extraInfo = data.extraInfo;
+    if (data.workingHours !== undefined) this.workingHours = data.workingHours;
+    if (data.applicationMethod !== undefined)
+      this.applicationMethod = data.applicationMethod;
     if (data.expiresAt !== undefined) this.expiresAt = data.expiresAt;
 
     if (

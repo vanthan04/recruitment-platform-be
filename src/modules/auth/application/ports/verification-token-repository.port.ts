@@ -21,4 +21,6 @@ export abstract class IVerificationTokenRepositoryPort {
     type: VerificationTokenType,
   ): Promise<StoredVerificationToken | null>;
   abstract markUsed(id: string): Promise<void>;
+  /** Purges expired-or-used rows — called by the daily cleanup cron. */
+  abstract deleteExpiredOrUsed(before: Date): Promise<number>;
 }

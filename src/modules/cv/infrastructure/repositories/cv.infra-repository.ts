@@ -48,4 +48,8 @@ export class CvInfraRepository implements ICvRepository {
   ): Promise<boolean> {
     return this.cvPrisma.hasRecruiterAccess(cvId, recruiterId);
   }
+
+  async hasActiveApplicationReference(cvId: string): Promise<boolean> {
+    return this.cvPrisma.hasActiveApplicationReference(cvId);
+  }
 }

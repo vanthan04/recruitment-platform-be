@@ -117,3 +117,13 @@ export class CvFileTooLargeException extends BusinessRuleViolationException {
     this.name = 'CvFileTooLargeException';
   }
 }
+
+export class CvReferencedByActiveApplicationException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'This CV is referenced by an active job application and cannot be deleted',
+      'CV_REFERENCED_BY_ACTIVE_APPLICATION',
+    );
+    this.name = 'CvReferencedByActiveApplicationException';
+  }
+}
