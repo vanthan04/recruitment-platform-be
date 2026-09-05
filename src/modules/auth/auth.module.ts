@@ -21,9 +21,11 @@ import { ChangePasswordHandler } from '@/modules/auth/application/commands/chang
 import { IAuthUserRepositoryPort } from './application/ports/auth-user-repository.port';
 import { IAuthMailServicePort } from './application/ports/auth-mail-service.port';
 import { IRefreshTokenRepositoryPort } from './application/ports/refresh-token-repository.port';
+import { IVerificationTokenRepositoryPort } from './application/ports/verification-token-repository.port';
 import { AuthUserAdapter } from './infrastructure/adapters/user-repository.adapter';
 import { AuthMailAdapter } from './infrastructure/adapters/mail-service.adapter';
 import { RefreshTokenPrismaRepository } from './infrastructure/persistence/refresh-token-prisma.repository';
+import { VerificationTokenPrismaRepository } from './infrastructure/persistence/verification-token-prisma.repository';
 
 @Module({
   imports: [
@@ -61,6 +63,10 @@ import { RefreshTokenPrismaRepository } from './infrastructure/persistence/refre
     {
       provide: IRefreshTokenRepositoryPort,
       useClass: RefreshTokenPrismaRepository,
+    },
+    {
+      provide: IVerificationTokenRepositoryPort,
+      useClass: VerificationTokenPrismaRepository,
     },
   ],
   exports: [AuthService],

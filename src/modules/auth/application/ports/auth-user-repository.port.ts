@@ -6,7 +6,6 @@ export interface CreateUserOptions {
   email: string;
   password?: string;
   fullName?: string;
-  verifyCode?: string;
   role?: string;
   status?: string;
 }
@@ -16,7 +15,6 @@ export interface AuthUserRecord {
   id: string;
   email: string;
   password?: string;
-  verifyCode?: string;
   role: UserRole;
   status: UserStatus;
 }
@@ -26,5 +24,4 @@ export abstract class IAuthUserRepositoryPort {
   abstract findByEmail(email: string): Promise<AuthUserRecord | null>;
   abstract existsByEmail(email: string): Promise<boolean>;
   abstract save(data: CreateUserOptions): Promise<AuthUserRecord>;
-  abstract findByVerifyCode(code: string): Promise<AuthUserRecord | null>;
 }

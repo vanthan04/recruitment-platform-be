@@ -6,7 +6,6 @@ import { Profile } from '@/modules/user/domain/entities/profile.entity';
 export class User extends BaseEntity {
   email: string;
   password?: string;
-  verifyCode?: string;
   role: UserRole;
   status: UserStatus;
   companyId?: string | null;

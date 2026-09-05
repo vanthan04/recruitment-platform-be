@@ -13,7 +13,6 @@ describe('LoginHandler', () => {
       findByEmail: jest.fn(),
       existsByEmail: jest.fn(),
       save: jest.fn(),
-      findByVerifyCode: jest.fn(),
     };
     handler = new LoginHandler(userRepository);
   });

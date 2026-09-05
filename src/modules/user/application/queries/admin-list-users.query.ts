@@ -37,7 +37,7 @@ export class AdminListUsersHandler implements IQueryHandler<
     );
 
     const data = users.map((user) => {
-      const { password, verifyCode, ...safeUser } = user as any;
+      const { password, ...safeUser } = user as any;
       return safeUser;
     });
 

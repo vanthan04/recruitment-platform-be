@@ -169,7 +169,6 @@ model User {
   email        String     @unique
   // Nullable — social-login users (Google/Facebook) never set one.
   password     String?
-  verifyCode   String?
   // Social login linkage. Nullable/unique so a local account can later link
   // one or both providers, and a provider id never resolves to two users.
   googleId     String?    @unique
@@ -197,6 +196,8 @@ model User {
   refreshTokens    RefreshToken[]
   scheduledInterviews InterviewSchedule[]
   applicationStatusChanges ApplicationStatusHistory[]
+  oauthLoginCodes     OauthLoginCode[]
+  verificationTokens  VerificationToken[]
   conversationsAsCandidate  Conversation[]       @relation("ConversationCandidate")
   conversationsAsRecruiter  Conversation[]       @relation("ConversationRecruiter")
   conversationMemberships   ConversationMember[]
@@ -535,15 +536,49 @@ model RefreshToken {
 // with instead of the actual JWTs — keeps access/refresh tokens out of the
 // redirect URL (browser history, Referer headers, server logs). The
 // frontend exchanges it server-side for the real tokens within 60s.
+// The code identifies *who* logged in — access/refresh JWTs are minted
+// fresh at exchange time (reusing AuthService.getTokens()), never
+// pre-generated and stored here in plaintext.
 model OauthLoginCode {
-  id           String    @id @default(uuid())
-  codeHash     String    @unique
-  accessToken  String
-  refreshToken String
-  expiresAt    DateTime
-  createdAt    DateTime  @default(now())
+  id        String    @id @default(uuid())
+  codeHash  String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([userId])
   @@map("oauth_login_codes")
+}
+
+// ─────────────────────────────────────────────
+// Email verification / password reset tokens
+// ─────────────────────────────────────────────
+
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+// Replaces the old plaintext User.verifyCode, which email verification AND
+// password reset both wrote to the same column — a code emailed for one
+// purpose could be looked up and consumed for the other. `type` scopes each
+// token to its purpose; only its hash is ever stored.
+model VerificationToken {
+  id        String                @id @default(uuid())
+  tokenHash String                @unique
+  type      VerificationTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime              @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([userId])
+  @@map("verification_tokens")
 }
 
 // ─────────────────────────────────────────────

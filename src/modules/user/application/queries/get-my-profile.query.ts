@@ -19,7 +19,7 @@ export class GetMyProfileHandler implements IQueryHandler<GetMyProfileQuery> {
     }
 
     // Usually you don't return the password or other sensitive data
-    const { password, verifyCode, ...safeUser } = user as any;
+    const { password, ...safeUser } = user as any;
     return safeUser;
   }
 }

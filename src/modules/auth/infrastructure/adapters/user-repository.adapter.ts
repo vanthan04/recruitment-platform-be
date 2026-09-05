@@ -17,7 +17,6 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
       id: user.id,
       email: user.email,
       password: user.password,
-      verifyCode: user.verifyCode,
       role: user.role,
       status: user.status,
     };
@@ -44,7 +43,6 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
       id: data.id,
       email: data.email,
       password: data.password,
-      verifyCode: data.verifyCode,
       role: data.role as any,
       status: data.status as any,
       profile: data.fullName
@@ -54,9 +52,5 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
         : undefined,
     });
     return this.toRecord(saved)!;
-  }
-
-  async findByVerifyCode(code: string): Promise<AuthUserRecord | null> {
-    return this.toRecord(await this.userRepository.findByVerifyCode(code));
   }
 }

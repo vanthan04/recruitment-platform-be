@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import * as crypto from 'crypto';
+import { hashToken } from '@/common/utils/token-hash.util';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
 import {
@@ -68,7 +69,7 @@ export class AuthService {
   async logout(userId: string, refreshToken: string) {
     await this.refreshTokenRepository.revokeByHash(
       userId,
-      this.hashToken(refreshToken),
+      hashToken(refreshToken),
     );
   }
 
@@ -88,7 +89,7 @@ export class AuthService {
     }
 
     const userId = payload.sub;
-    const tokenHash = this.hashToken(refreshToken);
+    const tokenHash = hashToken(refreshToken);
 
     const stored = await this.refreshTokenRepository.findValidByHash(tokenHash);
     if (!stored || stored.userId !== userId) {
@@ -110,13 +111,9 @@ export class AuthService {
   }
 
   private async storeRefreshToken(userId: string, refreshToken: string) {
-    const tokenHash = this.hashToken(refreshToken);
+    const tokenHash = hashToken(refreshToken);
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
     await this.refreshTokenRepository.create(userId, tokenHash, expiresAt);
-  }
-
-  private hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   async getTokens(userId: string, email: string, role: string) {

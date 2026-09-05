@@ -11,7 +11,6 @@ export class UserMapper {
       id: raw.id,
       email: raw.email,
       password: raw.password,
-      verifyCode: raw.verifyCode || undefined,
       role: raw.roleRef.name as UserRole,
       status: raw.status as UserStatus,
       companyId: raw.companyId ?? null,

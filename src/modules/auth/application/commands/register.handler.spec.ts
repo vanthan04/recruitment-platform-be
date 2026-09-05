@@ -2,12 +2,14 @@ import { DuplicateEntityException } from '@/common/exceptions/domain.exception';
 import { RegisterHandler } from '@/modules/auth/application/commands/register.command';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
+import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/ports/verification-token-repository.port';
 import { UserRole } from '@/common/enums/user-role.enum';
 
 describe('RegisterHandler', () => {
   let handler: RegisterHandler;
   let userRepository: jest.Mocked<IAuthUserRepositoryPort>;
   let mailService: jest.Mocked<IAuthMailServicePort>;
+  let verificationTokenRepository: jest.Mocked<IVerificationTokenRepositoryPort>;
 
   beforeEach(() => {
     userRepository = {
@@ -15,12 +17,20 @@ describe('RegisterHandler', () => {
       findByEmail: jest.fn(),
       existsByEmail: jest.fn(),
       save: jest.fn(),
-      findByVerifyCode: jest.fn(),
     };
     mailService = {
       sendEmail: jest.fn().mockResolvedValue(undefined),
     };
-    handler = new RegisterHandler(userRepository, mailService);
+    verificationTokenRepository = {
+      create: jest.fn(),
+      findValidByHashAndType: jest.fn(),
+      markUsed: jest.fn(),
+    };
+    handler = new RegisterHandler(
+      userRepository,
+      mailService,
+      verificationTokenRepository,
+    );
   });
 
   it('throws DuplicateEntityException when the email is already registered', async () => {
@@ -62,7 +72,13 @@ describe('RegisterHandler', () => {
     const saveArgs = userRepository.save.mock.calls[0][0];
     expect(saveArgs.email).toBe('new@test.com');
     expect(saveArgs.password).not.toBe('password123'); // must be hashed
-    expect(saveArgs.verifyCode).toEqual(expect.any(String));
+
+    expect(verificationTokenRepository.create).toHaveBeenCalledWith(
+      'user-1',
+      'EMAIL_VERIFICATION',
+      expect.any(String),
+      expect.any(Date),
+    );
 
     expect(mailService.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({ to: 'new@test.com' }),

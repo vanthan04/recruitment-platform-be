@@ -30,7 +30,6 @@ describe('AdminUpdateUserStatusHandler', () => {
       existsByEmail: jest.fn(),
       save: jest.fn(),
       updateProfile: jest.fn(),
-      findByVerifyCode: jest.fn(),
       findAllPaginated: jest.fn(),
       updateCompanyId: jest.fn(),
     };

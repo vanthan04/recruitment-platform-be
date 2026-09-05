@@ -66,7 +66,6 @@ export class UserPrismaRepository
         data: {
           email: data.email,
           password: data.password,
-          verifyCode: data.verifyCode,
           // Role changes go through roleRef (the FK) — there is no more
           // `role` enum column to keep in sync.
           ...(data.role
@@ -108,7 +107,6 @@ export class UserPrismaRepository
       data: {
         email: data.email!,
         password: data.password!,
-        verifyCode: data.verifyCode,
         // roleId is resolved from the role name via the unique constraint on
         // Role.name, so callers here don't need to know the role's id.
         roleRef: { connect: { name: role } },
@@ -148,14 +146,6 @@ export class UserPrismaRepository
         },
       },
     });
-  }
-
-  async findByVerifyCode(code: string): Promise<User | null> {
-    const user = await this.prismaService.user.findFirst({
-      where: { verifyCode: code },
-      include: { profile: true, roleRef: true },
-    });
-    return UserMapper.toDomain(user);
   }
 
   async updateCompanyId(

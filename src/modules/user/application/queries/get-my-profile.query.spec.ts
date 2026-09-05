@@ -20,7 +20,6 @@ describe('GetMyProfileHandler', () => {
       existsByEmail: jest.fn(),
       save: jest.fn(),
       updateProfile: jest.fn(),
-      findByVerifyCode: jest.fn(),
       findAllPaginated: jest.fn(),
       updateCompanyId: jest.fn(),
     };
@@ -36,13 +35,12 @@ describe('GetMyProfileHandler', () => {
     ).rejects.toThrow(UserNotFoundException);
   });
 
-  it('strips password and verifyCode from the returned profile', async () => {
+  it('strips password from the returned profile', async () => {
     userRepository.findByIdWithProfile.mockResolvedValue(
       new User({
         id: 'user-1',
         email: 'candidate@example.com',
         password: 'hashed-secret',
-        verifyCode: 'secret-code',
         role: UserRole.CANDIDATE,
         status: UserStatus.ACTIVE,
       }),
@@ -51,7 +49,6 @@ describe('GetMyProfileHandler', () => {
     const result = await handler.execute(new GetMyProfileQuery('user-1'));
 
     expect(result).not.toHaveProperty('password');
-    expect(result).not.toHaveProperty('verifyCode');
     expect(result.email).toBe('candidate@example.com');
   });
 });

@@ -19,7 +19,6 @@ describe('AdminListUsersHandler', () => {
       existsByEmail: jest.fn(),
       save: jest.fn(),
       updateProfile: jest.fn(),
-      findByVerifyCode: jest.fn(),
       findAllPaginated: jest.fn(),
       updateCompanyId: jest.fn(),
     };
@@ -37,14 +36,13 @@ describe('AdminListUsersHandler', () => {
     expect(result.limit).toBe(10);
   });
 
-  it('strips password and verifyCode from every returned user', async () => {
+  it('strips password from every returned user', async () => {
     userRepository.findAllPaginated.mockResolvedValue({
       users: [
         new User({
           id: 'user-1',
           email: 'candidate@example.com',
           password: 'hashed-secret',
-          verifyCode: 'secret-code',
           role: UserRole.CANDIDATE,
           status: UserStatus.ACTIVE,
         }),
@@ -56,7 +54,6 @@ describe('AdminListUsersHandler', () => {
 
     expect(result.users).toHaveLength(1);
     expect(result.users[0]).not.toHaveProperty('password');
-    expect(result.users[0]).not.toHaveProperty('verifyCode');
     expect(result.total).toBe(1);
   });
 });

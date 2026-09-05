@@ -10,7 +10,6 @@ export abstract class IUserRepository {
     userId: string,
     profile: Partial<User['profile']>,
   ): Promise<void>;
-  abstract findByVerifyCode(code: string): Promise<User | null>;
   abstract findAllPaginated(
     page: number,
     limit: number,
