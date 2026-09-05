@@ -17,6 +17,7 @@ import {
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionGuard } from '@/common/guards/permission.guard';
 import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
+import { GetMe } from '@/common/decorators/get-me.decorator';
 import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 import { AdminListUsersQuery } from '@/modules/user/application/queries/admin-list-users.query';
@@ -58,11 +59,12 @@ export class UserAdminController {
     summary: "Update a user's status or role (Admin)",
   })
   async updateStatus(
+    @GetMe('id') actingAdminId: string,
     @Param('id') userId: string,
     @Body() dto: AdminUpdateUserStatusDto,
   ) {
     const result = await this.commandBus.execute(
-      new AdminUpdateUserStatusCommand(userId, dto),
+      new AdminUpdateUserStatusCommand(actingAdminId, userId, dto),
     );
     return ApiResponse.ok(null, result.message);
   }

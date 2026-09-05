@@ -20,4 +20,6 @@ export abstract class IUserRepository {
     userId: string,
     companyId: string | null,
   ): Promise<void>;
+  /** Used to block a self-lockout: refuse to block/demote the last one. */
+  abstract countActiveAdmins(): Promise<number>;
 }

@@ -5,7 +5,6 @@ import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/por
 import { VerificationTokenType } from '@/common/enums/verification-token-type.enum';
 import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-password.dto';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
-import { UserNotFoundException } from '@/modules/auth/domain/exceptions/auth.exceptions';
 import {
   hashToken,
   generateVerificationCode,
@@ -30,28 +29,31 @@ export class ForgotPasswordHandler implements ICommandHandler<
   ) {}
 
   async execute({ dto }: ForgotPasswordCommand): Promise<{ message: string }> {
+    // Deliberately identical response whether or not the email is registered
+    // — a distinct "not found" error here would let an attacker enumerate
+    // registered accounts by watching the response. Only do the real work
+    // (and only leak timing/side-effects) when a user actually exists.
     const user = await this.userRepository.findByEmail(dto.email);
-    if (!user) {
-      throw new UserNotFoundException(dto.email);
+    if (user) {
+      const resetCode = generateVerificationCode();
+      await this.verificationTokenRepository.create(
+        user.id,
+        VerificationTokenType.PASSWORD_RESET,
+        hashToken(resetCode),
+        new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+      );
+
+      await this.mailService.sendEmail({
+        to: user.email,
+        subject: 'Password recovery request',
+        text: `Your password recovery code is: ${resetCode}`,
+        html: `<b>Your password recovery code is: ${resetCode}</b>`,
+      });
     }
 
-    const resetCode = generateVerificationCode();
-    await this.verificationTokenRepository.create(
-      user.id,
-      VerificationTokenType.PASSWORD_RESET,
-      hashToken(resetCode),
-      new Date(Date.now() + PASSWORD_RESET_TTL_MS),
-    );
-
-    await this.mailService.sendEmail({
-      to: user.email,
-      subject: 'Password recovery request',
-      text: `Your password recovery code is: ${resetCode}`,
-      html: `<b>Your password recovery code is: ${resetCode}</b>`,
-    });
-
     return {
-      message: 'A password recovery code has been sent to your email',
+      message:
+        'If an account with that email exists, a password recovery code has been sent',
     };
   }
 }

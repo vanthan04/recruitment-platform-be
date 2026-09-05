@@ -183,6 +183,15 @@ export class UserPrismaRepository
     });
   }
 
+  async countActiveAdmins(): Promise<number> {
+    return this.prismaService.user.count({
+      where: {
+        status: UserStatus.ACTIVE,
+        roleRef: { name: UserRole.ADMIN },
+      },
+    });
+  }
+
   async findAllPaginated(
     page: number,
     limit: number,

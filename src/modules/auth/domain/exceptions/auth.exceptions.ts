@@ -40,6 +40,26 @@ export class InvalidCredentialsException extends UnauthorizedDomainException {
   }
 }
 
+export class AccountBlockedException extends UnauthorizedDomainException {
+  constructor() {
+    super(
+      'This account has been blocked. Contact support for assistance.',
+      'AUTH_ACCOUNT_BLOCKED',
+    );
+    this.name = 'AccountBlockedException';
+  }
+}
+
+export class EmailNotVerifiedException extends UnauthorizedDomainException {
+  constructor() {
+    super(
+      'Please verify your email before logging in.',
+      'AUTH_EMAIL_NOT_VERIFIED',
+    );
+    this.name = 'EmailNotVerifiedException';
+  }
+}
+
 export class InvalidOldPasswordException extends UnauthorizedDomainException {
   constructor() {
     super('Old password is incorrect', 'AUTH_INVALID_OLD_PASSWORD');

@@ -4,6 +4,8 @@ import { UserController } from '@/modules/user/presentation/controllers/user.con
 import { UserAdminController } from '@/modules/user/presentation/controllers/user-admin.controller';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { UserPrismaRepository } from '@/modules/user/infrastructure/persistence/prisma/user-prisma.repository';
+import { ISessionRevocationPort } from '@/modules/user/application/ports/session-revocation.port';
+import { SessionRevocationAdapter } from '@/modules/user/infrastructure/adapters/session-revocation.adapter';
 
 import { GetMyProfileHandler } from './application/queries/get-my-profile.query';
 import { UpdateProfileHandler } from './application/commands/update-profile.command';
@@ -18,6 +20,10 @@ import { AdminUpdateUserStatusHandler } from './application/commands/admin-updat
     {
       provide: IUserRepository,
       useClass: UserPrismaRepository,
+    },
+    {
+      provide: ISessionRevocationPort,
+      useClass: SessionRevocationAdapter,
     },
     GetMyProfileHandler,
     UpdateProfileHandler,

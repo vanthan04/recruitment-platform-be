@@ -11,7 +11,10 @@ import {
   InvalidRefreshTokenException,
   RefreshTokenAccessDeniedException,
   InvalidOrExpiredExchangeCodeException,
+  AccountBlockedException,
+  EmailNotVerifiedException,
 } from '@/modules/auth/domain/exceptions/auth.exceptions';
+import { UserStatus } from '@/common/enums/user-status.enum';
 import { SocialLoginCommand } from '@/modules/auth/application/commands/social-login.command';
 import { SocialProfile } from '@/common/strategies/google.strategy';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
@@ -75,6 +78,7 @@ export class AuthService {
     if (!user) {
       throw new InvalidOrExpiredExchangeCodeException();
     }
+    this.ensureActiveAccount(user.status);
 
     const tokens = await this.getTokens(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refresh_token);
@@ -133,6 +137,7 @@ export class AuthService {
     if (!user) {
       throw new RefreshTokenAccessDeniedException();
     }
+    this.ensureActiveAccount(user.status);
 
     // Rotate: the old refresh token is single-use — revoke it before issuing a new pair.
     await this.refreshTokenRepository.revokeByHash(userId, tokenHash);
@@ -141,6 +146,21 @@ export class AuthService {
     await this.storeRefreshToken(user.id, tokens.refresh_token);
 
     return tokens;
+  }
+
+  /**
+   * Re-checked on every refresh (and the social-login exchange) so a status
+   * change made after a token was issued — an admin blocking the user, or a
+   * still-pending email verification — takes effect the moment the current
+   * short-lived access token expires, instead of only at the next full login.
+   */
+  private ensureActiveAccount(status: UserStatus): void {
+    if (status === UserStatus.BLOCKED) {
+      throw new AccountBlockedException();
+    }
+    if (status === UserStatus.PENDING) {
+      throw new EmailNotVerifiedException();
+    }
   }
 
   private async storeRefreshToken(userId: string, refreshToken: string) {

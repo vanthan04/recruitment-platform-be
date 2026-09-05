@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
-import { InvalidCredentialsException } from '@/modules/auth/domain/exceptions/auth.exceptions';
+import {
+  InvalidCredentialsException,
+  AccountBlockedException,
+  EmailNotVerifiedException,
+} from '@/modules/auth/domain/exceptions/auth.exceptions';
+import { UserStatus } from '@/common/enums/user-status.enum';
 import * as bcrypt from 'bcrypt';
 
 export class LoginQuery {
@@ -23,6 +28,13 @@ export class LoginHandler implements IQueryHandler<LoginQuery, any> {
     const isMatch = await bcrypt.compare(dto.password, user.password!);
     if (!isMatch) {
       throw new InvalidCredentialsException();
+    }
+
+    if (user.status === UserStatus.BLOCKED) {
+      throw new AccountBlockedException();
+    }
+    if (user.status === UserStatus.PENDING) {
+      throw new EmailNotVerifiedException();
     }
 
     return user;

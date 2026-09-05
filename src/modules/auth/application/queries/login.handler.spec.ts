@@ -1,7 +1,12 @@
 import * as bcrypt from 'bcrypt';
 import { LoginHandler } from '@/modules/auth/application/queries/login.query';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
-import { InvalidCredentialsException } from '@/modules/auth/domain/exceptions/auth.exceptions';
+import {
+  InvalidCredentialsException,
+  AccountBlockedException,
+  EmailNotVerifiedException,
+} from '@/modules/auth/domain/exceptions/auth.exceptions';
+import { UserStatus } from '@/common/enums/user-status.enum';
 
 describe('LoginHandler', () => {
   let handler: LoginHandler;
@@ -46,6 +51,7 @@ describe('LoginHandler', () => {
       id: 'user-1',
       email: 'user@test.com',
       password: await bcrypt.hash('correct-password', 4),
+      status: UserStatus.ACTIVE,
     };
     userRepository.findByEmail.mockResolvedValue(storedUser as any);
 
@@ -54,5 +60,35 @@ describe('LoginHandler', () => {
     } as any);
 
     expect(result).toBe(storedUser);
+  });
+
+  it('throws AccountBlockedException for a blocked user', async () => {
+    userRepository.findByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@test.com',
+      password: await bcrypt.hash('correct-password', 4),
+      status: UserStatus.BLOCKED,
+    } as any);
+
+    await expect(
+      handler.execute({
+        dto: { email: 'user@test.com', password: 'correct-password' },
+      } as any),
+    ).rejects.toThrow(AccountBlockedException);
+  });
+
+  it('throws EmailNotVerifiedException for a pending user', async () => {
+    userRepository.findByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@test.com',
+      password: await bcrypt.hash('correct-password', 4),
+      status: UserStatus.PENDING,
+    } as any);
+
+    await expect(
+      handler.execute({
+        dto: { email: 'user@test.com', password: 'correct-password' },
+      } as any),
+    ).rejects.toThrow(EmailNotVerifiedException);
   });
 });
