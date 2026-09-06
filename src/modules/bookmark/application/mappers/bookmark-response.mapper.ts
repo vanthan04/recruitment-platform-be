@@ -2,7 +2,7 @@ import { Bookmark } from '@/modules/bookmark/domain/entities/bookmark.entity';
 import { BookmarkResponseDto } from '@/modules/bookmark/application/dto/bookmark-response.dto';
 
 export class BookmarkResponseMapper {
-  static toDto(bookmark: Bookmark): BookmarkResponseDto {
+  static toDto(this: void, bookmark: Bookmark): BookmarkResponseDto {
     const dto = new BookmarkResponseDto();
     dto.id = bookmark.id;
     dto.userId = bookmark.userId;

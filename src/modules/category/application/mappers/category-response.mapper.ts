@@ -2,7 +2,7 @@ import { Category } from '@/modules/category/domain/entities/category.entity';
 import { CategoryResponseDto } from '@/modules/category/application/dto/category-response.dto';
 
 export class CategoryResponseMapper {
-  static toDto(category: Category): CategoryResponseDto {
+  static toDto(this: void, category: Category): CategoryResponseDto {
     const dto = new CategoryResponseDto();
     dto.id = category.id;
     dto.name = category.name;

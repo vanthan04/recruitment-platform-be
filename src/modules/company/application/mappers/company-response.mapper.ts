@@ -5,7 +5,7 @@ import { CompanyResponseDto } from '@/modules/company/application/dto/company-re
  * Maps Company domain entity to response DTO.
  */
 export class CompanyResponseMapper {
-  static toDto(company: Company): CompanyResponseDto {
+  static toDto(this: void, company: Company): CompanyResponseDto {
     const dto = new CompanyResponseDto();
     dto.id = company.id;
     dto.name = company.name;

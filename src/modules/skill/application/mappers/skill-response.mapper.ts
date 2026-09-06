@@ -2,7 +2,7 @@ import { Skill } from '@/modules/skill/domain/entities/skill.entity';
 import { SkillResponseDto } from '@/modules/skill/application/dto/skill-response.dto';
 
 export class SkillResponseMapper {
-  static toDto(skill: Skill): SkillResponseDto {
+  static toDto(this: void, skill: Skill): SkillResponseDto {
     const dto = new SkillResponseDto();
     dto.id = skill.id;
     dto.name = skill.name;

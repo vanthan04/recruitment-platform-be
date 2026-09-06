@@ -5,7 +5,7 @@ import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
  * Maps Job domain entity to response DTO.
  */
 export class JobResponseMapper {
-  static toDto(job: Job): JobResponseDto {
+  static toDto(this: void, job: Job): JobResponseDto {
     const dto = new JobResponseDto();
     dto.id = job.id;
     dto.title = job.title;

@@ -5,7 +5,7 @@ import {
 } from '@/modules/chat/application/dto/message-response.dto';
 
 export class MessageResponseMapper {
-  static toDto(message: Message): MessageResponseDto {
+  static toDto(this: void, message: Message): MessageResponseDto {
     const dto = new MessageResponseDto();
     dto.id = message.id;
     dto.conversationId = message.conversationId;

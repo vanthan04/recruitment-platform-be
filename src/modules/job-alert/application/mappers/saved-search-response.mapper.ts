@@ -2,7 +2,7 @@ import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.en
 import { SavedSearchResponseDto } from '@/modules/job-alert/application/dto/saved-search-response.dto';
 
 export class SavedSearchResponseMapper {
-  static toDto(savedSearch: SavedSearch): SavedSearchResponseDto {
+  static toDto(this: void, savedSearch: SavedSearch): SavedSearchResponseDto {
     const dto = new SavedSearchResponseDto();
     dto.id = savedSearch.id;
     dto.keyword = savedSearch.keyword;

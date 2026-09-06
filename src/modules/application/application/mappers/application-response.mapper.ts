@@ -2,7 +2,7 @@ import { JobApplication } from '@/modules/application/domain/entities/job-applic
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
 
 export class ApplicationResponseMapper {
-  static toDto(app: JobApplication): ApplicationResponseDto {
+  static toDto(this: void, app: JobApplication): ApplicationResponseDto {
     const dto = new ApplicationResponseDto();
     dto.id = app.id;
     dto.status = app.status;

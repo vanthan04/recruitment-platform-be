@@ -2,7 +2,7 @@ import { InterviewSchedule } from '@/modules/interview/domain/entities/interview
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 
 export class InterviewResponseMapper {
-  static toDto(interview: InterviewSchedule): InterviewResponseDto {
+  static toDto(this: void, interview: InterviewSchedule): InterviewResponseDto {
     const dto = new InterviewResponseDto();
     dto.id = interview.id;
     dto.jobApplicationId = interview.jobApplicationId;

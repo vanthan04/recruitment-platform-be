@@ -2,7 +2,10 @@ import { Notification } from '@/modules/notification/domain/entities/notificatio
 import { NotificationResponseDto } from '@/modules/notification/application/dto/notification-response.dto';
 
 export class NotificationResponseMapper {
-  static toDto(notification: Notification): NotificationResponseDto {
+  static toDto(
+    this: void,
+    notification: Notification,
+  ): NotificationResponseDto {
     const dto = new NotificationResponseDto();
     dto.id = notification.id;
     dto.type = notification.type;
