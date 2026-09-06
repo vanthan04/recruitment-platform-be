@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class InterviewSchedulePrismaRepository {
@@ -18,11 +19,14 @@ export class InterviewSchedulePrismaRepository {
     });
   }
 
-  async create(data: any) {
+  async create(data: Prisma.InterviewScheduleUncheckedCreateInput) {
     return this.prisma.interviewSchedule.create({ data });
   }
 
-  async update(id: string, data: any) {
+  async update(
+    id: string,
+    data: Prisma.InterviewScheduleUncheckedUpdateInput,
+  ) {
     return this.prisma.interviewSchedule.update({
       where: { id },
       data,

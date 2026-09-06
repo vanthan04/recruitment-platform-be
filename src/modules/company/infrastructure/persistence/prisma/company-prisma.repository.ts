@@ -56,7 +56,7 @@ export class CompanyPrismaRepository {
     return { companies, total };
   }
 
-  async create(data: any) {
+  async create(data: Prisma.CompanyUncheckedCreateInput) {
     return this.prisma.company.create({ data });
   }
 
@@ -68,7 +68,10 @@ export class CompanyPrismaRepository {
    * row — unable to post jobs, and unable to retry `POST /companies` either
    * since `findByOwnerId` would already find the orphaned company.
    */
-  async createWithOwnerLink(data: any, ownerId: string) {
+  async createWithOwnerLink(
+    data: Prisma.CompanyUncheckedCreateInput,
+    ownerId: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const company = await tx.company.create({ data });
       await tx.user.update({
@@ -79,7 +82,7 @@ export class CompanyPrismaRepository {
     });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.CompanyUncheckedUpdateInput) {
     return this.prisma.company.update({
       where: { id },
       data,

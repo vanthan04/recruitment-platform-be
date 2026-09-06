@@ -89,7 +89,7 @@ export class ConversationInfraRepository implements IConversationRepository {
     const { conversations, total } =
       await this.conversationPrisma.findManyForUser(userId, skip, limit);
 
-    const items: ConversationListRow[] = conversations.map((raw: any) => ({
+    const items: ConversationListRow[] = conversations.map((raw) => ({
       conversation: ConversationMapper.toDomain(raw)!,
       membership: ConversationMemberMapper.toDomain(raw.members[0])!,
     }));

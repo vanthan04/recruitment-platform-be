@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class JobApplicationPrismaRepository {
@@ -50,11 +51,11 @@ export class JobApplicationPrismaRepository {
     });
   }
 
-  async create(data: any) {
+  async create(data: Prisma.JobApplicationUncheckedCreateInput) {
     return this.prisma.jobApplication.create({ data });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.JobApplicationUncheckedUpdateInput) {
     return this.prisma.jobApplication.update({
       where: { id },
       data,

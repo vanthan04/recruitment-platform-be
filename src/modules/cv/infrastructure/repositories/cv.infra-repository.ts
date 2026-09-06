@@ -3,6 +3,7 @@ import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
 import { CvPrismaRepository } from '@/modules/cv/infrastructure/persistence/prisma/cv-prisma.repository';
 import { CvMapper } from '@/modules/cv/infrastructure/persistence/mappers/cv.mapper';
+import { Cv as PrismaCv } from '@prisma/client';
 
 /**
  * Infrastructure implementation of ICvRepository.
@@ -19,12 +20,12 @@ export class CvInfraRepository implements ICvRepository {
 
   async findAllByUserId(userId: string): Promise<Cv[]> {
     const raws = await this.cvPrisma.findAllByUserId(userId);
-    return raws.map((r: any) => CvMapper.toDomain(r)!);
+    return raws.map((r: PrismaCv) => CvMapper.toDomain(r)!);
   }
 
   async findSoftDeletedBefore(cutoff: Date): Promise<Cv[]> {
     const raws = await this.cvPrisma.findSoftDeletedBefore(cutoff);
-    return raws.map((r: any) => CvMapper.toDomain(r)!);
+    return raws.map((r: PrismaCv) => CvMapper.toDomain(r)!);
   }
 
   async save(cv: Cv): Promise<Cv> {

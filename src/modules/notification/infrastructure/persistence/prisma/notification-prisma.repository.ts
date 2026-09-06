@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class NotificationPrismaRepository {
@@ -23,11 +24,11 @@ export class NotificationPrismaRepository {
     return { notifications, total };
   }
 
-  async create(data: any) {
+  async create(data: Prisma.NotificationUncheckedCreateInput) {
     return this.prisma.notification.create({ data });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.NotificationUncheckedUpdateInput) {
     return this.prisma.notification.update({ where: { id }, data });
   }
 

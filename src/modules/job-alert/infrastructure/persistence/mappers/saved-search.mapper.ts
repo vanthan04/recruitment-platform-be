@@ -1,9 +1,10 @@
 import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.entity';
 import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
 import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
+import { SavedSearch as PrismaSavedSearch, Prisma } from '@prisma/client';
 
 export class SavedSearchMapper {
-  static toDomain(raw: any): SavedSearch | null {
+  static toDomain(raw: PrismaSavedSearch | null): SavedSearch | null {
     if (!raw) return null;
 
     return new SavedSearch({
@@ -18,7 +19,9 @@ export class SavedSearchMapper {
     });
   }
 
-  static toPersistence(savedSearch: SavedSearch): any {
+  static toPersistence(
+    savedSearch: SavedSearch,
+  ): Prisma.SavedSearchUncheckedCreateInput {
     return {
       userId: savedSearch.userId,
       keyword: savedSearch.keyword,

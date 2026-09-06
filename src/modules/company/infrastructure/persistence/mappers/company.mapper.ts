@@ -1,9 +1,10 @@
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
+import { Company as PrismaCompany, Prisma } from '@prisma/client';
 
 export class CompanyMapper {
-  static toDomain(raw: any): Company | null {
+  static toDomain(raw: PrismaCompany | null): Company | null {
     if (!raw) return null;
 
     return new Company({
@@ -25,7 +26,7 @@ export class CompanyMapper {
     });
   }
 
-  static toPersistence(company: Company): any {
+  static toPersistence(company: Company): Prisma.CompanyUncheckedCreateInput {
     return {
       name: company.name,
       slug: company.slug,

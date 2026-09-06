@@ -1,8 +1,9 @@
+import { Prisma, ConversationMember as PrismaConversationMember } from '@prisma/client';
 import { ConversationMember } from '@/modules/chat/domain/entities/conversation-member.entity';
 import { ChatParticipantRole } from '@/modules/chat/domain/value-objects/chat-participant-role.vo';
 
 export class ConversationMemberMapper {
-  static toDomain(raw: any): ConversationMember | null {
+  static toDomain(raw: PrismaConversationMember | null): ConversationMember | null {
     if (!raw) return null;
 
     return new ConversationMember({
@@ -15,7 +16,9 @@ export class ConversationMemberMapper {
     });
   }
 
-  static toPersistence(member: ConversationMember): any {
+  static toPersistence(
+    member: ConversationMember,
+  ): Prisma.ConversationMemberUncheckedCreateInput {
     return {
       id: member.id,
       conversationId: member.conversationId,

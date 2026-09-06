@@ -93,9 +93,7 @@ export class UserPrismaRepository
           password: data.password,
           // Role changes go through roleRef (the FK) — there is no more
           // `role` enum column to keep in sync.
-          ...(data.role
-            ? { roleRef: { connect: { name: data.role as any } } }
-            : {}),
+          ...(data.role ? { roleRef: { connect: { name: data.role } } } : {}),
           // Guarded by `!== undefined` (not just truthy) so unrelated saves
           // (verify-email, reset-password, profile update) never silently
           // null out an already-linked social account.
@@ -103,14 +101,14 @@ export class UserPrismaRepository
           ...(data.facebookId !== undefined
             ? { facebookId: data.facebookId }
             : {}),
-          status: data.status as any,
+          status: data.status,
           profile: data.profile
             ? {
                 upsert: {
                   create: {
                     fullName: data.profile.fullName || '',
                     phoneNumber: data.profile.phoneNumber,
-                    gender: data.profile.gender as any,
+                    gender: data.profile.gender,
                     birthDate: data.profile.birthDate,
                     avatarUrl: data.profile.avatarUrl,
                     headline: data.profile.headline,
@@ -119,7 +117,7 @@ export class UserPrismaRepository
                   update: {
                     fullName: data.profile.fullName,
                     phoneNumber: data.profile.phoneNumber,
-                    gender: data.profile.gender as any,
+                    gender: data.profile.gender,
                     birthDate: data.profile.birthDate,
                     avatarUrl: data.profile.avatarUrl,
                     headline: data.profile.headline,
@@ -134,7 +132,7 @@ export class UserPrismaRepository
       return UserMapper.toDomain(updated)!;
     }
 
-    const role = (data.role as any) || UserRole.CANDIDATE;
+    const role = data.role || UserRole.CANDIDATE;
     const created = await this.prismaService.user.create({
       data: {
         email: data.email!,
@@ -144,12 +142,12 @@ export class UserPrismaRepository
         // roleId is resolved from the role name via the unique constraint on
         // Role.name, so callers here don't need to know the role's id.
         roleRef: { connect: { name: role } },
-        status: (data.status as any) || UserStatus.PENDING,
+        status: data.status || UserStatus.PENDING,
         profile: {
           create: {
             fullName: data.profile?.fullName || '',
             phoneNumber: data.profile?.phoneNumber,
-            gender: data.profile?.gender as any,
+            gender: data.profile?.gender,
             headline: data.profile?.headline,
             summary: data.profile?.summary,
           },
@@ -171,7 +169,7 @@ export class UserPrismaRepository
           update: {
             fullName: profile?.fullName,
             phoneNumber: profile?.phoneNumber,
-            gender: profile?.gender as any,
+            gender: profile?.gender,
             birthDate: profile?.birthDate,
             avatarUrl: profile?.avatarUrl,
             headline: profile?.headline,

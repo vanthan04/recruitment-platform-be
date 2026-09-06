@@ -7,7 +7,10 @@ import { RequirePermissions } from '@/common/decorators/require-permissions.deco
 import { GetMe } from '@/common/decorators/get-me.decorator';
 import { Permission } from '@/common/enums/permission.enum';
 import { GetMyProfileQuery } from '@/modules/user/application/queries/get-my-profile.query';
-import { UpdateProfileCommand } from '@/modules/user/application/commands/update-profile.command';
+import {
+  UpdateProfileCommand,
+  UpdateProfileInput,
+} from '@/modules/user/application/commands/update-profile.command';
 import { UpdateProfileDto } from '../dtos/update-profile.dto';
 import { ApiResponse } from '@/common/dtos/api-response';
 
@@ -36,8 +39,20 @@ export class UserController {
     @GetMe('id') userId: string,
     @Body() dto: UpdateProfileDto,
   ) {
+    const input: UpdateProfileInput = {
+      fullName: dto.fullName,
+      phoneNumber: dto.phoneNumber,
+      gender: dto.gender,
+      // UpdateProfileInput declares `birthDate` as a `Date`, but the DTO
+      // validates it as an ISO date string (`@IsDateString`) and passes it
+      // straight through to Prisma, which accepts either at runtime — this
+      // is a type-boundary cast, not a value conversion, so the raw string
+      // still flows through unchanged.
+      birthDate: dto.birthDate as unknown as Date | undefined,
+      avatarUrl: dto.avatarUrl,
+    };
     const result = await this.commandBus.execute(
-      new UpdateProfileCommand(userId, dto as any),
+      new UpdateProfileCommand(userId, input),
     );
     return ApiResponse.ok(null, result.message);
   }

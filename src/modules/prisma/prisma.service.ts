@@ -6,8 +6,13 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+
+// What app.module.ts's `PrismaModule.forRoot(...)` actually passes: Prisma
+// Client constructor options minus `adapter`, which PrismaService always
+// supplies itself (below) rather than letting a caller override it.
+export type PrismaClientOptions = Omit<Prisma.PrismaClientOptions, 'adapter'>;
 
 @Injectable()
 export class PrismaService
@@ -17,7 +22,7 @@ export class PrismaService
   constructor(
     @Optional()
     @Inject('PRISMA_OPTIONS')
-    private readonly options: any,
+    private readonly options: PrismaClientOptions | undefined,
     // Read as a plain parameter, not `this.configService` — it has to be
     // available before `super()` runs, and `this` doesn't exist yet.
     configService: ConfigService,

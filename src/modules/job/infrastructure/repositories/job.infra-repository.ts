@@ -11,7 +11,13 @@ import {
 } from '@/modules/job/application/ports/skill-lookup.port';
 import { normalizePagination } from '@/common/utils/pagination.util';
 import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-option.vo';
-import { Prisma } from '@prisma/client';
+import {
+  Prisma,
+  EmploymentType as PrismaEmploymentType,
+  WorkMode as PrismaWorkMode,
+  JobLevel as PrismaJobLevel,
+  JobStatus as PrismaJobStatus,
+} from '@prisma/client';
 
 function buildOrderBy(
   sort?: JobSortOption,
@@ -101,11 +107,11 @@ export class JobInfraRepository implements IJobRepository {
     }
 
     if (params.employmentType) {
-      where.employmentType = params.employmentType as any;
+      where.employmentType = params.employmentType as PrismaEmploymentType;
     }
 
     if (params.workMode) {
-      where.workMode = params.workMode as any;
+      where.workMode = params.workMode as PrismaWorkMode;
     }
 
     if (params.salaryMin !== undefined) {
@@ -132,7 +138,7 @@ export class JobInfraRepository implements IJobRepository {
     }
 
     if (params.level) {
-      where.level = params.level as any;
+      where.level = params.level as PrismaJobLevel;
     }
 
     if (params.createdAfter) {
@@ -164,7 +170,7 @@ export class JobInfraRepository implements IJobRepository {
       deletedAt: null,
     };
     if (params.status) {
-      where.status = params.status as any;
+      where.status = params.status as PrismaJobStatus;
     }
 
     const { jobs: raws, total } = await this.jobPrisma.findAllPaginated({

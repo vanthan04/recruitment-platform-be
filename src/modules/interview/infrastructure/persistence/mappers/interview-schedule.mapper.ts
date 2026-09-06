@@ -1,8 +1,14 @@
 import { InterviewSchedule } from '@/modules/interview/domain/entities/interview-schedule.entity';
 import { InterviewStatus } from '@/modules/interview/domain/value-objects/interview-status.vo';
+import {
+  InterviewSchedule as PrismaInterviewSchedule,
+  Prisma,
+} from '@prisma/client';
 
 export class InterviewScheduleMapper {
-  static toDomain(raw: any): InterviewSchedule | null {
+  static toDomain(
+    raw: PrismaInterviewSchedule | null,
+  ): InterviewSchedule | null {
     if (!raw) return null;
 
     return new InterviewSchedule({
@@ -20,7 +26,9 @@ export class InterviewScheduleMapper {
     });
   }
 
-  static toPersistence(interview: InterviewSchedule): any {
+  static toPersistence(
+    interview: InterviewSchedule,
+  ): Prisma.InterviewScheduleUncheckedCreateInput {
     return {
       scheduledAt: interview.scheduledAt,
       durationMinutes: interview.durationMinutes,

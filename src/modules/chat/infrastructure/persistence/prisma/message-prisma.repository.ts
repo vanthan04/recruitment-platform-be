@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
 @Injectable()
@@ -24,7 +25,10 @@ export class MessagePrismaRepository {
     });
   }
 
-  async create(data: any, attachmentsData: any[]) {
+  async create(
+    data: Prisma.MessageUncheckedCreateInput,
+    attachmentsData: Prisma.MessageAttachmentUncheckedCreateWithoutMessageInput[],
+  ) {
     return this.prisma.message.create({
       data: {
         ...data,
@@ -36,7 +40,7 @@ export class MessagePrismaRepository {
     });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.MessageUncheckedUpdateInput) {
     return this.prisma.message.update({
       where: { id },
       data,

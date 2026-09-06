@@ -1,8 +1,15 @@
+import { Prisma, Conversation as PrismaConversation } from '@prisma/client';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import { ConversationStatus } from '@/modules/chat/domain/value-objects/conversation-status.vo';
 
+type ConversationWithMembers = Prisma.ConversationGetPayload<{
+  include: { members: true };
+}>;
+
 export class ConversationMapper {
-  static toDomain(raw: any): Conversation | null {
+  static toDomain(
+    raw: PrismaConversation | ConversationWithMembers | null,
+  ): Conversation | null {
     if (!raw) return null;
 
     return new Conversation({
@@ -18,7 +25,9 @@ export class ConversationMapper {
     });
   }
 
-  static toPersistence(conversation: Conversation): any {
+  static toPersistence(
+    conversation: Conversation,
+  ): Prisma.ConversationUncheckedCreateInput {
     return {
       id: conversation.id,
       jobId: conversation.jobId,

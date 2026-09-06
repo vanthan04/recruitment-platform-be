@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 /**
  * Low-level Prisma data access for CV.
@@ -28,11 +29,11 @@ export class CvPrismaRepository {
     });
   }
 
-  async create(data: any) {
+  async create(data: Prisma.CvUncheckedCreateInput) {
     return this.prisma.cv.create({ data });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.CvUncheckedUpdateInput) {
     return this.prisma.cv.update({ where: { id }, data });
   }
 

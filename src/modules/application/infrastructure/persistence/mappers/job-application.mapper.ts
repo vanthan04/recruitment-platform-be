@@ -1,8 +1,9 @@
 import { JobApplication } from '@/modules/application/domain/entities/job-application.entity';
 import { ApplicationStatus } from '@/modules/application/domain/value-objects/application-status.vo';
+import { JobApplication as PrismaJobApplication, Prisma } from '@prisma/client';
 
 export class JobApplicationMapper {
-  static toDomain(raw: any): JobApplication | null {
+  static toDomain(raw: PrismaJobApplication | null): JobApplication | null {
     if (!raw) return null;
 
     return new JobApplication({
@@ -17,7 +18,9 @@ export class JobApplicationMapper {
     });
   }
 
-  static toPersistence(app: JobApplication): any {
+  static toPersistence(
+    app: JobApplication,
+  ): Prisma.JobApplicationUncheckedCreateInput {
     return {
       status: app.status,
       coverLetter: app.coverLetter,

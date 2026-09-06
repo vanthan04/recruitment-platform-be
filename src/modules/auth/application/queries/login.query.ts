@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
+import {
+  IAuthUserRepositoryPort,
+  AuthUserRecord,
+} from '@/modules/auth/application/ports/auth-user-repository.port';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
 import {
   InvalidCredentialsException,
@@ -16,10 +19,10 @@ export class LoginQuery {
 
 @Injectable()
 @QueryHandler(LoginQuery)
-export class LoginHandler implements IQueryHandler<LoginQuery, any> {
+export class LoginHandler implements IQueryHandler<LoginQuery, AuthUserRecord> {
   constructor(private readonly userRepository: IAuthUserRepositoryPort) {}
 
-  async execute({ dto }: LoginQuery): Promise<any> {
+  async execute({ dto }: LoginQuery): Promise<AuthUserRecord> {
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
       throw new InvalidCredentialsException();

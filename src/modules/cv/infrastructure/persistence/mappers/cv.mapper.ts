@@ -1,13 +1,14 @@
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
 import { CvStatus } from '@/modules/cv/domain/value-objects/cv-status.vo';
 import { CvFileType } from '@/modules/cv/domain/value-objects/cv-file-type.vo';
+import { Cv as PrismaCv, Prisma } from '@prisma/client';
 
 /**
  * Maps Prisma raw data to domain entities and vice versa.
  * Lives in the infrastructure layer — knows about both Prisma shape and domain.
  */
 export class CvMapper {
-  static toDomain(raw: any): Cv | null {
+  static toDomain(raw: PrismaCv | null): Cv | null {
     if (!raw) return null;
 
     return new Cv({
@@ -29,7 +30,7 @@ export class CvMapper {
   /**
    * Map domain entity to Prisma create/update data shape.
    */
-  static toPersistence(cv: Cv): any {
+  static toPersistence(cv: Cv): Prisma.CvUncheckedCreateInput {
     return {
       id: cv.id,
       title: cv.title,

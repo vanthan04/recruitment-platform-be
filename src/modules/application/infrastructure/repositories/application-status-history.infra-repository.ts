@@ -6,6 +6,7 @@ import {
 } from '@/modules/application/domain/repositories/application-status-history.repository';
 import { ApplicationStatus } from '@/modules/application/domain/value-objects/application-status.vo';
 import { ApplicationStatusHistoryPrismaRepository } from '@/modules/application/infrastructure/persistence/prisma/application-status-history-prisma.repository';
+import { ApplicationStatusHistory as PrismaApplicationStatusHistory } from '@prisma/client';
 
 @Injectable()
 export class ApplicationStatusHistoryInfraRepository implements IApplicationStatusHistoryRepository {
@@ -21,7 +22,7 @@ export class ApplicationStatusHistoryInfraRepository implements IApplicationStat
     applicationId: string,
   ): Promise<ApplicationStatusHistoryEntry[]> {
     const raws = await this.historyPrisma.findByApplicationId(applicationId);
-    return raws.map((raw: any) => ({
+    return raws.map((raw: PrismaApplicationStatusHistory) => ({
       id: raw.id,
       fromStatus: raw.fromStatus as ApplicationStatus | null,
       toStatus: raw.toStatus as ApplicationStatus,

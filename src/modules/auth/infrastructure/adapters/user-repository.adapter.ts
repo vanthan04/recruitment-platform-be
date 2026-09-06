@@ -6,6 +6,9 @@ import {
 } from '../../application/ports/auth-user-repository.port';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { User } from '@/modules/user/domain/entities/user.entity';
+import { Profile } from '@/modules/user/domain/entities/profile.entity';
+import { UserRole } from '@/common/enums/user-role.enum';
+import { UserStatus } from '@/common/enums/user-status.enum';
 
 @Injectable()
 export class AuthUserAdapter implements IAuthUserRepositoryPort {
@@ -55,12 +58,16 @@ export class AuthUserAdapter implements IAuthUserRepositoryPort {
       password: data.password,
       googleId: data.googleId,
       facebookId: data.facebookId,
-      role: data.role as any,
-      status: data.status as any,
+      role: data.role as UserRole | undefined,
+      status: data.status as UserStatus | undefined,
+      // `IUserRepository.save`'s `Partial<User>.profile` is typed as a full
+      // `Profile`, but every call site (here and updateProfile/register
+      // flows) only ever supplies a subset of its fields — the repository
+      // only reads the specific fields it needs (see
+      // user-prisma.repository.ts `save()`). Cast documents that gap rather
+      // than papering over it with `any`.
       profile: data.fullName
-        ? ({
-            fullName: data.fullName,
-          } as any)
+        ? ({ fullName: data.fullName } as Profile)
         : undefined,
     });
     return this.toRecord(saved)!;

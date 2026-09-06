@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { AuthService } from '@/modules/auth/application/auth.service';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { LoginRequestDto } from '@/modules/auth/presentation/dtos/login-request.dto';
@@ -35,6 +35,12 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 // access_token as a Bearer header, same as always; this cookie is additive.
 const ACCESS_TOKEN_COOKIE = 'access_token';
 const ACCESS_TOKEN_COOKIE_MAX_AGE_MS = 15 * 60 * 1000; // matches AuthService.getTokens' 15m access token expiry
+
+// Populated by JwtAuthGuard (Passport) from JwtStrategy.validate()'s return
+// value — see jwt.strategy.ts.
+interface AuthenticatedRequest extends Request {
+  user: { id: string; email: string; role: string };
+}
 
 @ApiTags('auth')
 @Controller('auth')
@@ -117,7 +123,10 @@ export class AuthController {
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change password (Authenticated)' })
-  async changePassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
+  async changePassword(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto,
+  ) {
     const result = await this.authService.changePassword(req.user.id, dto);
     return ApiResponse.ok(null, result.message);
   }
@@ -129,7 +138,7 @@ export class AuthController {
     summary: 'Logout current device (revokes the given refresh token)',
   })
   async logout(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: RefreshTokenDto,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -145,7 +154,7 @@ export class AuthController {
     summary: 'Logout from all devices (revokes every active session)',
   })
   async logoutAll(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logoutAll(req.user.id);

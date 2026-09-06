@@ -1,9 +1,14 @@
+import { Prisma } from '@prisma/client';
 import { Message } from '@/modules/chat/domain/entities/message.entity';
 import { MessageAttachment } from '@/modules/chat/domain/entities/message-attachment.entity';
 import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
 
+type MessageWithAttachments = Prisma.MessageGetPayload<{
+  include: { attachments: true };
+}>;
+
 export class MessageMapper {
-  static toDomain(raw: any): Message | null {
+  static toDomain(raw: MessageWithAttachments | null): Message | null {
     if (!raw) return null;
 
     return new Message({
@@ -17,7 +22,7 @@ export class MessageMapper {
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
       attachments: (raw.attachments ?? []).map(
-        (a: any) =>
+        (a) =>
           new MessageAttachment({
             id: a.id,
             messageId: a.messageId,
@@ -31,7 +36,7 @@ export class MessageMapper {
     });
   }
 
-  static toPersistence(message: Message): any {
+  static toPersistence(message: Message): Prisma.MessageUncheckedCreateInput {
     return {
       id: message.id,
       conversationId: message.conversationId,

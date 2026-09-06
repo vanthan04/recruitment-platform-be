@@ -1,7 +1,8 @@
 import { Category } from '@/modules/category/domain/entities/category.entity';
+import { Category as PrismaCategory, Prisma } from '@prisma/client';
 
 export class CategoryMapper {
-  static toDomain(raw: any): Category | null {
+  static toDomain(raw: PrismaCategory | null): Category | null {
     if (!raw) return null;
 
     return new Category({
@@ -13,7 +14,7 @@ export class CategoryMapper {
     });
   }
 
-  static toPersistence(category: Category): any {
+  static toPersistence(category: Category): Prisma.CategoryCreateInput {
     return {
       name: category.name,
       slug: category.slug,

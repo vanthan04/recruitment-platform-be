@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ApplicationStatusHistoryPrismaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: any) {
+  async create(data: Prisma.ApplicationStatusHistoryUncheckedCreateInput) {
     return this.prisma.applicationStatusHistory.create({ data });
   }
 

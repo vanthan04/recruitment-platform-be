@@ -4,12 +4,13 @@ import { EmploymentType } from '@/modules/job/domain/value-objects/employment-ty
 import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
 import { JobLevel } from '@/modules/job/domain/value-objects/job-level.vo';
 import { SalaryRange } from '@/modules/job/domain/value-objects/salary-range.vo';
+import { Job as PrismaJob, Prisma } from '@prisma/client';
 
 export class JobMapper {
   // `raw.company`/`raw.category` are attached by JobInfraRepository (via
   // ICompanyLookupPort/ICategoryLookupPort) after this mapping, never by a
   // Prisma include — this mapper only ever sees the job's own columns.
-  static toDomain(raw: any): Job | null {
+  static toDomain(raw: PrismaJob | null): Job | null {
     if (!raw) return null;
 
     return new Job({
@@ -37,7 +38,7 @@ export class JobMapper {
     });
   }
 
-  static toPersistence(job: Job): any {
+  static toPersistence(job: Job): Prisma.JobUncheckedCreateInput {
     return {
       title: job.title,
       description: job.description,

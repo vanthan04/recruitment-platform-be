@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
 @Injectable()
@@ -13,7 +14,10 @@ export class ConversationPrismaRepository {
     return this.prisma.conversation.findUnique({ where: { applicationId } });
   }
 
-  async createWithMembers(conversationData: any, membersData: any[]) {
+  async createWithMembers(
+    conversationData: Prisma.ConversationUncheckedCreateInput,
+    membersData: Prisma.ConversationMemberUncheckedCreateWithoutConversationInput[],
+  ) {
     return this.prisma.conversation.create({
       data: {
         ...conversationData,

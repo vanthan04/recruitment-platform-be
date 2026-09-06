@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CategoryPrismaRepository {
@@ -35,11 +36,11 @@ export class CategoryPrismaRepository {
     return this.prisma.job.count({ where: { categoryId, deletedAt: null } });
   }
 
-  async create(data: any) {
+  async create(data: Prisma.CategoryCreateInput) {
     return this.prisma.category.create({ data });
   }
 
-  async update(id: string, data: any) {
+  async update(id: string, data: Prisma.CategoryUpdateInput) {
     return this.prisma.category.update({ where: { id }, data });
   }
 

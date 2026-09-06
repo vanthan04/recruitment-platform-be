@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class SavedSearchPrismaRepository {
@@ -30,7 +31,7 @@ export class SavedSearchPrismaRepository {
     });
   }
 
-  async create(data: any) {
+  async create(data: Prisma.SavedSearchUncheckedCreateInput) {
     return this.prisma.savedSearch.create({ data });
   }
 

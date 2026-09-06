@@ -20,6 +20,7 @@ import {
   EmailNotVerifiedException,
 } from '@/modules/auth/domain/exceptions/auth.exceptions';
 import { UserStatus } from '@/common/enums/user-status.enum';
+import { JwtPayload } from '@/common/strategies/jwt.strategy';
 import { SocialLoginCommand } from '@/modules/auth/application/commands/social-login.command';
 import { SocialProfile } from '@/common/strategies/google.strategy';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
@@ -140,9 +141,9 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
-    let payload: any;
+    let payload: JwtPayload;
     try {
-      payload = await this.jwtService.verifyAsync(refreshToken, {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
     } catch {

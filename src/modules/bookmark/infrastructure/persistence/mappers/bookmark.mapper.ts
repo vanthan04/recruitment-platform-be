@@ -1,7 +1,8 @@
 import { Bookmark } from '@/modules/bookmark/domain/entities/bookmark.entity';
+import { Bookmark as PrismaBookmark, Prisma } from '@prisma/client';
 
 export class BookmarkMapper {
-  static toDomain(raw: any): Bookmark | null {
+  static toDomain(raw: PrismaBookmark | null): Bookmark | null {
     if (!raw) return null;
 
     return new Bookmark({
@@ -12,7 +13,9 @@ export class BookmarkMapper {
     });
   }
 
-  static toPersistence(bookmark: Bookmark): any {
+  static toPersistence(
+    bookmark: Bookmark,
+  ): Prisma.BookmarkUncheckedCreateInput {
     return {
       userId: bookmark.userId,
       jobId: bookmark.jobId,

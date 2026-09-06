@@ -52,7 +52,7 @@ export class JobPrismaRepository {
     });
   }
 
-  async create(data: any, skillIds?: string[]) {
+  async create(data: Prisma.JobUncheckedCreateInput, skillIds?: string[]) {
     if (skillIds === undefined) {
       return this.prisma.job.create({ data });
     }
@@ -71,7 +71,11 @@ export class JobPrismaRepository {
     });
   }
 
-  async update(id: string, data: any, skillIds?: string[]) {
+  async update(
+    id: string,
+    data: Prisma.JobUncheckedUpdateInput,
+    skillIds?: string[],
+  ) {
     if (skillIds === undefined) {
       return this.prisma.job.update({ where: { id }, data });
     }

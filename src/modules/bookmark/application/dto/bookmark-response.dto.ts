@@ -5,5 +5,7 @@ export class BookmarkResponseDto {
   userId: string;
   jobId: string;
   createdAt: Date;
-  job?: any;
+  // Never populated by any current mapper — kept as `unknown` rather than
+  // a guessed shape until something actually sets it.
+  job?: unknown;
 }
