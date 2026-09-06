@@ -44,7 +44,7 @@ describe('ForgotPasswordHandler', () => {
     } as any);
 
     const result = await handler.execute(
-      new ForgotPasswordCommand({ email: 'user@test.com' } as any),
+      new ForgotPasswordCommand({ email: 'user@test.com' }),
     );
 
     expect(verificationTokenRepository.create).toHaveBeenCalledWith(
@@ -63,7 +63,7 @@ describe('ForgotPasswordHandler', () => {
     userRepository.findByEmail.mockResolvedValue(null);
 
     const result = await handler.execute(
-      new ForgotPasswordCommand({ email: 'nobody@test.com' } as any),
+      new ForgotPasswordCommand({ email: 'nobody@test.com' }),
     );
 
     expect(verificationTokenRepository.create).not.toHaveBeenCalled();
@@ -79,7 +79,7 @@ describe('ForgotPasswordHandler', () => {
     mailService.sendEmail.mockRejectedValue(new Error('SMTP timeout'));
 
     const result = await handler.execute(
-      new ForgotPasswordCommand({ email: 'user@test.com' } as any),
+      new ForgotPasswordCommand({ email: 'user@test.com' }),
     );
 
     expect(result.message).toMatch(/if an account with that email exists/i);

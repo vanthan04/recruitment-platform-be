@@ -57,7 +57,7 @@ describe('VerifyEmailHandler', () => {
       email: 'candidate@example.com',
       role: UserRole.CANDIDATE,
       status: UserStatus.PENDING,
-    } as any);
+    });
     userRepository.save.mockImplementation(async (u) => u as any);
 
     const result = await handler.execute(

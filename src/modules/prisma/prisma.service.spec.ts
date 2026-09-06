@@ -15,10 +15,10 @@ describe('PrismaService', () => {
   beforeEach(() => {
     connectSpy = jest
       .spyOn(PrismaClient.prototype, '$connect')
-      .mockResolvedValue(undefined as any);
+      .mockResolvedValue(undefined);
     disconnectSpy = jest
       .spyOn(PrismaClient.prototype, '$disconnect')
-      .mockResolvedValue(undefined as any);
+      .mockResolvedValue(undefined);
   });
 
   afterEach(() => {

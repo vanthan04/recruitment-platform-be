@@ -70,7 +70,7 @@ describe('ChangePasswordHandler', () => {
   });
 
   it('throws InvalidOldPasswordException when the old password does not match', async () => {
-    userRepository.findById.mockResolvedValue((await buildUser()) as any);
+    userRepository.findById.mockResolvedValue(await buildUser());
 
     await expect(
       handler.execute(
@@ -85,7 +85,7 @@ describe('ChangePasswordHandler', () => {
   });
 
   it('hashes the new password, saves it, and revokes every existing session', async () => {
-    userRepository.findById.mockResolvedValue((await buildUser()) as any);
+    userRepository.findById.mockResolvedValue(await buildUser());
     userRepository.save.mockImplementation(async (u) => u as any);
 
     await handler.execute(

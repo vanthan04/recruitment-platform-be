@@ -94,7 +94,7 @@ describe('ResetPasswordHandler', () => {
       password: 'old-hash',
       role: UserRole.CANDIDATE,
       status: UserStatus.ACTIVE,
-    } as any);
+    });
     userRepository.save.mockImplementation(async (u) => u as any);
 
     await handler.execute(
@@ -128,7 +128,7 @@ describe('ResetPasswordHandler', () => {
       password: 'old-hash',
       role: UserRole.CANDIDATE,
       status: UserStatus.ACTIVE,
-    } as any);
+    });
     userRepository.save.mockImplementation(async (u) => u as any);
 
     await handler.execute(

@@ -74,7 +74,7 @@ describe('ChatGateway', () => {
 
       await gateway.onTypingStart(client, {
         conversationId: CONVERSATION_ID,
-      } as any);
+      });
 
       expect(client.to).toHaveBeenCalledWith(`conversation:${CONVERSATION_ID}`);
       expect(client.emit).toHaveBeenCalledWith('typing:start', {
@@ -94,7 +94,7 @@ describe('ChatGateway', () => {
 
       await gateway.onTypingStart(client, {
         conversationId: CONVERSATION_ID,
-      } as any);
+      });
 
       expect(client.to).not.toHaveBeenCalled();
     });
@@ -104,7 +104,7 @@ describe('ChatGateway', () => {
 
       await gateway.onTypingStart(client, {
         conversationId: 'not-a-uuid',
-      } as any);
+      });
 
       expect(conversationRepository.findById).not.toHaveBeenCalled();
       expect(client.to).not.toHaveBeenCalled();
@@ -118,7 +118,7 @@ describe('ChatGateway', () => {
       await gateway.onMessageSend(client, {
         conversationId: 'not-a-uuid',
         content: 'hi',
-      } as any);
+      });
 
       expect(commandBus.execute).not.toHaveBeenCalled();
       expect(client.emit).toHaveBeenCalledWith(
@@ -140,7 +140,7 @@ describe('ChatGateway', () => {
         content: 'hello',
       };
 
-      await gateway.onMessageSend(client, payload as any);
+      await gateway.onMessageSend(client, payload);
 
       expect(client.emit).toHaveBeenCalledWith('message:error', {
         clientMessageId: payload.clientMessageId,
@@ -159,7 +159,7 @@ describe('ChatGateway', () => {
         content: 'hello',
       };
 
-      await gateway.onMessageSend(client, payload as any);
+      await gateway.onMessageSend(client, payload);
 
       expect(client.emit).toHaveBeenCalledWith('message:error', {
         clientMessageId: payload.clientMessageId,
@@ -176,7 +176,7 @@ describe('ChatGateway', () => {
         content: 'hello',
       };
 
-      await gateway.onMessageSend(client, payload as any);
+      await gateway.onMessageSend(client, payload);
 
       expect(client.emit).toHaveBeenCalledWith('message:ack', {
         clientMessageId: payload.clientMessageId,
@@ -192,7 +192,7 @@ describe('ChatGateway', () => {
           conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           clientMessageId,
           content: 'hello',
-        } as any);
+        });
 
       for (let i = 0; i < 20; i++) {
         await send(
@@ -221,13 +221,13 @@ describe('ChatGateway', () => {
           conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           clientMessageId: `b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a${i.toString().padStart(2, '0')}`,
           content: 'hello',
-        } as any);
+        });
       }
       await gateway.onMessageSend(clientB, {
         conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         clientMessageId: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         content: 'hello',
-      } as any);
+      });
 
       expect(clientB.emit).toHaveBeenCalledWith(
         'message:error',
