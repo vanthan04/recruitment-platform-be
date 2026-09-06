@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 
 /**
  * Dispatched by the hourly cron trigger (`close-expired-jobs.cron.ts`).
  */
-export class CloseExpiredJobsCommand {}
+export class CloseExpiredJobsCommand extends Command<void> {}
 
 @Injectable()
 @CommandHandler(CloseExpiredJobsCommand)

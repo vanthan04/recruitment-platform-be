@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ISkillRepository } from '@/modules/skill/domain/repositories/skill.repository';
 import {
   SkillNotFoundException,
   SkillInUseException,
 } from '@/modules/skill/domain/exceptions/skill.exceptions';
 
-export class DeleteSkillCommand {
-  constructor(public readonly skillId: string) {}
+export class DeleteSkillCommand extends Command<void> {
+  constructor(public readonly skillId: string) {
+    super();
+  }
 }
 
 @Injectable()

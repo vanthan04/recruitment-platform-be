@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
 import { ReferencedJobNotFoundException } from '@/modules/application/domain/exceptions/application.exceptions';
@@ -7,11 +7,13 @@ import { ensureOwner } from '@/common/utils/ownership.util';
 import { ApplicationStatus } from '@/modules/application/domain/value-objects/application-status.vo';
 import { JobStatsResponseDto } from '@/modules/application/application/dto/job-stats-response.dto';
 
-export class GetJobStatsQuery {
+export class GetJobStatsQuery extends Query<JobStatsResponseDto> {
   constructor(
     public readonly recruiterId: string,
     public readonly jobId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

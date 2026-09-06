@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { JobNotFoundException } from '@/modules/job/domain/exceptions/job.exceptions';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
 
-export class ReopenJobCommand {
+export class ReopenJobCommand extends Command<JobResponseDto> {
   constructor(
     public readonly recruiterId: string,
     public readonly jobId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

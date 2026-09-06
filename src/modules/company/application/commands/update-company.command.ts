@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
@@ -19,12 +19,14 @@ export interface UpdateCompanyInput {
   ward?: string;
 }
 
-export class UpdateCompanyCommand {
+export class UpdateCompanyCommand extends Command<CompanyResponseDto> {
   constructor(
     public readonly ownerId: string,
     public readonly companyId: string,
     public readonly input: UpdateCompanyInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

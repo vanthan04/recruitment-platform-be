@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import {
   SavedSearchNotFoundException,
   SavedSearchOwnershipException,
 } from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
 
-export class DeleteSavedSearchCommand {
+export class DeleteSavedSearchCommand extends Command<void> {
   constructor(
     public readonly userId: string,
     public readonly savedSearchId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

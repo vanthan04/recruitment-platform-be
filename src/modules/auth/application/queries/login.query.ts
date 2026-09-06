@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import {
   IAuthUserRepositoryPort,
   AuthUserRecord,
@@ -13,8 +13,10 @@ import {
 import { UserStatus } from '@/common/enums/user-status.enum';
 import * as bcrypt from 'bcrypt';
 
-export class LoginQuery {
-  constructor(public readonly dto: LoginRequestDto) {}
+export class LoginQuery extends Query<AuthUserRecord> {
+  constructor(public readonly dto: LoginRequestDto) {
+    super();
+  }
 }
 
 @Injectable()

@@ -43,7 +43,10 @@ export async function validateWsPayload<T extends object>(
  * already treats the REST transport.
  */
 export function getSafeErrorMessage(error: unknown): string {
-  if (error instanceof DomainException || error instanceof WsValidationException) {
+  if (
+    error instanceof DomainException ||
+    error instanceof WsValidationException
+  ) {
     return error.message;
   }
   return 'Something went wrong, please try again';

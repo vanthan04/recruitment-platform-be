@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
 import {
@@ -14,11 +14,13 @@ export interface DownloadCvResult {
 
 const DOWNLOAD_URL_EXPIRY_SECONDS = 300;
 
-export class DownloadCvQuery {
+export class DownloadCvQuery extends Query<DownloadCvResult> {
   constructor(
     public readonly requesterId: string,
     public readonly cvId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

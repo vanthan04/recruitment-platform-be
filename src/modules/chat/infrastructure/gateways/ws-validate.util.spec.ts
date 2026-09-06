@@ -39,17 +39,17 @@ describe('validateWsPayload', () => {
   });
 
   it('throws WsValidationException for null/undefined payloads instead of a raw TypeError', async () => {
-    await expect(validateWsPayload(ConversationIdWsDto, undefined)).rejects.toThrow(
-      WsValidationException,
-    );
+    await expect(
+      validateWsPayload(ConversationIdWsDto, undefined),
+    ).rejects.toThrow(WsValidationException);
   });
 });
 
 describe('getSafeErrorMessage', () => {
   it('forwards a DomainException message verbatim', () => {
-    expect(getSafeErrorMessage(new ConversationNotFoundException('conv-1'))).toBe(
-      new ConversationNotFoundException('conv-1').message,
-    );
+    expect(
+      getSafeErrorMessage(new ConversationNotFoundException('conv-1')),
+    ).toBe(new ConversationNotFoundException('conv-1').message);
   });
 
   it('forwards a WsValidationException message verbatim', () => {

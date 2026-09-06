@@ -24,9 +24,7 @@ export class SavedSearchPrismaRepository {
   async findBatch(params: { cursor?: string; take: number }) {
     return this.prisma.savedSearch.findMany({
       take: params.take,
-      ...(params.cursor
-        ? { skip: 1, cursor: { id: params.cursor } }
-        : {}),
+      ...(params.cursor ? { skip: 1, cursor: { id: params.cursor } } : {}),
       orderBy: { id: 'asc' },
     });
   }

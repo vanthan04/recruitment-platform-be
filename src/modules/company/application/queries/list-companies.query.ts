@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
@@ -10,8 +10,10 @@ export interface ListCompaniesInput {
   keyword?: string;
 }
 
-export class ListCompaniesQuery {
-  constructor(public readonly input: ListCompaniesInput) {}
+export class ListCompaniesQuery extends Query<ListCompaniesResult> {
+  constructor(public readonly input: ListCompaniesInput) {
+    super();
+  }
 }
 
 export interface ListCompaniesResult {

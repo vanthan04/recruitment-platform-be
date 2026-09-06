@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IApplicationStatusHistoryRepository } from '@/modules/application/domain/repositories/application-status-history.repository';
 import {
@@ -9,11 +9,13 @@ import {
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
 
-export class WithdrawApplicationCommand {
+export class WithdrawApplicationCommand extends Command<ApplicationResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly applicationId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IInterviewScheduleRepository } from '@/modules/interview/domain/repositories/interview-schedule.repository';
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
@@ -27,11 +27,13 @@ export interface ScheduleInterviewInput {
   durationMinutes?: number;
 }
 
-export class ScheduleInterviewCommand {
+export class ScheduleInterviewCommand extends Command<InterviewResponseDto> {
   constructor(
     public readonly recruiterId: string,
     public readonly input: ScheduleInterviewInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

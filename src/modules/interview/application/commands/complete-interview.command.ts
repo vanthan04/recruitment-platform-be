@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IInterviewScheduleRepository } from '@/modules/interview/domain/repositories/interview-schedule.repository';
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
@@ -13,11 +13,13 @@ import { InterviewResponseMapper } from '@/modules/interview/application/mappers
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 import { ensureApplicationInterviewable } from '@/modules/interview/application/utils/ensure-application-interviewable.util';
 
-export class CompleteInterviewCommand {
+export class CompleteInterviewCommand extends Command<InterviewResponseDto> {
   constructor(
     public readonly recruiterId: string,
     public readonly interviewId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

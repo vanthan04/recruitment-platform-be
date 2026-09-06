@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanyNotFoundException } from '@/modules/company/domain/exceptions/company.exceptions';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
 
-export class GetCompanyQuery {
-  constructor(public readonly companyId: string) {}
+export class GetCompanyQuery extends Query<CompanyResponseDto> {
+  constructor(public readonly companyId: string) {
+    super();
+  }
 }
 
 @Injectable()

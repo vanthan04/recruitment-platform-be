@@ -14,7 +14,11 @@ function makeHost() {
   const json = jest.fn();
   const status = jest.fn().mockReturnValue({ json });
   const response = { status };
-  const request = { originalUrl: '/api/v1/companies', method: 'POST', id: 'req-1' };
+  const request = {
+    originalUrl: '/api/v1/companies',
+    method: 'POST',
+    id: 'req-1',
+  };
 
   const host = {
     switchToHttp: () => ({

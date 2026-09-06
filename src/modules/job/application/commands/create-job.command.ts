@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { IUserLookupPort } from '@/modules/job/application/ports/user-lookup.port';
 import { ICategoryLookupPort } from '@/modules/job/application/ports/category-lookup.port';
@@ -36,11 +36,13 @@ export interface CreateJobInput {
   skillIds?: string[];
 }
 
-export class CreateJobCommand {
+export class CreateJobCommand extends Command<JobResponseDto> {
   constructor(
     public readonly recruiterId: string,
     public readonly input: CreateJobInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

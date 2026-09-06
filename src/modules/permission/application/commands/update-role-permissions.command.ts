@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { IRoleRepository } from '@/modules/permission/domain/repositories/role.repository';
+import { Command, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {
+  IRoleRepository,
+  PermissionRecord,
+} from '@/modules/permission/domain/repositories/role.repository';
 import { IPermissionRepository } from '@/modules/permission/domain/repositories/permission.repository';
 import { PermissionsService } from '@/modules/permission/application/permissions.service';
 import { Permission } from '@/common/enums/permission.enum';
@@ -10,11 +13,15 @@ import {
   CannotRemoveLastRbacAdminPermissionException,
 } from '@/modules/permission/domain/exceptions/permission.exceptions';
 
-export class UpdateRolePermissionsCommand {
+export class UpdateRolePermissionsCommand extends Command<
+  PermissionRecord[] | null
+> {
   constructor(
     public readonly roleId: string,
     public readonly permissionIds: string[],
-  ) {}
+  ) {
+    super();
+  }
 }
 
 // Lets an admin change what a role can do purely through data — e.g. turning
@@ -31,12 +38,16 @@ export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRoleP
     private readonly permissionsService: PermissionsService,
   ) {}
 
-  async execute({ roleId, permissionIds }: UpdateRolePermissionsCommand) {
+  async execute({
+    roleId,
+    permissionIds,
+  }: UpdateRolePermissionsCommand): Promise<PermissionRecord[] | null> {
     const role = await this.roleRepository.findById(roleId);
     if (!role) throw new RoleNotFoundException(roleId);
 
     const uniqueIds = Array.from(new Set(permissionIds));
-    const existingIds = await this.permissionRepository.findExistingIds(uniqueIds);
+    const existingIds =
+      await this.permissionRepository.findExistingIds(uniqueIds);
     if (existingIds.size !== uniqueIds.length) {
       const missing = uniqueIds.filter((id) => !existingIds.has(id));
       throw new PermissionNotFoundException(missing.join(', '));

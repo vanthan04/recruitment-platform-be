@@ -66,7 +66,9 @@ describe('SendJobAlertDigestsHandler', () => {
       new SavedSearch({ id: 'ss-1', userId: 'user-1', keyword: 'backend' }),
     ]);
     jobSearchPort.findRecentMatchingJobs.mockResolvedValue({
-      items: [{ title: 'Backend Dev', location: 'Remote', companyName: 'Acme' }],
+      items: [
+        { title: 'Backend Dev', location: 'Remote', companyName: 'Acme' },
+      ],
       total: 1,
     });
     userLookupPort.findById.mockResolvedValue(null);
@@ -105,7 +107,9 @@ describe('SendJobAlertDigestsHandler', () => {
       new SavedSearch({ id: 'ss-1', userId: 'user-1', keyword: 'backend' }),
     ]);
     jobSearchPort.findRecentMatchingJobs.mockResolvedValue({
-      items: [{ title: 'Backend Dev', location: 'Remote', companyName: 'Acme' }],
+      items: [
+        { title: 'Backend Dev', location: 'Remote', companyName: 'Acme' },
+      ],
       total: 36,
     });
     userLookupPort.findById.mockResolvedValue({ email: 'user@example.com' });
@@ -158,9 +162,7 @@ describe('SendJobAlertDigestsHandler', () => {
       .mockRejectedValueOnce(new Error('SMTP rejected recipient'))
       .mockResolvedValueOnce(undefined);
 
-    await expect(
-      handler.execute(),
-    ).resolves.toBeUndefined();
+    await expect(handler.execute()).resolves.toBeUndefined();
 
     expect(mailPort.sendEmail).toHaveBeenCalledTimes(2);
   });

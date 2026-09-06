@@ -85,7 +85,10 @@ describe('ChatGateway', () => {
 
     it('does not broadcast for a user who is not a member of the conversation', async () => {
       conversationRepository.findById.mockResolvedValue(
-        makeConversation({ candidateId: 'someone-else', recruiterId: 'and-someone-else' }),
+        makeConversation({
+          candidateId: 'someone-else',
+          recruiterId: 'and-someone-else',
+        }),
       );
       const client = makeSocket({ data: { userId: 'stranger' } });
 
@@ -99,7 +102,9 @@ describe('ChatGateway', () => {
     it('does not broadcast when the conversationId fails validation', async () => {
       const client = makeSocket();
 
-      await gateway.onTypingStart(client, { conversationId: 'not-a-uuid' } as any);
+      await gateway.onTypingStart(client, {
+        conversationId: 'not-a-uuid',
+      } as any);
 
       expect(conversationRepository.findById).not.toHaveBeenCalled();
       expect(client.to).not.toHaveBeenCalled();
@@ -190,7 +195,9 @@ describe('ChatGateway', () => {
         } as any);
 
       for (let i = 0; i < 20; i++) {
-        await send(`b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a${i.toString().padStart(2, '0')}`);
+        await send(
+          `b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a${i.toString().padStart(2, '0')}`,
+        );
       }
       client.emit.mockClear();
       await send('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
@@ -198,7 +205,9 @@ describe('ChatGateway', () => {
       expect(commandBus.execute).toHaveBeenCalledTimes(20);
       expect(client.emit).toHaveBeenCalledWith(
         'message:error',
-        expect.objectContaining({ message: expect.stringContaining('Too many') }),
+        expect.objectContaining({
+          message: expect.stringContaining('Too many'),
+        }),
       );
     });
 
@@ -222,13 +231,15 @@ describe('ChatGateway', () => {
 
       expect(clientB.emit).toHaveBeenCalledWith(
         'message:error',
-        expect.objectContaining({ message: expect.stringContaining('Too many') }),
+        expect.objectContaining({
+          message: expect.stringContaining('Too many'),
+        }),
       );
     });
   });
 
   describe('handleSessionRevoked', () => {
-    it('force-disconnects every socket in the revoked user\'s personal room', () => {
+    it("force-disconnects every socket in the revoked user's personal room", () => {
       gateway.handleSessionRevoked(new UserSessionRevokedEvent('candidate-1'));
 
       expect(server.in).toHaveBeenCalledWith('user:candidate-1');

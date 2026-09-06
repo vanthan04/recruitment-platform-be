@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { INotificationRepository } from '@/modules/notification/domain/repositories/notification.repository';
 import { NotificationResponseMapper } from '@/modules/notification/application/mappers/notification-response.mapper';
 import { NotificationResponseDto } from '@/modules/notification/application/dto/notification-response.dto';
 
-export class ListMyNotificationsQuery {
+export class ListMyNotificationsQuery extends Query<ListMyNotificationsResult> {
   constructor(
     public readonly userId: string,
     public readonly page: number,
     public readonly limit: number,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 export interface ListMyNotificationsResult {

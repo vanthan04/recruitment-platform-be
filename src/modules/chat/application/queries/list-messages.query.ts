@@ -1,18 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { MessagePageResponseDto } from '@/modules/chat/application/dto/message-response.dto';
 import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
-export class ListMessagesQuery {
+export class ListMessagesQuery extends Query<MessagePageResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly conversationId: string,
     public readonly cursor?: string,
     public readonly limit: number = 30,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

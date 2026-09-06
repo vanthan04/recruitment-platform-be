@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IApplicationStatusHistoryRepository } from '@/modules/application/domain/repositories/application-status-history.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
@@ -18,11 +18,15 @@ export interface ApplicationStatusHistoryItemDto {
   createdAt: Date;
 }
 
-export class GetApplicationStatusHistoryQuery {
+export class GetApplicationStatusHistoryQuery extends Query<
+  ApplicationStatusHistoryItemDto[]
+> {
   constructor(
     public readonly requesterId: string,
     public readonly applicationId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

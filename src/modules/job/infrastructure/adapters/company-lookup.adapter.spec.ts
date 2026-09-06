@@ -4,7 +4,9 @@ import { Company } from '@/modules/company/domain/entities/company.entity';
 
 describe('CompanyLookupAdapter', () => {
   it('batches all requested ids into a single findManyByIds call', async () => {
-    const companyRepository: jest.Mocked<Pick<ICompanyRepository, 'findManyByIds'>> = {
+    const companyRepository: jest.Mocked<
+      Pick<ICompanyRepository, 'findManyByIds'>
+    > = {
       findManyByIds: jest.fn().mockResolvedValue([
         new Company({
           id: 'company-1',

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
 import { IApplicationUserLookupPort } from '@/modules/application/application/ports/user-lookup.port';
@@ -16,13 +16,15 @@ export interface ListApplicationsByJobResult {
   limit: number;
 }
 
-export class ListApplicationsByJobQuery {
+export class ListApplicationsByJobQuery extends Query<ListApplicationsByJobResult> {
   constructor(
     public readonly recruiterId: string,
     public readonly jobId: string,
     public readonly page: number = 1,
     public readonly limit: number = 20,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

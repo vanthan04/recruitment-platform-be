@@ -59,8 +59,12 @@ describe('PurgeDeletedCvsHandler', () => {
 
     await handler.execute();
 
-    expect(cvStorage.delete).toHaveBeenCalledWith('cvs/user-1/2026/01/cv-1.pdf');
-    expect(cvStorage.delete).toHaveBeenCalledWith('cvs/user-2/2026/01/cv-2.pdf');
+    expect(cvStorage.delete).toHaveBeenCalledWith(
+      'cvs/user-1/2026/01/cv-1.pdf',
+    );
+    expect(cvStorage.delete).toHaveBeenCalledWith(
+      'cvs/user-2/2026/01/cv-2.pdf',
+    );
     expect(cvRepository.delete).toHaveBeenCalledWith('cv-1');
     expect(cvRepository.delete).toHaveBeenCalledWith('cv-2');
   });
@@ -83,9 +87,7 @@ describe('PurgeDeletedCvsHandler', () => {
       .mockRejectedValueOnce(new Error('DB connection lost'))
       .mockResolvedValueOnce(undefined);
 
-    await expect(
-      handler.execute(),
-    ).resolves.toBeUndefined();
+    await expect(handler.execute()).resolves.toBeUndefined();
 
     expect(cvRepository.delete).toHaveBeenCalledTimes(2);
   });

@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ISkillRepository } from '@/modules/skill/domain/repositories/skill.repository';
 import { SkillNotFoundException } from '@/modules/skill/domain/exceptions/skill.exceptions';
 import { SkillResponseMapper } from '@/modules/skill/application/mappers/skill-response.mapper';
 import { SkillResponseDto } from '@/modules/skill/application/dto/skill-response.dto';
 
-export class UpdateSkillCommand {
+export class UpdateSkillCommand extends Command<SkillResponseDto> {
   constructor(
     public readonly skillId: string,
     public readonly name: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

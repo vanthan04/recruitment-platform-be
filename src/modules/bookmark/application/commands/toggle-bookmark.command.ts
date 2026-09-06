@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IBookmarkRepository } from '@/modules/bookmark/domain/repositories/bookmark.repository';
 import { IJobLookupPort } from '@/modules/bookmark/application/ports/job-lookup.port';
 import { Bookmark } from '@/modules/bookmark/domain/entities/bookmark.entity';
 import { BookmarkedJobNotFoundException } from '@/modules/bookmark/domain/exceptions/bookmark.exceptions';
 
-export class ToggleBookmarkCommand {
+export class ToggleBookmarkCommand extends Command<{ bookmarked: boolean }> {
   constructor(
     public readonly userId: string,
     public readonly jobId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

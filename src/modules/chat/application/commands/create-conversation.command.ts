@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
@@ -20,11 +20,13 @@ import { ensureOwner } from '@/common/utils/ownership.util';
 // HIRED is the pipeline's successful terminal status (formerly ACCEPTED).
 const ELIGIBLE_APPLICATION_STATUS = 'HIRED';
 
-export class CreateConversationCommand {
+export class CreateConversationCommand extends Command<ConversationResponseDto> {
   constructor(
     public readonly recruiterId: string,
     public readonly applicationId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

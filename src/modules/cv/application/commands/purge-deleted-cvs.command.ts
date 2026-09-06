@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
 
@@ -13,7 +13,7 @@ const RETENTION_DAYS = 30;
  * a CV has been soft-deleted for longer than the retention window, giving a
  * candidate a window to be certain before it's actually gone.
  */
-export class PurgeDeletedCvsCommand {}
+export class PurgeDeletedCvsCommand extends Command<void> {}
 
 @Injectable()
 @CommandHandler(PurgeDeletedCvsCommand)

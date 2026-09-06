@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IApplicationStatusHistoryRepository } from '@/modules/application/domain/repositories/application-status-history.repository';
@@ -17,13 +17,15 @@ import {
   ApplicationStatusChangedEvent,
 } from '@/modules/application/infrastructure/events/application-status-changed.event';
 
-export class UpdateApplicationStatusCommand {
+export class UpdateApplicationStatusCommand extends Command<ApplicationResponseDto> {
   constructor(
     public readonly recruiterId: string,
     public readonly applicationId: string,
     public readonly status: ApplicationStatus,
     public readonly note?: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

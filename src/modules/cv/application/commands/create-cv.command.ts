@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
@@ -25,12 +25,14 @@ function buildCvFileKey(
   return `cvs/${userId}/${year}/${month}/${cvId}.${extension}`;
 }
 
-export class CreateCvCommand {
+export class CreateCvCommand extends Command<CvResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly title: string,
     public readonly file: Express.Multer.File,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

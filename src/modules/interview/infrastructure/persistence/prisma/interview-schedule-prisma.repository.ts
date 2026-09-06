@@ -23,10 +23,7 @@ export class InterviewSchedulePrismaRepository {
     return this.prisma.interviewSchedule.create({ data });
   }
 
-  async update(
-    id: string,
-    data: Prisma.InterviewScheduleUncheckedUpdateInput,
-  ) {
+  async update(id: string, data: Prisma.InterviewScheduleUncheckedUpdateInput) {
     return this.prisma.interviewSchedule.update({
       where: { id },
       data,

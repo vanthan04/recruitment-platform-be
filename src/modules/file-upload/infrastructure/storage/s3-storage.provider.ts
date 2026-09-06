@@ -166,7 +166,10 @@ export class S3StorageProvider implements IFileStorageProvider {
     }
 
     // Virtual-hosted-style AWS S3: `<bucket>.s3.<region>.amazonaws.com`.
-    return host === `${this.bucketName}.s3.${this.region}.amazonaws.com`.toLowerCase();
+    return (
+      host ===
+      `${this.bucketName}.s3.${this.region}.amazonaws.com`.toLowerCase()
+    );
   }
 
   async getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string> {

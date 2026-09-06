@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { ISkillRepository } from '@/modules/skill/domain/repositories/skill.repository';
 import { SkillResponseMapper } from '@/modules/skill/application/mappers/skill-response.mapper';
 import { SkillResponseDto } from '@/modules/skill/application/dto/skill-response.dto';
 
-export class ListSkillsQuery {}
+export class ListSkillsQuery extends Query<SkillResponseDto[]> {}
 
 @Injectable()
 @QueryHandler(ListSkillsQuery)

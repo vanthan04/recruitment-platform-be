@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
 import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
 
-export class ListMyApplicationsQuery {
-  constructor(public readonly userId: string) {}
+export class ListMyApplicationsQuery extends Query<ApplicationResponseDto[]> {
+  constructor(public readonly userId: string) {
+    super();
+  }
 }
 
 @Injectable()

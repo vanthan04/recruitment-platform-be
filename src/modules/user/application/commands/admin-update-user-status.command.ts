@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Command, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { ISessionRevocationPort } from '@/modules/user/application/ports/session-revocation.port';
@@ -20,12 +20,18 @@ export interface AdminUpdateUserInput {
   role?: UserRole;
 }
 
-export class AdminUpdateUserStatusCommand {
+export interface AdminUpdateUserStatusResult {
+  message: string;
+}
+
+export class AdminUpdateUserStatusCommand extends Command<AdminUpdateUserStatusResult> {
   constructor(
     public readonly actingAdminId: string,
     public readonly userId: string,
     public readonly input: AdminUpdateUserInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()
@@ -37,7 +43,11 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async execute({ actingAdminId, userId, input }: AdminUpdateUserStatusCommand) {
+  async execute({
+    actingAdminId,
+    userId,
+    input,
+  }: AdminUpdateUserStatusCommand): Promise<AdminUpdateUserStatusResult> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new UserNotFoundException(userId);

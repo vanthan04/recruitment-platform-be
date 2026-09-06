@@ -4,14 +4,22 @@ import { Skill } from '@/modules/skill/domain/entities/skill.entity';
 
 describe('SkillLookupAdapter', () => {
   it('batches all requested ids into a single findManyByIds call', async () => {
-    const skillRepository: jest.Mocked<Pick<ISkillRepository, 'findManyByIds'>> = {
-      findManyByIds: jest.fn().mockResolvedValue([
-        new Skill({ id: 'skill-1', name: 'TypeScript', slug: 'typescript' }),
-      ]),
+    const skillRepository: jest.Mocked<
+      Pick<ISkillRepository, 'findManyByIds'>
+    > = {
+      findManyByIds: jest
+        .fn()
+        .mockResolvedValue([
+          new Skill({ id: 'skill-1', name: 'TypeScript', slug: 'typescript' }),
+        ]),
     };
     const adapter = new SkillLookupAdapter(skillRepository as any);
 
-    const result = await adapter.findManyByIds(['skill-1', 'skill-1', 'skill-2']);
+    const result = await adapter.findManyByIds([
+      'skill-1',
+      'skill-1',
+      'skill-2',
+    ]);
 
     expect(skillRepository.findManyByIds).toHaveBeenCalledTimes(1);
     expect(skillRepository.findManyByIds).toHaveBeenCalledWith([

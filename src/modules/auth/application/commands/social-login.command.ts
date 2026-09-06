@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import * as crypto from 'crypto';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IOauthLoginCodeRepositoryPort } from '@/modules/auth/application/ports/oauth-login-code-repository.port';
@@ -10,11 +10,13 @@ import { hashToken } from '@/common/utils/token-hash.util';
 
 const EXCHANGE_CODE_TTL_MS = 60 * 1000; // 60s — just long enough for the browser round-trip.
 
-export class SocialLoginCommand {
+export class SocialLoginCommand extends Command<{ code: string }> {
   constructor(
     public readonly profile: SocialProfile,
     public readonly requestedRole?: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

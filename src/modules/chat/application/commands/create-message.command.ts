@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
@@ -31,7 +31,7 @@ export interface CreateMessageAttachmentInput {
 
 const MAX_ATTACHMENTS_PER_MESSAGE = 5;
 
-export class CreateMessageCommand {
+export class CreateMessageCommand extends Command<MessageResponseDto> {
   constructor(
     public readonly senderId: string,
     public readonly conversationId: string,
@@ -39,7 +39,9 @@ export class CreateMessageCommand {
     public readonly content: string,
     public readonly messageType: MessageType = MessageType.TEXT,
     public readonly attachments: CreateMessageAttachmentInput[] = [],
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

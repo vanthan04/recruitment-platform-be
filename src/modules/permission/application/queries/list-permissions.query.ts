@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { Query, QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IPermissionRepository } from '@/modules/permission/domain/repositories/permission.repository';
+import { PermissionRecord } from '@/modules/permission/domain/repositories/role.repository';
 
-export class ListPermissionsQuery {}
+export class ListPermissionsQuery extends Query<PermissionRecord[]> {}
 
 @Injectable()
 @QueryHandler(ListPermissionsQuery)
 export class ListPermissionsHandler implements IQueryHandler<ListPermissionsQuery> {
   constructor(private readonly permissionRepository: IPermissionRepository) {}
 
-  async execute() {
+  async execute(): Promise<PermissionRecord[]> {
     return this.permissionRepository.findAll();
   }
 }

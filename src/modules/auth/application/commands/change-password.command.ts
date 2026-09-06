@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
@@ -14,11 +14,13 @@ import {
 } from '@/modules/user/infrastructure/events/user-session-revoked.event';
 import * as bcrypt from 'bcrypt';
 
-export class ChangePasswordCommand {
+export class ChangePasswordCommand extends Command<{ message: string }> {
   constructor(
     public readonly userId: string,
     public readonly dto: ChangePasswordDto,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

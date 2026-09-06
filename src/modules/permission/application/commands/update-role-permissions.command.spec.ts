@@ -86,7 +86,9 @@ describe('UpdateRolePermissionsHandler', () => {
       'perm-1',
     ]);
     expect(permissionsService.invalidateCache).toHaveBeenCalledTimes(1);
-    expect(result).toEqual([{ id: 'perm-1', name: 'job:create', description: null }]);
+    expect(result).toEqual([
+      { id: 'perm-1', name: 'job:create', description: null },
+    ]);
   });
 
   describe('RBAC self-lockout guard', () => {
@@ -103,7 +105,9 @@ describe('UpdateRolePermissionsHandler', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      permissionRepository.findExistingIds.mockResolvedValue(new Set(['perm-1']));
+      permissionRepository.findExistingIds.mockResolvedValue(
+        new Set(['perm-1']),
+      );
       roleRepository.roleGrantsPermissionId.mockResolvedValue(true);
       roleRepository.countOtherRolesGrantingPermissionId.mockResolvedValue(0);
 
@@ -123,7 +127,9 @@ describe('UpdateRolePermissionsHandler', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      permissionRepository.findExistingIds.mockResolvedValue(new Set(['perm-1']));
+      permissionRepository.findExistingIds.mockResolvedValue(
+        new Set(['perm-1']),
+      );
       roleRepository.roleGrantsPermissionId.mockResolvedValue(true);
       roleRepository.countOtherRolesGrantingPermissionId.mockResolvedValue(1);
 
@@ -142,7 +148,9 @@ describe('UpdateRolePermissionsHandler', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      permissionRepository.findExistingIds.mockResolvedValue(new Set(['perm-1']));
+      permissionRepository.findExistingIds.mockResolvedValue(
+        new Set(['perm-1']),
+      );
       roleRepository.roleGrantsPermissionId.mockResolvedValue(false);
 
       await handler.execute(

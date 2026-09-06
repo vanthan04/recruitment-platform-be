@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { IRoleRepository } from '@/modules/permission/domain/repositories/role.repository';
+import { Query, QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import {
+  IRoleRepository,
+  PermissionRecord,
+} from '@/modules/permission/domain/repositories/role.repository';
 import { RoleNotFoundException } from '@/modules/permission/domain/exceptions/permission.exceptions';
 
-export class GetRolePermissionsQuery {
-  constructor(public readonly roleId: string) {}
+export class GetRolePermissionsQuery extends Query<PermissionRecord[]> {
+  constructor(public readonly roleId: string) {
+    super();
+  }
 }
 
 @Injectable()
@@ -12,8 +17,11 @@ export class GetRolePermissionsQuery {
 export class GetRolePermissionsHandler implements IQueryHandler<GetRolePermissionsQuery> {
   constructor(private readonly roleRepository: IRoleRepository) {}
 
-  async execute({ roleId }: GetRolePermissionsQuery) {
-    const permissions = await this.roleRepository.findPermissionsByRoleId(roleId);
+  async execute({
+    roleId,
+  }: GetRolePermissionsQuery): Promise<PermissionRecord[]> {
+    const permissions =
+      await this.roleRepository.findPermissionsByRoleId(roleId);
     if (!permissions) throw new RoleNotFoundException(roleId);
     return permissions;
   }

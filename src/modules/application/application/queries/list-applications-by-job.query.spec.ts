@@ -9,7 +9,9 @@ import { JobApplication } from '@/modules/application/domain/entities/job-applic
 import { UnauthorizedDomainException } from '@/common/exceptions/domain.exception';
 import { ReferencedJobNotFoundException } from '@/modules/application/domain/exceptions/application.exceptions';
 
-function makeApplication(overrides: Partial<JobApplication> = {}): JobApplication {
+function makeApplication(
+  overrides: Partial<JobApplication> = {},
+): JobApplication {
   return new JobApplication({
     id: 'app-1',
     userId: 'candidate-1',
@@ -105,8 +107,14 @@ describe('ListApplicationsByJobHandler', () => {
     });
     userLookupPort.findManyByIds.mockResolvedValue(
       new Map([
-        ['candidate-1', { id: 'candidate-1', fullName: 'Alice', avatarUrl: null }],
-        ['candidate-2', { id: 'candidate-2', fullName: 'Bob', avatarUrl: null }],
+        [
+          'candidate-1',
+          { id: 'candidate-1', fullName: 'Alice', avatarUrl: null },
+        ],
+        [
+          'candidate-2',
+          { id: 'candidate-2', fullName: 'Bob', avatarUrl: null },
+        ],
       ]),
     );
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
@@ -9,11 +9,13 @@ import { ConversationResponseMapper } from '@/modules/chat/application/mappers/c
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
 import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
-export class GetConversationQuery {
+export class GetConversationQuery extends Query<ConversationResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly conversationId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

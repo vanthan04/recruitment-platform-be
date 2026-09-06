@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
-export class MarkConversationReadCommand {
+export class MarkConversationReadCommand extends Command<void> {
   constructor(
     public readonly userId: string,
     public readonly conversationId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

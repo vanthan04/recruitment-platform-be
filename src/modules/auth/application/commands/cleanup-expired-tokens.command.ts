@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
 import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/ports/verification-token-repository.port';
 
@@ -9,7 +9,7 @@ import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/por
  * tokens and expired/used verification tokens — so these tables don't grow
  * unbounded.
  */
-export class CleanupExpiredTokensCommand {}
+export class CleanupExpiredTokensCommand extends Command<void> {}
 
 @Injectable()
 @CommandHandler(CleanupExpiredTokensCommand)

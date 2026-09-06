@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ICategoryRepository } from '@/modules/category/domain/repositories/category.repository';
 import { CategoryNotFoundException } from '@/modules/category/domain/exceptions/category.exceptions';
 import { CategoryResponseMapper } from '@/modules/category/application/mappers/category-response.mapper';
 import { CategoryResponseDto } from '@/modules/category/application/dto/category-response.dto';
 
-export class UpdateCategoryCommand {
+export class UpdateCategoryCommand extends Command<CategoryResponseDto> {
   constructor(
     public readonly categoryId: string,
     public readonly name: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

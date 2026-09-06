@@ -1,9 +1,6 @@
 import { Notification } from '@/modules/notification/domain/entities/notification.entity';
 import { NotificationType } from '@/modules/notification/domain/value-objects/notification-type.vo';
-import {
-  Notification as PrismaNotification,
-  Prisma,
-} from '@prisma/client';
+import { Notification as PrismaNotification, Prisma } from '@prisma/client';
 
 export class NotificationMapper {
   static toDomain(raw: PrismaNotification | null): Notification | null {

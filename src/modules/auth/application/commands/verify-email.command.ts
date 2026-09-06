@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/ports/verification-token-repository.port';
 import { VerificationTokenType } from '@/common/enums/verification-token-type.enum';
@@ -8,8 +8,10 @@ import { UserStatus } from '@/common/enums/user-status.enum';
 import { InvalidVerificationCodeException } from '@/modules/auth/domain/exceptions/auth.exceptions';
 import { hashToken } from '@/common/utils/token-hash.util';
 
-export class VerifyEmailCommand {
-  constructor(public readonly dto: VerifyEmailDto) {}
+export class VerifyEmailCommand extends Command<{ message: string }> {
+  constructor(public readonly dto: VerifyEmailDto) {
+    super();
+  }
 }
 
 @Injectable()

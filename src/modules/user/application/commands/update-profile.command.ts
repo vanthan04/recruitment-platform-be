@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Command, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { Gender } from '@/common/enums/gender.enum';
 import { UserNotFoundException } from '@/modules/user/domain/exceptions/user.exceptions';
@@ -12,11 +12,17 @@ export interface UpdateProfileInput {
   avatarUrl?: string;
 }
 
-export class UpdateProfileCommand {
+export interface UpdateProfileResult {
+  message: string;
+}
+
+export class UpdateProfileCommand extends Command<UpdateProfileResult> {
   constructor(
     public readonly userId: string,
     public readonly input: UpdateProfileInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()
@@ -24,7 +30,10 @@ export class UpdateProfileCommand {
 export class UpdateProfileHandler implements ICommandHandler<UpdateProfileCommand> {
   constructor(private readonly userRepository: IUserRepository) {}
 
-  async execute({ userId, input }: UpdateProfileCommand) {
+  async execute({
+    userId,
+    input,
+  }: UpdateProfileCommand): Promise<UpdateProfileResult> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new UserNotFoundException(userId);

@@ -14,10 +14,17 @@ export class AppController {
 
   @Get()
   @ApiOperation({
-    summary: 'Readiness check — confirms the API can actually reach its database',
+    summary:
+      'Readiness check — confirms the API can actually reach its database',
   })
-  @SwaggerResponse({ status: 200, description: 'Service is up and can reach the database' })
-  @SwaggerResponse({ status: 503, description: 'Service is up but the database is unreachable' })
+  @SwaggerResponse({
+    status: 200,
+    description: 'Service is up and can reach the database',
+  })
+  @SwaggerResponse({
+    status: 503,
+    description: 'Service is up but the database is unreachable',
+  })
   async check() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;

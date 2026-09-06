@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IInterviewScheduleRepository } from '@/modules/interview/domain/repositories/interview-schedule.repository';
 import { IInterviewApplicationLookupPort } from '@/modules/interview/application/ports/application-lookup.port';
 import { IInterviewJobLookupPort } from '@/modules/interview/application/ports/job-lookup.port';
@@ -11,11 +11,15 @@ import {
 import { InterviewResponseMapper } from '@/modules/interview/application/mappers/interview-response.mapper';
 import { InterviewResponseDto } from '@/modules/interview/application/dto/interview-response.dto';
 
-export class ListInterviewsByApplicationQuery {
+export class ListInterviewsByApplicationQuery extends Query<
+  InterviewResponseDto[]
+> {
   constructor(
     public readonly requesterId: string,
     public readonly jobApplicationId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

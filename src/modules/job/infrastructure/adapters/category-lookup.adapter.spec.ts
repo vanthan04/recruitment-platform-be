@@ -4,10 +4,14 @@ import { Category } from '@/modules/category/domain/entities/category.entity';
 
 describe('CategoryLookupAdapter', () => {
   it('batches all requested ids into a single findManyByIds call', async () => {
-    const categoryRepository: jest.Mocked<Pick<ICategoryRepository, 'findManyByIds'>> = {
-      findManyByIds: jest.fn().mockResolvedValue([
-        new Category({ id: 'cat-1', name: 'Backend', slug: 'backend' }),
-      ]),
+    const categoryRepository: jest.Mocked<
+      Pick<ICategoryRepository, 'findManyByIds'>
+    > = {
+      findManyByIds: jest
+        .fn()
+        .mockResolvedValue([
+          new Category({ id: 'cat-1', name: 'Backend', slug: 'backend' }),
+        ]),
     };
     const adapter = new CategoryLookupAdapter(categoryRepository as any);
 

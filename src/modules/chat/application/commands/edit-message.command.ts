@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { MessageResponseDto } from '@/modules/chat/application/dto/message-response.dto';
 import { MessageNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
-export class EditMessageCommand {
+export class EditMessageCommand extends Command<MessageResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly messageId: string,
     public readonly content: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

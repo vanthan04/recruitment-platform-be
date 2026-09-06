@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { Prisma } from '@prisma/client';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { Company } from '@/modules/company/domain/entities/company.entity';
@@ -21,11 +21,13 @@ export interface CreateCompanyInput {
   ward?: string;
 }
 
-export class CreateCompanyCommand {
+export class CreateCompanyCommand extends Command<CompanyResponseDto> {
   constructor(
     public readonly ownerId: string,
     public readonly input: CreateCompanyInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

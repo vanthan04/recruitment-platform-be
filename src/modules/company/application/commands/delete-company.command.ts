@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanyNotFoundException } from '@/modules/company/domain/exceptions/company.exceptions';
 
-export class DeleteCompanyCommand {
+export class DeleteCompanyCommand extends Command<void> {
   constructor(
     public readonly ownerId: string,
     public readonly companyId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

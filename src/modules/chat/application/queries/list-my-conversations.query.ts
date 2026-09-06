@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
@@ -8,12 +8,14 @@ import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-looku
 import { ConversationResponseMapper } from '@/modules/chat/application/mappers/conversation-response.mapper';
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
 
-export class ListMyConversationsQuery {
+export class ListMyConversationsQuery extends Query<ListMyConversationsResult> {
   constructor(
     public readonly userId: string,
     public readonly page: number = 1,
     public readonly limit: number = 10,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 export interface ListMyConversationsResult {

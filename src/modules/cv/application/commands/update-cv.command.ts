@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { CvNotFoundException } from '@/modules/cv/domain/exceptions/cv.exceptions';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
@@ -9,12 +9,14 @@ export interface UpdateCvInput {
   title?: string;
 }
 
-export class UpdateCvCommand {
+export class UpdateCvCommand extends Command<CvResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly cvId: string,
     public readonly input: UpdateCvInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

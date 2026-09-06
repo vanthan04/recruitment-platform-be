@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { SavedSearchResponseMapper } from '@/modules/job-alert/application/mappers/saved-search-response.mapper';
 import { SavedSearchResponseDto } from '@/modules/job-alert/application/dto/saved-search-response.dto';
 
-export class ListMySavedSearchesQuery {
-  constructor(public readonly userId: string) {}
+export class ListMySavedSearchesQuery extends Query<SavedSearchResponseDto[]> {
+  constructor(public readonly userId: string) {
+    super();
+  }
 }
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import {
   CvNotFoundException,
@@ -8,11 +8,13 @@ import {
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
 import { CvResponseDto } from '@/modules/cv/application/dto/cv-response.dto';
 
-export class GetCvQuery {
+export class GetCvQuery extends Query<CvResponseDto> {
   constructor(
     public readonly requesterId: string,
     public readonly cvId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

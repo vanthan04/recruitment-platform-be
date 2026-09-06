@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import {
   FileMissingException,
@@ -13,12 +13,14 @@ const DEFAULT_ALLOWED_MIME_TYPES = [
   'image/gif',
 ];
 
-export class UploadFileCommand {
+export class UploadFileCommand extends Command<{ url: string }> {
   constructor(
     public readonly file: Express.Multer.File,
     public readonly folder?: string,
     public readonly allowedMimeTypes: string[] = DEFAULT_ALLOWED_MIME_TYPES,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

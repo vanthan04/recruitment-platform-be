@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { ICategoryLookupPort } from '@/modules/job-alert/application/ports/category-lookup.port';
 import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.entity';
@@ -17,11 +17,13 @@ export interface CreateSavedSearchInput {
   workMode?: string;
 }
 
-export class CreateSavedSearchCommand {
+export class CreateSavedSearchCommand extends Command<SavedSearchResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly input: CreateSavedSearchInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

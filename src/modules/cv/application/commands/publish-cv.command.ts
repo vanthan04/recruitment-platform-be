@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { CvNotFoundException } from '@/modules/cv/domain/exceptions/cv.exceptions';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
 import { CvResponseDto } from '@/modules/cv/application/dto/cv-response.dto';
 
-export class PublishCvCommand {
+export class PublishCvCommand extends Command<CvResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly cvId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

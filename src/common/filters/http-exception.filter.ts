@@ -123,7 +123,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     response
       .status(status)
-      .json(ApiResponse.fail(clientMessage, clientCode, undefined, { requestId }));
+      .json(
+        ApiResponse.fail(clientMessage, clientCode, undefined, { requestId }),
+      );
   }
 
   private mapDomainExceptionToStatus(exception: DomainException): number {

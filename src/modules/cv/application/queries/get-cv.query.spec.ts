@@ -48,9 +48,7 @@ describe('GetCvHandler', () => {
 
   it('allows the owning candidate to read their own CV', async () => {
     cvRepository.findById.mockResolvedValue(makeCv());
-    const result = await handler.execute(
-      new GetCvQuery('candidate-1', 'cv-1'),
-    );
+    const result = await handler.execute(new GetCvQuery('candidate-1', 'cv-1'));
     expect(result.title).toBe('My CV');
     expect(cvRepository.hasRecruiterAccess).not.toHaveBeenCalled();
   });
@@ -66,9 +64,7 @@ describe('GetCvHandler', () => {
   it('allows a recruiter with a valid Job -> Application -> Cv chain', async () => {
     cvRepository.findById.mockResolvedValue(makeCv({ userId: 'candidate-1' }));
     cvRepository.hasRecruiterAccess.mockResolvedValue(true);
-    const result = await handler.execute(
-      new GetCvQuery('recruiter-1', 'cv-1'),
-    );
+    const result = await handler.execute(new GetCvQuery('recruiter-1', 'cv-1'));
     expect(result.title).toBe('My CV');
     expect(cvRepository.hasRecruiterAccess).toHaveBeenCalledWith(
       'cv-1',

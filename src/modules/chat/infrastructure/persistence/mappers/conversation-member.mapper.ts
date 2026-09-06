@@ -1,9 +1,14 @@
-import { Prisma, ConversationMember as PrismaConversationMember } from '@prisma/client';
+import {
+  Prisma,
+  ConversationMember as PrismaConversationMember,
+} from '@prisma/client';
 import { ConversationMember } from '@/modules/chat/domain/entities/conversation-member.entity';
 import { ChatParticipantRole } from '@/modules/chat/domain/value-objects/chat-participant-role.vo';
 
 export class ConversationMemberMapper {
-  static toDomain(raw: PrismaConversationMember | null): ConversationMember | null {
+  static toDomain(
+    raw: PrismaConversationMember | null,
+  ): ConversationMember | null {
     if (!raw) return null;
 
     return new ConversationMember({

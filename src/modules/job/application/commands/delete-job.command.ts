@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { JobNotFoundException } from '@/modules/job/domain/exceptions/job.exceptions';
 
-export class DeleteJobCommand {
+export class DeleteJobCommand extends Command<void> {
   constructor(
     public readonly recruiterId: string,
     public readonly jobId: string,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

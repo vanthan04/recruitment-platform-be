@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/ports/verification-token-repository.port';
 import { VerificationTokenType } from '@/common/enums/verification-token-type.enum';
@@ -12,8 +12,10 @@ import {
 
 const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000; // 15 minutes — shorter-lived than email verification
 
-export class ForgotPasswordCommand {
-  constructor(public readonly dto: ForgotPasswordDto) {}
+export class ForgotPasswordCommand extends Command<{ message: string }> {
+  constructor(public readonly dto: ForgotPasswordDto) {
+    super();
+  }
 }
 
 @Injectable()

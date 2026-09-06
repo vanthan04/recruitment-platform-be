@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
@@ -30,11 +30,13 @@ export interface ApplyJobInput {
   coverLetter?: string;
 }
 
-export class ApplyJobCommand {
+export class ApplyJobCommand extends Command<ApplicationResponseDto> {
   constructor(
     public readonly userId: string,
     public readonly input: ApplyJobInput,
-  ) {}
+  ) {
+    super();
+  }
 }
 
 @Injectable()

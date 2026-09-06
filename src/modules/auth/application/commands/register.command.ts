@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { RegisterRequestDto } from '@/modules/auth/presentation/dtos/register-request.dto';
 import { IAuthUserRepositoryPort } from '@/modules/auth/application/ports/auth-user-repository.port';
 import { IAuthMailServicePort } from '@/modules/auth/application/ports/auth-mail-service.port';
@@ -15,8 +15,10 @@ import * as bcrypt from 'bcrypt';
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
-export class RegisterCommand {
-  constructor(public readonly dto: RegisterRequestDto) {}
+export class RegisterCommand extends Command<{ email: string }> {
+  constructor(public readonly dto: RegisterRequestDto) {
+    super();
+  }
 }
 
 @Injectable()

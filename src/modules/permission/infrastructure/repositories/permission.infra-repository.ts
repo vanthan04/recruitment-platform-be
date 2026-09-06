@@ -1,15 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import {
-  IPermissionRepository,
-} from '@/modules/permission/domain/repositories/permission.repository';
+import { IPermissionRepository } from '@/modules/permission/domain/repositories/permission.repository';
 import { PermissionRecord } from '@/modules/permission/domain/repositories/role.repository';
 import { PermissionPrismaRepository } from '@/modules/permission/infrastructure/persistence/prisma/permission-prisma.repository';
 
 @Injectable()
 export class PermissionInfraRepository implements IPermissionRepository {
-  constructor(
-    private readonly permissionPrisma: PermissionPrismaRepository,
-  ) {}
+  constructor(private readonly permissionPrisma: PermissionPrismaRepository) {}
 
   async findAll(): Promise<PermissionRecord[]> {
     return this.permissionPrisma.findAll();

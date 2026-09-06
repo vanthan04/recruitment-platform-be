@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { JobNotFoundException } from '@/modules/job/domain/exceptions/job.exceptions';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
 
-export class GetJobQuery {
-  constructor(public readonly jobId: string) {}
+export class GetJobQuery extends Query<JobResponseDto> {
+  constructor(public readonly jobId: string) {
+    super();
+  }
 }
 
 @Injectable()

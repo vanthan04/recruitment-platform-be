@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { IJobRepository } from '@/modules/job/domain/repositories/job.repository';
 import { JobResponseMapper } from '@/modules/job/application/mappers/job-response.mapper';
 import { JobResponseDto } from '@/modules/job/application/dto/job-response.dto';
@@ -21,8 +21,10 @@ export interface ListJobsInput {
   skillIds?: string[];
 }
 
-export class ListJobsQuery {
-  constructor(public readonly input: ListJobsInput) {}
+export class ListJobsQuery extends Query<ListJobsResult> {
+  constructor(public readonly input: ListJobsInput) {
+    super();
+  }
 }
 
 export interface ListJobsResult {

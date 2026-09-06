@@ -120,7 +120,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() rawData: unknown,
   ) {
     const userId = client.data.userId as string;
-    if (!this.consumeQuota(this.readTimestamps, userId, READ_RATE_LIMIT, READ_RATE_WINDOW_MS)) {
+    if (
+      !this.consumeQuota(
+        this.readTimestamps,
+        userId,
+        READ_RATE_LIMIT,
+        READ_RATE_WINDOW_MS,
+      )
+    ) {
       client.emit('error', { message: 'Too many requests — slow down' });
       return;
     }
@@ -160,7 +167,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = client.data.userId as string;
 
-    if (!this.consumeQuota(this.sendTimestamps, userId, SEND_RATE_LIMIT, SEND_RATE_WINDOW_MS)) {
+    if (
+      !this.consumeQuota(
+        this.sendTimestamps,
+        userId,
+        SEND_RATE_LIMIT,
+        SEND_RATE_WINDOW_MS,
+      )
+    ) {
       const clientMessageId =
         rawData && typeof rawData === 'object'
           ? (rawData as Record<string, unknown>).clientMessageId
@@ -226,7 +240,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() rawData: unknown,
   ) {
     const userId = client.data.userId as string;
-    if (!this.consumeQuota(this.readTimestamps, userId, READ_RATE_LIMIT, READ_RATE_WINDOW_MS)) {
+    if (
+      !this.consumeQuota(
+        this.readTimestamps,
+        userId,
+        READ_RATE_LIMIT,
+        READ_RATE_WINDOW_MS,
+      )
+    ) {
       client.emit('error', { message: 'Too many requests — slow down' });
       return;
     }
@@ -296,9 +317,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     windowMs: number,
   ): boolean {
     const now = Date.now();
-    const timestamps = (store.get(key) ?? []).filter(
-      (t) => now - t < windowMs,
-    );
+    const timestamps = (store.get(key) ?? []).filter((t) => now - t < windowMs);
     timestamps.push(now);
     store.set(key, timestamps);
     return timestamps.length <= limit;

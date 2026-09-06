@@ -20,7 +20,7 @@ export class UserNotFoundException extends EntityNotFoundException {
 export class CannotModifyOwnAccountException extends BusinessRuleViolationException {
   constructor() {
     super(
-      "Admins cannot change their own status or role — ask another admin to do it",
+      'Admins cannot change their own status or role — ask another admin to do it',
       'USER_CANNOT_MODIFY_OWN_ACCOUNT',
     );
     this.name = 'CannotModifyOwnAccountException';

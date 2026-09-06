@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
+import { QueryHandler, IQueryHandler, Query } from '@nestjs/cqrs';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
 import { CvResponseDto } from '@/modules/cv/application/dto/cv-response.dto';
 
-export class ListMyCvsQuery {
-  constructor(public readonly userId: string) {}
+export class ListMyCvsQuery extends Query<CvResponseDto[]> {
+  constructor(public readonly userId: string) {
+    super();
+  }
 }
 
 @Injectable()

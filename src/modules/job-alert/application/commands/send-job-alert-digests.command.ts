@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { IJobSearchPort } from '@/modules/job-alert/application/ports/job-search.port';
 import { IUserLookupPort } from '@/modules/job-alert/application/ports/user-lookup.port';
@@ -12,7 +12,7 @@ const BATCH_SIZE = 200;
 // low enough not to hammer the mail provider or DB with 200 concurrent calls.
 const SEND_CONCURRENCY = 15;
 
-export class SendJobAlertDigestsCommand {}
+export class SendJobAlertDigestsCommand extends Command<void> {}
 
 @Injectable()
 @CommandHandler(SendJobAlertDigestsCommand)
