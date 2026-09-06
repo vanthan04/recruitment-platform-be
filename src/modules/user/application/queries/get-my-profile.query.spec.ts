@@ -24,7 +24,6 @@ describe('GetMyProfileHandler', () => {
       save: jest.fn(),
       updateProfile: jest.fn(),
       findAllPaginated: jest.fn(),
-      updateCompanyId: jest.fn(),
       countActiveAdmins: jest.fn(),
     };
 

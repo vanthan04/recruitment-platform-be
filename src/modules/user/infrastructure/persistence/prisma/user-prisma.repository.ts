@@ -180,16 +180,6 @@ export class UserPrismaRepository
     });
   }
 
-  async updateCompanyId(
-    userId: string,
-    companyId: string | null,
-  ): Promise<void> {
-    await this.prismaService.user.update({
-      where: { id: userId },
-      data: { companyId },
-    });
-  }
-
   async countActiveAdmins(): Promise<number> {
     return this.prismaService.user.count({
       where: {

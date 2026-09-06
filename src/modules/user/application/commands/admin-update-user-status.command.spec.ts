@@ -43,7 +43,6 @@ describe('AdminUpdateUserStatusHandler', () => {
       save: jest.fn(),
       updateProfile: jest.fn(),
       findAllPaginated: jest.fn(),
-      updateCompanyId: jest.fn(),
       countActiveAdmins: jest.fn().mockResolvedValue(5),
     };
     sessionRevocation = {
