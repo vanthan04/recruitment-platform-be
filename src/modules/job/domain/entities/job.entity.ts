@@ -55,16 +55,16 @@ export class Job extends BaseEntity {
   categoryId: string | null;
   category?: CategorySummary | null;
   location: string;
+  address: string | null;
   employmentType: EmploymentType;
   workMode: WorkMode;
   level: JobLevel | null;
   status: JobStatus;
   viewCount: number;
   salary: SalaryRange;
-  requirements: string | null;
-  benefits: string | null;
-  workingHours: string | null;
-  applicationMethod: string | null;
+  requirements: string[];
+  benefits: string[];
+  workingHours: string[];
   expiresAt: Date | null;
   deletedAt: Date | null;
   postedById: string;
@@ -77,6 +77,10 @@ export class Job extends BaseEntity {
     this.employmentType = partial.employmentType ?? EmploymentType.FULL_TIME;
     this.workMode = partial.workMode ?? WorkMode.ONSITE;
     this.skills = partial.skills ?? [];
+    this.requirements = partial.requirements ?? [];
+    this.benefits = partial.benefits ?? [];
+    this.workingHours = partial.workingHours ?? [];
+    this.address = partial.address ?? null;
     this.level = partial.level ?? null;
     this.categoryId = partial.categoryId ?? null;
     this.viewCount = partial.viewCount ?? 0;
@@ -141,14 +145,14 @@ export class Job extends BaseEntity {
     title?: string;
     description?: string;
     location?: string;
+    address?: string | null;
     employmentType?: EmploymentType;
     workMode?: WorkMode;
     level?: JobLevel | null;
     categoryId?: string | null;
-    requirements?: string;
-    benefits?: string;
-    workingHours?: string;
-    applicationMethod?: string;
+    requirements?: string[];
+    benefits?: string[];
+    workingHours?: string[];
     salaryMin?: number;
     salaryMax?: number;
     currency?: string;
@@ -157,6 +161,7 @@ export class Job extends BaseEntity {
     if (data.title) this.title = data.title;
     if (data.description) this.description = data.description;
     if (data.location) this.location = data.location;
+    if (data.address !== undefined) this.address = data.address;
     if (data.employmentType) this.employmentType = data.employmentType;
     if (data.workMode) this.workMode = data.workMode;
     if (data.level !== undefined) this.level = data.level;
@@ -164,8 +169,6 @@ export class Job extends BaseEntity {
     if (data.requirements !== undefined) this.requirements = data.requirements;
     if (data.benefits !== undefined) this.benefits = data.benefits;
     if (data.workingHours !== undefined) this.workingHours = data.workingHours;
-    if (data.applicationMethod !== undefined)
-      this.applicationMethod = data.applicationMethod;
     if (data.expiresAt !== undefined) this.expiresAt = data.expiresAt;
 
     if (

@@ -21,6 +21,7 @@ export interface CreateJobInput {
   title: string;
   description: string;
   location: string;
+  address?: string;
   employmentType?: string;
   workMode?: string;
   level?: string;
@@ -28,10 +29,9 @@ export interface CreateJobInput {
   salaryMin?: number;
   salaryMax?: number;
   currency?: string;
-  requirements?: string;
-  benefits?: string;
-  workingHours?: string;
-  applicationMethod?: string;
+  requirements?: string[];
+  benefits?: string[];
+  workingHours?: string[];
   expiresAt?: string;
   skillIds?: string[];
 }
@@ -89,6 +89,7 @@ export class CreateJobHandler implements ICommandHandler<
       companyId,
       categoryId: input.categoryId ?? null,
       location: input.location,
+      address: input.address ?? null,
       employmentType:
         (input.employmentType as EmploymentType) ?? EmploymentType.FULL_TIME,
       workMode: (input.workMode as WorkMode) ?? WorkMode.ONSITE,
@@ -98,10 +99,9 @@ export class CreateJobHandler implements ICommandHandler<
         input.salaryMax ?? null,
         input.currency ?? 'VND',
       ),
-      requirements: input.requirements ?? null,
-      benefits: input.benefits ?? null,
-      workingHours: input.workingHours ?? null,
-      applicationMethod: input.applicationMethod ?? null,
+      requirements: input.requirements ?? [],
+      benefits: input.benefits ?? [],
+      workingHours: input.workingHours ?? [],
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
       postedById: recruiterId,
     });

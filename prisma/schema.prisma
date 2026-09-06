@@ -315,7 +315,12 @@ model Job {
   id             String         @id @default(uuid())
   title          String
   description    String
+  // City/area — required, the only location field used for search/filter.
   location       String
+  // Optional street-level address for this specific posting (a company can
+  // post jobs at different offices/branches even within the same city) —
+  // display-only on the job detail page, never filtered/searched on.
+  address        String?
   employmentType EmploymentType @default(FULL_TIME)
   workMode       WorkMode       @default(ONSITE)
   level       JobLevel?
@@ -324,10 +329,16 @@ model Job {
   salaryMin   Int?
   salaryMax   Int?
   currency    String    @default("VND")
-  requirements String?
-  benefits    String?
-  workingHours String?
-  applicationMethod String?
+  // Each element is one bullet point shown on the job detail page — display
+  // only, never filtered/searched on (unlike `skills`, which is a proper
+  // taxonomy). A free-text paragraph split by line would work too, but a
+  // native array keeps one requirement/benefit per row instead of caller
+  // code re-splitting a blob every time it's read.
+  requirements String[] @default([])
+  benefits    String[] @default([])
+  // Same reasoning as requirements/benefits — a job's schedule is often
+  // more than one fact ("Mon-Fri 08:30-17:30", "Lunch break 12:00-13:30").
+  workingHours String[] @default([])
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

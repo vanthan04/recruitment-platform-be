@@ -10,6 +10,7 @@ export class JobResponseDto {
   categoryId: string | null;
   category: { id: string; name: string; slug: string } | null;
   location: string;
+  address: string | null;
   employmentType: string;
   workMode: string;
   level: string | null;
@@ -18,10 +19,9 @@ export class JobResponseDto {
   salaryMin: number | null;
   salaryMax: number | null;
   currency: string;
-  requirements: string | null;
-  benefits: string | null;
-  workingHours: string | null;
-  applicationMethod: string | null;
+  requirements: string[];
+  benefits: string[];
+  workingHours: string[];
   expiresAt: Date | null;
   postedById: string;
   skills: { id: string; name: string; slug: string }[];

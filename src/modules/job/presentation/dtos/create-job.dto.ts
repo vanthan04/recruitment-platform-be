@@ -33,6 +33,12 @@ export class CreateJobDto {
   @MaxLength(200)
   location: string;
 
+  @ApiPropertyOptional({ example: '520 CMT8 Street, Ward 11, District 3' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(300)
+  address?: string;
+
   @ApiProperty({ enum: EmploymentType, default: EmploymentType.FULL_TIME })
   @IsEnum(EmploymentType)
   @IsOptional()
@@ -70,27 +76,38 @@ export class CreateJobDto {
   @IsOptional()
   currency?: string = 'VND';
 
-  @ApiPropertyOptional({ example: 'Requirements list...' })
-  @IsString()
+  @ApiPropertyOptional({
+    description: 'One bullet point per array element.',
+    type: [String],
+    example: [
+      '2+ years of experience with Node.js',
+      "Bachelor's degree or above",
+    ],
+  })
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  requirements?: string;
+  requirements?: string[];
 
-  @ApiPropertyOptional({ example: 'Benefits list...' })
-  @IsString()
+  @ApiPropertyOptional({
+    description: 'One bullet point per array element.',
+    type: [String],
+    example: ['Social insurance', 'Annual health checkup'],
+  })
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  benefits?: string;
+  benefits?: string[];
 
-  @ApiPropertyOptional({ example: 'Thứ 2 - Thứ 6 (08:00 - 17:00)' })
-  @IsString()
+  @ApiPropertyOptional({
+    description: 'One bullet point per array element.',
+    type: [String],
+    example: ['Mon - Fri (08:00 - 17:00)', 'Lunch break 12:00 - 13:00'],
+  })
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  @MaxLength(500)
-  workingHours?: string;
-
-  @ApiPropertyOptional({ example: 'Ứng tuyển trực tuyến qua nút bên dưới.' })
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  applicationMethod?: string;
+  workingHours?: string[];
 
   @ApiPropertyOptional({ example: '2026-12-31' })
   @IsDateString()

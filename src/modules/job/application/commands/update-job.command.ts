@@ -18,6 +18,7 @@ export interface UpdateJobInput {
   title?: string;
   description?: string;
   location?: string;
+  address?: string | null;
   employmentType?: string;
   workMode?: string;
   level?: string;
@@ -25,10 +26,9 @@ export interface UpdateJobInput {
   salaryMin?: number;
   salaryMax?: number;
   currency?: string;
-  requirements?: string;
-  benefits?: string;
-  workingHours?: string;
-  applicationMethod?: string;
+  requirements?: string[];
+  benefits?: string[];
+  workingHours?: string[];
   expiresAt?: string;
   skillIds?: string[];
 }
@@ -90,6 +90,7 @@ export class UpdateJobHandler implements ICommandHandler<
       title: input.title,
       description: input.description,
       location: input.location,
+      address: input.address,
       employmentType: input.employmentType as EmploymentType,
       workMode: input.workMode as WorkMode,
       level: input.level !== undefined ? (input.level as JobLevel) : undefined,
@@ -97,7 +98,6 @@ export class UpdateJobHandler implements ICommandHandler<
       requirements: input.requirements,
       benefits: input.benefits,
       workingHours: input.workingHours,
-      applicationMethod: input.applicationMethod,
       salaryMin: input.salaryMin,
       salaryMax: input.salaryMax,
       currency: input.currency,

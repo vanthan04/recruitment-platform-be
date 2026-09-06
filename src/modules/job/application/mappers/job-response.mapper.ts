@@ -15,6 +15,7 @@ export class JobResponseMapper {
     dto.categoryId = job.categoryId;
     dto.category = job.category ?? null;
     dto.location = job.location;
+    dto.address = job.address;
     dto.employmentType = job.employmentType;
     dto.workMode = job.workMode;
     dto.level = job.level;
@@ -26,7 +27,6 @@ export class JobResponseMapper {
     dto.requirements = job.requirements;
     dto.benefits = job.benefits;
     dto.workingHours = job.workingHours;
-    dto.applicationMethod = job.applicationMethod;
     dto.expiresAt = job.expiresAt;
     dto.postedById = job.postedById;
     dto.skills = job.skills.map((s) => ({
