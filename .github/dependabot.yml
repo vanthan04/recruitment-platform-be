@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # npm audit was run by hand during the backend audit and found several
+  # transitive high-severity advisories (multer, deepmerge-ts, mysql2 via
+  # the Prisma CLI, nodemailer). A one-time `npm audit fix` doesn't stay
+  # fixed — this keeps checking on an ongoing basis instead.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Patch/minor bumps across the dependency tree land as one PR instead
+      # of dozens — a security-relevant major bump still gets its own PR
+      # for a real look before merging.
+      routine-updates:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Pins the Node base image version in the Dockerfile — a stale
+  # `node:20-alpine` accumulates its own OS-level CVEs over time,
+  # independent of anything in package.json.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
