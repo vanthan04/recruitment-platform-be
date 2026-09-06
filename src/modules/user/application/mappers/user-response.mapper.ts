@@ -31,6 +31,6 @@ export class UserResponseMapper {
   }
 
   static toDtoList(users: User[]): UserResponseDto[] {
-    return users.map(UserResponseMapper.toDto);
+    return users.map((user) => UserResponseMapper.toDto(user));
   }
 }

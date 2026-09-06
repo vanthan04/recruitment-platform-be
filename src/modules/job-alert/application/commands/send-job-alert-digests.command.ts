@@ -92,9 +92,7 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
   }
 
   private async sendDigestFor(
-    search: Awaited<
-      ReturnType<ISavedSearchRepository['findBatch']>
-    >[number],
+    search: Awaited<ReturnType<ISavedSearchRepository['findBatch']>>[number],
     since: Date,
   ): Promise<void> {
     const { items: newJobs, total } =
@@ -121,8 +119,7 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
           (job) =>
             `<li>${job.title} — ${job.companyName ?? ''} (${job.location})</li>`,
         )
-        .join('') +
-      (moreCount > 0 ? `<li>...and ${moreCount} more</li>` : '');
+        .join('') + (moreCount > 0 ? `<li>...and ${moreCount} more</li>` : '');
     const jobListText =
       newJobs.map((job) => `${job.title} — ${job.location}`).join('\n') +
       (moreCount > 0 ? `\n...and ${moreCount} more` : '');

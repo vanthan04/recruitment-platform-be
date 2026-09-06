@@ -137,7 +137,10 @@ describe('ListMyConversationsHandler', () => {
       id: 'conv-1',
       jobTitle: 'Title for job-1',
       applicationStatus: 'PENDING',
-      otherParticipant: { id: 'recruiter-1', fullName: 'Recruiter recruiter-1' },
+      otherParticipant: {
+        id: 'recruiter-1',
+        fullName: 'Recruiter recruiter-1',
+      },
       unreadCount: 0,
       lastMessage: null,
     });
