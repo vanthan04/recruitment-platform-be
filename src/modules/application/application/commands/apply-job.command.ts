@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Prisma } from '@prisma/client';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
 import { ICvLookupPort } from '@/modules/application/application/ports/cv-lookup.port';
@@ -98,7 +99,23 @@ export class ApplyJobHandler implements ICommandHandler<
       coverLetter: input.coverLetter ?? null,
     });
 
-    const saved = await this.applicationRepository.save(application);
+    // The findByUserIdAndJobId check above is check-then-insert, not atomic —
+    // two near-simultaneous requests can both pass it and race to insert.
+    // The DB's @@unique([userId, jobId]) stops the duplicate row, but without
+    // this catch that surfaces as a generic DUPLICATE_ENTITY (or a raw 500 if
+    // the driver ever changes shape) instead of the intended domain error.
+    let saved: JobApplication;
+    try {
+      saved = await this.applicationRepository.save(application);
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new AlreadyAppliedException();
+      }
+      throw err;
+    }
 
     this.eventEmitter.emit(
       JOB_APPLIED_EVENT,

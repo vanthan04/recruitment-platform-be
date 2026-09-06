@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import {
   CreateCompanyCommand,
   CreateCompanyHandler,
@@ -74,5 +75,37 @@ describe('CreateCompanyHandler', () => {
     );
 
     expect(result.slug).toBe('acme-inc-2');
+  });
+
+  it('translates a P2002 race (two concurrent creates past the existence checks) into CompanyAlreadyExistsException', async () => {
+    companyRepository.findByOwnerId.mockResolvedValue(null);
+    companyRepository.existsBySlug.mockResolvedValue(false);
+    companyRepository.saveWithOwnerLink.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: { target: ['ownerId'] },
+      }),
+    );
+
+    await expect(
+      handler.execute(
+        new CreateCompanyCommand('owner-1', { name: 'Acme Inc' }),
+      ),
+    ).rejects.toThrow(CompanyAlreadyExistsException);
+  });
+
+  it('rethrows a non-P2002 error from saveWithOwnerLink untouched', async () => {
+    companyRepository.findByOwnerId.mockResolvedValue(null);
+    companyRepository.existsBySlug.mockResolvedValue(false);
+    companyRepository.saveWithOwnerLink.mockRejectedValue(
+      new Error('DB is down'),
+    );
+
+    await expect(
+      handler.execute(
+        new CreateCompanyCommand('owner-1', { name: 'Acme Inc' }),
+      ),
+    ).rejects.toThrow('DB is down');
   });
 });

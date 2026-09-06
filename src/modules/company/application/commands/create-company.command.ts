@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { Prisma } from '@prisma/client';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
@@ -60,7 +61,24 @@ export class CreateCompanyHandler implements ICommandHandler<
       ownerId,
     });
 
-    const saved = await this.companyRepository.saveWithOwnerLink(company);
+    // findByOwnerId above (and existsBySlug in generateUniqueSlug) are
+    // check-then-insert, not atomic — two near-simultaneous requests can both
+    // pass and race to insert. The DB's unique constraints on `slug` and on
+    // `ownerId` (active companies only) stop the duplicate row; without this
+    // catch that surfaces as a generic DUPLICATE_ENTITY instead of this
+    // module's own domain error.
+    let saved: Company;
+    try {
+      saved = await this.companyRepository.saveWithOwnerLink(company);
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new CompanyAlreadyExistsException();
+      }
+      throw err;
+    }
 
     return CompanyResponseMapper.toDto(saved);
   }
