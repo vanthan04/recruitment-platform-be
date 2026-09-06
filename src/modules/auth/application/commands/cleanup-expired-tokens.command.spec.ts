@@ -1,7 +1,4 @@
-import {
-  CleanupExpiredTokensHandler,
-  CleanupExpiredTokensCommand,
-} from './cleanup-expired-tokens.command';
+import { CleanupExpiredTokensHandler } from './cleanup-expired-tokens.command';
 import { IRefreshTokenRepositoryPort } from '@/modules/auth/application/ports/refresh-token-repository.port';
 import { IVerificationTokenRepositoryPort } from '@/modules/auth/application/ports/verification-token-repository.port';
 
@@ -27,7 +24,7 @@ describe('CleanupExpiredTokensHandler', () => {
       verificationTokenRepository,
     );
 
-    await handler.execute(new CleanupExpiredTokensCommand());
+    await handler.execute();
 
     expect(refreshTokenRepository.deleteExpired).toHaveBeenCalledWith(
       expect.any(Date),

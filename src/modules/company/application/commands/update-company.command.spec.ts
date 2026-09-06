@@ -16,11 +16,13 @@ describe('UpdateCompanyHandler', () => {
   beforeEach(() => {
     companyRepository = {
       findById: jest.fn(),
+      findManyByIds: jest.fn(),
       findBySlug: jest.fn(),
       findByOwnerId: jest.fn(),
       existsBySlug: jest.fn(),
       findAllPaginated: jest.fn(),
       save: jest.fn(),
+      saveWithOwnerLink: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     };

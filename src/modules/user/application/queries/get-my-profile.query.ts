@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { UserNotFoundException } from '@/modules/user/domain/exceptions/user.exceptions';
+import { UserResponseMapper } from '@/modules/user/application/mappers/user-response.mapper';
 
 export class GetMyProfileQuery {
   constructor(public readonly userId: string) {}
@@ -18,8 +19,6 @@ export class GetMyProfileHandler implements IQueryHandler<GetMyProfileQuery> {
       throw new UserNotFoundException(userId);
     }
 
-    // Usually you don't return the password or other sensitive data
-    const { password, ...safeUser } = user;
-    return safeUser;
+    return UserResponseMapper.toDto(user);
   }
 }

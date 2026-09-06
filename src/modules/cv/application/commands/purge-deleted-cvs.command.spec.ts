@@ -1,7 +1,4 @@
-import {
-  PurgeDeletedCvsCommand,
-  PurgeDeletedCvsHandler,
-} from './purge-deleted-cvs.command';
+import { PurgeDeletedCvsHandler } from './purge-deleted-cvs.command';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
@@ -48,7 +45,7 @@ describe('PurgeDeletedCvsHandler', () => {
   });
 
   it('does nothing when there are no soft-deleted CVs past the retention window', async () => {
-    await handler.execute(new PurgeDeletedCvsCommand());
+    await handler.execute();
 
     expect(cvStorage.delete).not.toHaveBeenCalled();
     expect(cvRepository.delete).not.toHaveBeenCalled();
@@ -60,7 +57,7 @@ describe('PurgeDeletedCvsHandler', () => {
       makeDeletedCv({ id: 'cv-2', fileKey: 'cvs/user-2/2026/01/cv-2.pdf' }),
     ]);
 
-    await handler.execute(new PurgeDeletedCvsCommand());
+    await handler.execute();
 
     expect(cvStorage.delete).toHaveBeenCalledWith('cvs/user-1/2026/01/cv-1.pdf');
     expect(cvStorage.delete).toHaveBeenCalledWith('cvs/user-2/2026/01/cv-2.pdf');
@@ -72,7 +69,7 @@ describe('PurgeDeletedCvsHandler', () => {
     cvRepository.findSoftDeletedBefore.mockResolvedValue([makeDeletedCv()]);
     cvStorage.delete.mockRejectedValue(new Error('NoSuchKey'));
 
-    await handler.execute(new PurgeDeletedCvsCommand());
+    await handler.execute();
 
     expect(cvRepository.delete).toHaveBeenCalledWith('cv-1');
   });
@@ -87,7 +84,7 @@ describe('PurgeDeletedCvsHandler', () => {
       .mockResolvedValueOnce(undefined);
 
     await expect(
-      handler.execute(new PurgeDeletedCvsCommand()),
+      handler.execute(),
     ).resolves.toBeUndefined();
 
     expect(cvRepository.delete).toHaveBeenCalledTimes(2);

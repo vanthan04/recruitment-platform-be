@@ -16,6 +16,7 @@ describe('CreateSavedSearchHandler', () => {
       findById: jest.fn(),
       findAll: jest.fn(),
       findAllByUserId: jest.fn(),
+      findBatch: jest.fn(),
       save: jest.fn(),
       delete: jest.fn(),
     };

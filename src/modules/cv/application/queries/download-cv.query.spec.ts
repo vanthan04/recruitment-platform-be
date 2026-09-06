@@ -30,6 +30,7 @@ describe('DownloadCvHandler', () => {
     cvRepository = {
       findById: jest.fn(),
       findAllByUserId: jest.fn(),
+      findSoftDeletedBefore: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),

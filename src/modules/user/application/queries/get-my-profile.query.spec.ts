@@ -17,11 +17,15 @@ describe('GetMyProfileHandler', () => {
       findByEmail: jest.fn(),
       findById: jest.fn(),
       findByIdWithProfile: jest.fn(),
+      findManyByIdsWithProfile: jest.fn(),
+      findByGoogleId: jest.fn(),
+      findByFacebookId: jest.fn(),
       existsByEmail: jest.fn(),
       save: jest.fn(),
       updateProfile: jest.fn(),
       findAllPaginated: jest.fn(),
       updateCompanyId: jest.fn(),
+      countActiveAdmins: jest.fn(),
     };
 
     handler = new GetMyProfileHandler(userRepository);

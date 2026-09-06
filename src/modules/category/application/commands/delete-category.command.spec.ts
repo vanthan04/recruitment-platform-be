@@ -16,6 +16,7 @@ describe('DeleteCategoryHandler', () => {
   beforeEach(() => {
     categoryRepository = {
       findById: jest.fn(),
+      findManyByIds: jest.fn(),
       existsBySlug: jest.fn(),
       findAll: jest.fn(),
       countReferencingJobs: jest.fn().mockResolvedValue(0),

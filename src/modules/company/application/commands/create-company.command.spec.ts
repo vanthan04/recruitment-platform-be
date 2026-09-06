@@ -13,6 +13,7 @@ describe('CreateCompanyHandler', () => {
   beforeEach(() => {
     companyRepository = {
       findById: jest.fn(),
+      findManyByIds: jest.fn(),
       findBySlug: jest.fn(),
       findByOwnerId: jest.fn(),
       existsBySlug: jest.fn(),
@@ -42,10 +43,10 @@ describe('CreateCompanyHandler', () => {
   it('atomically creates the company + owner link, and returns the DTO', async () => {
     companyRepository.findByOwnerId.mockResolvedValue(null);
     companyRepository.existsBySlug.mockResolvedValue(false);
-    companyRepository.saveWithOwnerLink.mockImplementation(async (c) => ({
-      ...c,
-      id: 'company-1',
-    }));
+    companyRepository.saveWithOwnerLink.mockImplementation(async (c) => {
+      c.id = 'company-1';
+      return c;
+    });
 
     const result = await handler.execute(
       new CreateCompanyCommand('owner-1', { name: 'Acme Inc' }),
@@ -63,10 +64,10 @@ describe('CreateCompanyHandler', () => {
     companyRepository.existsBySlug.mockImplementation(
       async (slug) => slug === 'acme-inc',
     );
-    companyRepository.saveWithOwnerLink.mockImplementation(async (c) => ({
-      ...c,
-      id: 'company-1',
-    }));
+    companyRepository.saveWithOwnerLink.mockImplementation(async (c) => {
+      c.id = 'company-1';
+      return c;
+    });
 
     const result = await handler.execute(
       new CreateCompanyCommand('owner-1', { name: 'Acme Inc' }),

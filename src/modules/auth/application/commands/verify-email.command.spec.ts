@@ -17,6 +17,8 @@ describe('VerifyEmailHandler', () => {
     userRepository = {
       findById: jest.fn(),
       findByEmail: jest.fn(),
+      findByGoogleId: jest.fn(),
+      findByFacebookId: jest.fn(),
       existsByEmail: jest.fn(),
       save: jest.fn(),
     };

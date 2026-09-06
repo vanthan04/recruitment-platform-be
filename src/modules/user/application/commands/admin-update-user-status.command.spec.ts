@@ -10,6 +10,7 @@ import {
   CannotRemoveLastAdminException,
 } from '@/modules/user/domain/exceptions/user.exceptions';
 import { USER_SESSION_REVOKED_EVENT } from '@/modules/user/infrastructure/events/user-session-revoked.event';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User } from '@/modules/user/domain/entities/user.entity';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { UserRole } from '@/common/enums/user-role.enum';
@@ -35,6 +36,9 @@ describe('AdminUpdateUserStatusHandler', () => {
       findByEmail: jest.fn(),
       findById: jest.fn(),
       findByIdWithProfile: jest.fn(),
+      findManyByIdsWithProfile: jest.fn(),
+      findByGoogleId: jest.fn(),
+      findByFacebookId: jest.fn(),
       existsByEmail: jest.fn(),
       save: jest.fn(),
       updateProfile: jest.fn(),
@@ -45,12 +49,12 @@ describe('AdminUpdateUserStatusHandler', () => {
     sessionRevocation = {
       revokeAllForUser: jest.fn(),
     };
-    eventEmitter = { emit: jest.fn() } as any;
+    eventEmitter = { emit: jest.fn() };
 
     handler = new AdminUpdateUserStatusHandler(
       userRepository,
       sessionRevocation,
-      eventEmitter,
+      eventEmitter as unknown as EventEmitter2,
     );
   });
 

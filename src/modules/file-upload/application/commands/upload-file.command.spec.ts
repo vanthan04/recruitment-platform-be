@@ -27,7 +27,14 @@ describe('UploadFileHandler', () => {
   let storageProvider: jest.Mocked<IFileStorageProvider>;
 
   beforeEach(() => {
-    storageProvider = { upload: jest.fn(), delete: jest.fn() };
+    storageProvider = {
+      upload: jest.fn(),
+      delete: jest.fn(),
+      uploadBuffer: jest.fn(),
+      deleteByKey: jest.fn(),
+      getSignedUrl: jest.fn(),
+      isOwnedUrl: jest.fn(),
+    };
     handler = new UploadFileHandler(storageProvider);
   });
 

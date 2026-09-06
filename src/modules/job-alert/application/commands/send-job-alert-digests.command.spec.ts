@@ -1,7 +1,4 @@
-import {
-  SendJobAlertDigestsCommand,
-  SendJobAlertDigestsHandler,
-} from '@/modules/job-alert/application/commands/send-job-alert-digests.command';
+import { SendJobAlertDigestsHandler } from '@/modules/job-alert/application/commands/send-job-alert-digests.command';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { IJobSearchPort } from '@/modules/job-alert/application/ports/job-search.port';
 import { IUserLookupPort } from '@/modules/job-alert/application/ports/user-lookup.port';
@@ -44,7 +41,7 @@ describe('SendJobAlertDigestsHandler', () => {
   }
 
   it('sends no email when there are no saved searches', async () => {
-    await handler.execute(new SendJobAlertDigestsCommand());
+    await handler.execute();
 
     expect(mailPort.sendEmail).not.toHaveBeenCalled();
   });
@@ -58,7 +55,7 @@ describe('SendJobAlertDigestsHandler', () => {
       total: 0,
     });
 
-    await handler.execute(new SendJobAlertDigestsCommand());
+    await handler.execute();
 
     expect(userLookupPort.findById).not.toHaveBeenCalled();
     expect(mailPort.sendEmail).not.toHaveBeenCalled();
@@ -74,7 +71,7 @@ describe('SendJobAlertDigestsHandler', () => {
     });
     userLookupPort.findById.mockResolvedValue(null);
 
-    await handler.execute(new SendJobAlertDigestsCommand());
+    await handler.execute();
 
     expect(mailPort.sendEmail).not.toHaveBeenCalled();
   });
@@ -92,7 +89,7 @@ describe('SendJobAlertDigestsHandler', () => {
     });
     userLookupPort.findById.mockResolvedValue({ email: 'user@example.com' });
 
-    await handler.execute(new SendJobAlertDigestsCommand());
+    await handler.execute();
 
     expect(mailPort.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -113,7 +110,7 @@ describe('SendJobAlertDigestsHandler', () => {
     });
     userLookupPort.findById.mockResolvedValue({ email: 'user@example.com' });
 
-    await handler.execute(new SendJobAlertDigestsCommand());
+    await handler.execute();
 
     expect(mailPort.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -136,7 +133,7 @@ describe('SendJobAlertDigestsHandler', () => {
       email: `${id}@example.com`,
     }));
 
-    await handler.execute(new SendJobAlertDigestsCommand());
+    await handler.execute();
 
     expect(mailPort.sendEmail).toHaveBeenCalledTimes(2);
     expect(mailPort.sendEmail).toHaveBeenCalledWith(
@@ -162,7 +159,7 @@ describe('SendJobAlertDigestsHandler', () => {
       .mockResolvedValueOnce(undefined);
 
     await expect(
-      handler.execute(new SendJobAlertDigestsCommand()),
+      handler.execute(),
     ).resolves.toBeUndefined();
 
     expect(mailPort.sendEmail).toHaveBeenCalledTimes(2);
@@ -182,7 +179,7 @@ describe('SendJobAlertDigestsHandler', () => {
       total: 0,
     });
 
-    await handler.execute(new SendJobAlertDigestsCommand());
+    await handler.execute();
 
     expect(savedSearchRepository.findBatch).toHaveBeenCalledTimes(2);
     expect(savedSearchRepository.findBatch).toHaveBeenNthCalledWith(1, {

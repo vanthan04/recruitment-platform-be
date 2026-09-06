@@ -1,7 +1,4 @@
-import {
-  ListCategoriesQuery,
-  ListCategoriesHandler,
-} from '@/modules/category/application/queries/list-categories.query';
+import { ListCategoriesHandler } from '@/modules/category/application/queries/list-categories.query';
 import { ICategoryRepository } from '@/modules/category/domain/repositories/category.repository';
 import { Category } from '@/modules/category/domain/entities/category.entity';
 
@@ -12,8 +9,10 @@ describe('ListCategoriesHandler', () => {
   beforeEach(() => {
     categoryRepository = {
       findById: jest.fn(),
+      findManyByIds: jest.fn(),
       existsBySlug: jest.fn(),
       findAll: jest.fn(),
+      countReferencingJobs: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -28,7 +27,7 @@ describe('ListCategoriesHandler', () => {
       new Category({ id: 'cat-2', name: 'Frontend', slug: 'frontend' }),
     ]);
 
-    const result = await handler.execute(new ListCategoriesQuery());
+    const result = await handler.execute();
 
     expect(result).toHaveLength(2);
     expect(result.map((c) => c.slug)).toEqual(['backend', 'frontend']);
