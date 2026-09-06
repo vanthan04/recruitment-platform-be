@@ -94,6 +94,19 @@ for CI) to tell the already-running instance to pull the new image, read
 the current env vars from SSM Parameter Store, and restart the
 container.
 
+`deploy-remote.sh` doesn't just trust that `docker run -d` returning
+success means the app came up correctly — it polls `/api/v1/healthcheck`
+on the instance for up to 60s after starting the new container. If the
+new image never becomes healthy in that window (a bad env var, a crash on
+boot, a DB migration that wasn't applied first), the script automatically
+restarts the last image that *did* pass this same check, then fails the
+GitHub Actions job — so a bad deploy self-heals back to the last known-good
+image instead of leaving the instance down until someone notices and
+redeploys by hand. The "last known-good" marker lives at
+`/opt/recruitment-platform-be/last-good-image` on the instance itself; on
+a brand-new instance with nothing deployed yet, there's nothing to roll
+back to, so a failed first deploy just fails (nothing to restore).
+
 ## Known follow-up (not a blocker)
 
 `S3StorageProvider` takes explicit `S3_ACCESS_KEY`/`S3_SECRET_KEY`
