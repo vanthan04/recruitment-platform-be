@@ -1,116 +1,119 @@
-# Deploying to AWS (single EC2 instance)
+# Deploy lên AWS (1 EC2 instance duy nhất)
 
-This is a **skeleton** — `scripts/deploy-remote.sh` and
-`.github/workflows/deploy.yml` are ready to run once the AWS resources
-below exist and the placeholders are filled in. Nothing here creates AWS
-resources for you; that's the job of the separate
-[`recruitment-platform-infra`](../recruitment-platform-infra) repo (Terraform).
+Đây là **bộ khung** — `scripts/deploy-remote.sh` và
+`.github/workflows/deploy.yml` đã sẵn sàng chạy ngay khi các tài nguyên
+AWS bên dưới tồn tại và các placeholder đã được điền. Không có gì ở đây
+tự tạo tài nguyên AWS cả; việc đó thuộc về repo riêng
+[`recruitment-platform-infra`](../recruitment-platform-infra) (Terraform).
 
-## Why one EC2 instance, not Lambda or ECS
+## Vì sao chọn 1 EC2 thay vì Lambda hay ECS
 
-The chat module uses real Socket.IO (long-lived WebSocket connections).
-Lambda + API Gateway HTTP API can't hold those open — each invocation
-only lives for the duration of one request. An always-on instance keeps
-WebSockets working with zero application changes. ECS Fargate would also
-work, but its usual pairing with an Application Load Balancer adds a
-fixed ~$16-18/month regardless of traffic — not worth it at this scale.
-One `t3.micro` EC2 instance running the Docker image directly is
-materially cheaper and simple enough to reason about by hand.
+Module chat dùng Socket.IO thật (kết nối WebSocket sống lâu dài).
+Lambda + API Gateway HTTP API không giữ được kết nối đó — mỗi lần
+invoke chỉ sống trong đúng thời gian xử lý 1 request. Một instance
+chạy liên tục giữ WebSocket hoạt động mà không cần đổi gì trong code.
+ECS Fargate cũng làm được, nhưng thường phải đi kèm Application Load
+Balancer, tốn thêm phí cố định ~$16-18/tháng dù traffic thấp — không
+đáng ở quy mô này. 1 instance EC2 `t3.micro` chạy trực tiếp image
+Docker rẻ hơn nhiều và đơn giản hơn để suy luận bằng tay.
 
-The old Lambda entry point (`src/lambda.ts`) and its EventBridge-targeted
-cron handlers (`src/handlers/`) have been removed — see `CODEBASE_SUMMARY.md`
-§4a for that migration's history. Cron jobs now run in-process via
-`@nestjs/schedule` (`src/modules/job/application/jobs/close-expired-jobs.cron.ts`,
-`src/modules/job-alert/application/jobs/job-alert-digest.cron.ts`), and
-rate limiting uses `@nestjs/throttler`'s default in-memory storage —
-both rely on this being one persistent process, which a single EC2
-instance is.
+Entry point Lambda cũ (`src/lambda.ts`) và các cron handler nhắm tới
+EventBridge (`src/handlers/`) đã bị xoá — xem `CODEBASE_SUMMARY.md`
+mục 4a để biết lịch sử của lần migrate đó. Cron job giờ chạy in-process
+qua `@nestjs/schedule`
+(`src/modules/job/application/jobs/close-expired-jobs.cron.ts`,
+`src/modules/job-alert/application/jobs/job-alert-digest.cron.ts`), và
+rate limiting dùng storage in-memory mặc định của `@nestjs/throttler`
+— cả hai đều dựa vào việc đây là 1 process sống liên tục, mà 1 instance
+EC2 duy nhất đáp ứng đúng điều đó.
 
-## 1. AWS resources (provisioned by `recruitment-platform-infra`, not here)
+## 1. Tài nguyên AWS (do `recruitment-platform-infra` cấp phát, không phải ở đây)
 
-That repo's Terraform creates the EC2 instance, Elastic IP, security
-group, IAM instance role, ECR repository, S3 upload bucket, and SSM
-Parameter Store entries. See its `README.md` for the one-time bootstrap
-step and how to run its `infra.yml` workflow. Once applied, note its
-outputs — you'll need the EC2 instance ID and ECR repository name below.
+Repo đó dùng Terraform để tạo EC2 instance, Elastic IP, security
+group, IAM instance role, ECR repository, S3 upload bucket, và các
+entry SSM Parameter Store. Xem `README.md` của repo đó để biết bước
+bootstrap 1 lần và cách chạy workflow `infra.yml`. Sau khi apply xong,
+ghi lại output — bạn sẽ cần EC2 instance ID và tên ECR repository ở
+bước dưới.
 
-## 2. SSM Parameter Store entries
+## 2. Các entry SSM Parameter Store
 
-The infra repo's Terraform creates one SecureString parameter per
-sensitive env var under `/recruitment-platform/prod/`:
+Terraform của repo infra tạo 1 SecureString parameter cho mỗi biến môi
+trường nhạy cảm, dưới path `/recruitment-platform/prod/`:
 
 `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRATION`, `JWT_REFRESH_SECRET`,
 `JWT_REFRESH_EXPIRATION`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`,
 `MAIL_PASS`, `MAIL_FROM`, `PORT`, `API_PREFIX`, `S3_REGION`, `S3_BUCKET`,
 `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
 
-`JWT_EXPIRATION` and `JWT_REFRESH_EXPIRATION` are both required by
-`env.validation.ts` (no default) — the container fails to boot without
-them, so don't skip these two when provisioning the path above.
+`JWT_EXPIRATION` và `JWT_REFRESH_EXPIRATION` đều bắt buộc theo
+`env.validation.ts` (không có default) — container sẽ không khởi động
+được nếu thiếu, nên đừng bỏ sót 2 biến này khi cấp phát ở bước trên.
 
-Also set `CORS_ORIGIN` (comma-separated allowed origins, e.g. the
-frontend's production domain) under the same path. It's the one entry
-here that isn't strictly required — `env.validation.ts` allows it to be
-omitted — but omitting it makes both the HTTP CORS policy (`bootstrap.ts`)
-and the Socket.IO CORS policy (`socket-io.adapter.ts`) reflect *any*
-origin while still allowing credentials, which is fine for local dev but
-not something you want left on by default in production.
+Cũng cần set `CORS_ORIGIN` (danh sách origin được phép, cách nhau dấu
+phẩy, vd. domain production của frontend) dưới cùng path. Đây là entry
+duy nhất ở đây không bắt buộc tuyệt đối — `env.validation.ts` cho phép
+bỏ trống — nhưng bỏ trống sẽ khiến cả CORS policy của HTTP
+(`bootstrap.ts`) lẫn CORS policy của Socket.IO
+(`socket-io.adapter.ts`) chấp nhận *mọi* origin trong khi vẫn cho phép
+credentials — ổn cho dev local nhưng không nên để mặc định như vậy ở
+production.
 
-`scripts/deploy-remote.sh` reads every parameter under that path at
-deploy time and passes each as a `-e KEY=VALUE` flag to `docker run` — so
-adding a new env var is just adding a new parameter under the same path,
-no workflow change needed. The path itself is set once, in
-`deploy.yml`'s `SSM_PARAM_PATH`.
+`scripts/deploy-remote.sh` đọc mọi parameter dưới path đó tại thời
+điểm deploy và truyền từng cái thành 1 flag `-e KEY=VALUE` cho
+`docker run` — nên thêm 1 biến môi trường mới chỉ là thêm 1 parameter
+mới dưới cùng path, không cần sửa workflow. Bản thân path chỉ set 1
+lần, trong `SSM_PARAM_PATH` của `deploy.yml`.
 
-## 3. GitHub Secrets & Variables (for the deploy workflow only)
+## 3. GitHub Secrets & Variables (chỉ dùng cho deploy workflow)
 
-These are **separate** from the SSM Parameter Store entries above —
-GitHub Secrets only let `deploy.yml` authenticate to AWS and know *where*
-to deploy. They're never read by the running container; the container
-only ever reads SSM Parameter Store (step 2). Don't put the same value
-in both places expecting them to do the same job.
+Các mục này **tách biệt** với entry SSM Parameter Store ở trên —
+GitHub Secrets chỉ giúp `deploy.yml` xác thực với AWS và biết *deploy
+vào đâu*. Chúng không bao giờ được container đang chạy đọc; container
+chỉ đọc từ SSM Parameter Store (mục 2). Đừng đặt cùng 1 giá trị ở cả
+hai chỗ rồi kỳ vọng chúng làm cùng 1 việc.
 
-**Secrets** (repo Settings → Secrets and variables → Actions → Secrets):
-- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` — credentials
-  for a **narrow-permission** IAM user: `ecr:*` on this repository's ECR
-  repo and `ssm:SendCommand`/`ssm:GetCommandInvocation` on this one EC2
-  instance. Deliberately not the same, broader credentials the infra
-  repo uses to provision resources — least privilege, and a leaked deploy
-  key can't rewrite infrastructure. Prefer swapping these for OIDC
-  (`role-to-assume` in `aws-actions/configure-aws-credentials`) once
-  you're comfortable with the setup — no long-lived keys stored anywhere.
+**Secrets** (Settings của repo → Secrets and variables → Actions → Secrets):
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` — thông
+  tin đăng nhập cho 1 IAM user **quyền hạn hẹp**: `ecr:*` trên đúng ECR
+  repo của repo này và `ssm:SendCommand`/`ssm:GetCommandInvocation`
+  trên đúng 1 EC2 instance này. Cố tình không dùng chung credential
+  rộng hơn mà repo infra dùng để cấp phát tài nguyên — nguyên tắc
+  least privilege, key deploy bị lộ cũng không thể sửa hạ tầng. Nên
+  chuyển sang OIDC (`role-to-assume` trong
+  `aws-actions/configure-aws-credentials`) khi đã quen với setup này —
+  không cần lưu key dài hạn ở đâu cả.
 
-**Variables** (same page, Variables tab):
-- `ECR_REPOSITORY` — the repo name, from the infra repo's Terraform output.
-- `EC2_INSTANCE_ID` — the instance ID, from the infra repo's Terraform output.
+**Variables** (cùng trang, tab Variables):
+- `ECR_REPOSITORY` — tên repo, lấy từ output Terraform của repo infra.
+- `EC2_INSTANCE_ID` — instance ID, lấy từ output Terraform của repo infra.
 
-## 4. Running a deploy
+## 4. Chạy 1 lần deploy
 
-Actions tab → **Deploy** workflow → **Run workflow**. It's
-`workflow_dispatch`-only (not on push) until you've finished the setup
-above. Under the hood: builds the Docker image, pushes it to ECR, then
-uses **SSM Run Command** (not SSH — no open port 22, no stored SSH keys
-for CI) to tell the already-running instance to pull the new image, read
-the current env vars from SSM Parameter Store, and restart the
+Tab Actions → workflow **Deploy** → **Run workflow**. Workflow chỉ
+chạy bằng `workflow_dispatch` (không tự chạy khi push) cho tới khi bạn
+hoàn tất setup ở trên. Bên dưới: build Docker image, push lên ECR, sau
+đó dùng **SSM Run Command** (không phải SSH — không mở port 22, không
+lưu SSH key nào cho CI) để yêu cầu instance đang chạy pull image mới,
+đọc lại biến môi trường hiện tại từ SSM Parameter Store, và restart
 container.
 
-`deploy-remote.sh` doesn't just trust that `docker run -d` returning
-success means the app came up correctly — it polls `/api/v1/healthcheck`
-on the instance for up to 60s after starting the new container. If the
-new image never becomes healthy in that window (a bad env var, a crash on
-boot, a DB migration that wasn't applied first), the script automatically
-restarts the last image that *did* pass this same check, then fails the
-GitHub Actions job — so a bad deploy self-heals back to the last known-good
-image instead of leaving the instance down until someone notices and
-redeploys by hand. The "last known-good" marker lives at
-`/opt/recruitment-platform-be/last-good-image` on the instance itself; on
-a brand-new instance with nothing deployed yet, there's nothing to roll
-back to, so a failed first deploy just fails (nothing to restore).
+`deploy-remote.sh` không tin tưởng mù quáng rằng `docker run -d` trả
+về thành công nghĩa là app đã lên đúng — nó poll `/api/v1/healthcheck`
+trên instance tối đa 60s sau khi khởi động container mới. Nếu image
+mới không "healthy" trong khoảng đó (env var sai, crash lúc boot, hoặc
+migration DB chưa được apply trước), script tự động khởi động lại
+image cũ *đã* pass đúng health check này, rồi báo fail job GitHub
+Actions — nhờ vậy 1 lần deploy hỏng sẽ tự phục hồi về image tốt gần
+nhất thay vì để instance chết cho tới khi có người phát hiện và deploy
+lại bằng tay. Marker "image tốt gần nhất" nằm ở
+`/opt/recruitment-platform-be/last-good-image` ngay trên instance; với
+1 instance hoàn toàn mới chưa deploy gì, không có gì để rollback về,
+nên lần deploy đầu tiên thất bại sẽ chỉ báo fail (không có gì để khôi phục).
 
-## Known follow-up (not a blocker)
+## Việc cần làm sau (không phải điểm chặn)
 
-`S3StorageProvider` takes explicit `S3_ACCESS_KEY`/`S3_SECRET_KEY`
-credentials rather than relying on the instance role's IAM permissions
-for S3 access. Works fine as configured here, but a future cleanup could
-drop the explicit keys from the S3 client and lean on the instance role
-instead — one less secret to manage.
+`S3StorageProvider` đang dùng credential `S3_ACCESS_KEY`/`S3_SECRET_KEY`
+tường minh thay vì dựa vào quyền IAM của instance role để truy cập S3.
+Cấu hình hiện tại vẫn chạy tốt, nhưng có thể dọn lại sau: bỏ key tường
+minh khỏi S3 client và dựa vào instance role — bớt 1 secret phải quản lý.

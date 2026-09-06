@@ -168,8 +168,6 @@ RBAC database-driven: `roles` / `permissions` / `role_permissions` tables (Prism
 3. **Recruiter:** tạo `Job` (kèm `skillIds` nếu muốn) → nhận danh sách ứng viên qua `job-applications/job/:jobId` → đẩy status theo pipeline (`APPLIED→...→HIRED`, hoặc `REJECTED`) → đặt lịch phỏng vấn (`interviews`), đánh dấu `complete`/`no-show` sau buổi phỏng vấn.
 4. **Admin:** `admin/users` để xem và khoá/mở tài khoản, đổi role; `admin/roles` để chỉnh RBAC permission theo role.
 
-> Chi tiết đầy đủ từng phase của đợt refactor 2026-09 (schema, breaking change, migration list, việc cố tình không làm) — xem [CHANGE_SUMMARY_2026-09.md](CHANGE_SUMMARY_2026-09.md).
-
 ## 6a. Testing (P8, 2026-09-02)
 
 - Unit test: `cv.entity.spec.ts`, `job.entity.spec.ts` (domain rule, throw exception), `register.use-case.spec.ts`, `login.use-case.spec.ts`, `apply-job.use-case.spec.ts` (mock repository) — 36 test.
@@ -179,6 +177,7 @@ RBAC database-driven: `roles` / `permissions` / `role_permissions` tables (Prism
 - **Bug nghiêm trọng phát hiện qua e2e test**: `AuthUserAdapter.save()` không forward `id` khi update user hiện có — khiến `VerifyEmailUseCase`, `ResetPasswordUseCase`, `ChangePasswordUseCase`, `ForgotPasswordUseCase` (tất cả gọi `IAuthUserRepositoryPort.save(user)` để update) vô tình tạo user MỚI trùng email thay vì update, gây lỗi unique constraint. Đã fix bằng cách thêm `id?: string` vào `CreateUserOptions` và forward qua adapter.
 - **Cập nhật số liệu (2026-09-03)**: sau CQRS refactor + thêm module `chat`/`interview`/`permission`, các file `*.use-case.spec.ts` cũ đã đổi tên/nội dung theo CQRS (`*.command.spec.ts`/`*.handler.spec.ts`). Chạy `npm test` hiện tại: **14 test suite / 85 test, pass 100%**. E2E vẫn 2 file — `test/app.e2e-spec.ts` (~6 test, luồng gốc) và `test/chat.e2e-spec.ts` (~8 test, thêm sau khi chat implement) — chưa re-run trong lần rà soát này (cần `DATABASE_URL` thật).
 - **Cập nhật số liệu (2026-09-05, sau đợt hardening + OAuth + review tiếp theo)**: `npm test` hiện tại **62 test suite / 246 test, pass 100%** (bao gồm test mới cho `interview-schedule.entity.spec.ts` phần cancel/reschedule terminal-state và `http-exception.filter.spec.ts` cho nhánh P2002 → 409).
+- **Cập nhật số liệu (2026-09-06)**: `npm test` hiện tại **80 test suite / 357 test, pass 100%**.
 
 ## 6. Bug đã fix (2026-09-02, phát hiện khi test end-to-end)
 

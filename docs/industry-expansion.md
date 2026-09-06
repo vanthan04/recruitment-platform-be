@@ -1,51 +1,55 @@
-# Industry scope: IT-only, permanently
+# Phạm vi ngành: chỉ IT, vĩnh viễn
 
-## Current decision (updated)
+## Quyết định hiện tại (đã cập nhật)
 
-The platform is scoped to **IT recruitment only** (not a multi-industry job
-board). This was originally a soft, content-only decision (see git history
-for the prior version of this doc) that kept `Company.industry` as a free-text
-field in case the platform expanded to other industries later.
+Nền tảng chỉ phục vụ **tuyển dụng ngành IT** (không phải job board đa
+ngành). Ban đầu đây là quyết định "mềm", chỉ ở mức nội dung (xem lịch
+sử git của phiên bản cũ file này) — vẫn giữ `Company.industry` như 1
+field free-text phòng khi sau này mở rộng sang ngành khác.
 
-That plan changed: `Company.industry` has been **removed from the schema and
-codebase entirely** as part of the broader recruitment-platform refactor
-(see the backend's `refactor(company): remove industry field` commit). The
-platform is now committed to IT-only recruitment, not just defaulted into it.
+Kế hoạch đó đã thay đổi: `Company.industry` đã bị **xoá hoàn toàn khỏi
+schema và codebase** trong đợt refactor lớn của recruitment-platform
+(xem commit `refactor(company): remove industry field` ở backend).
+Nền tảng giờ cam kết chỉ phục vụ IT, không còn là "mặc định tạm thời"
+nữa.
 
-## What was removed
+## Những gì đã bị xoá
 
-- `Company.industry` (Prisma schema, migration, domain entity, DTOs, mapper,
-  repository filter, response DTO)
-- The `industry` search/filter param on `GET /companies`
-- The industry field and filter UI on the frontend (company form, company
-  card, company detail page, companies list filter)
+- `Company.industry` (Prisma schema, migration, domain entity, DTO,
+  mapper, filter ở repository, response DTO)
+- Param search/filter `industry` trên `GET /companies`
+- Field industry và UI filter tương ứng ở frontend (form company, card
+  company, trang chi tiết company, filter ở danh sách company)
 
-## What still reflects the IT-only scope (unchanged)
+## Những gì vẫn còn phản ánh phạm vi IT-only (không đổi)
 
-- `Category` (`prisma/schema.prisma`) still has only `name` and `slug` —
-  free text, not an enum — and `prisma/seed.ts`'s `CATEGORIES` list still
-  contains only IT roles (Frontend, Backend, DevOps, QA, Mobile, Data/AI,
-  Security, BA/Product, UI/UX, IT Support).
+- `Category` (`prisma/schema.prisma`) vẫn chỉ có `name` và `slug` —
+  free text, không phải enum — và danh sách `CATEGORIES` trong
+  `prisma/seed.ts` vẫn chỉ chứa các vị trí IT (Frontend, Backend,
+  DevOps, QA, Mobile, Data/AI, Security, BA/Product, UI/UX, IT Support).
 - `recruitment-platform-fe/src/components/home/hero-search.tsx` —
-  `POPULAR_KEYWORDS` lists IT roles only.
+  `POPULAR_KEYWORDS` chỉ liệt kê vị trí IT.
 - `recruitment-platform-fe/src/components/home/category-grid.tsx` —
-  `ICON_RULES` still has entries for non-IT categories (kế toán, marketing,
-  y tế, xây dựng, ...) left in place from before the original decision;
-  they're inert today (no such categories exist) and cost nothing to keep.
+  `ICON_RULES` vẫn còn entry cho các category ngoài IT (kế toán,
+  marketing, y tế, xây dựng, ...) để lại từ trước khi có quyết định
+  ban đầu; hiện tại các entry này không có tác dụng (không tồn tại
+  category tương ứng) và giữ lại không tốn gì.
 
-## If a second industry is ever added later
+## Nếu sau này thêm ngành thứ hai
 
-Since `Company.industry` is gone, a future multi-industry pivot needs a new
-field (schema + migration + full backend/frontend wiring) rather than just
-populating an existing free-text column. Treat that as a fresh feature, not
-a revert of this decision:
+Vì `Company.industry` đã bị xoá, một lần pivot đa ngành trong tương lai
+cần thêm 1 field mới (schema + migration + wire đầy đủ backend/frontend)
+chứ không chỉ đơn giản là điền dữ liệu vào cột free-text cũ. Coi đó là
+1 tính năng mới, không phải revert lại quyết định này:
 
-1. Add categories for the new industry to `CATEGORIES` in `prisma/seed.ts`
-   (or via the existing admin Category CRUD — `POST /categories`).
-2. Add representative keywords to `POPULAR_KEYWORDS` in `hero-search.tsx`.
-3. Update `src/app/layout.tsx` metadata and hero copy in
-   `src/app/(main)/page.tsx` if the "IT" wording should become generic again.
-4. Check `ICON_RULES` in `category-grid.tsx` covers the new category names.
-5. Decide whether companies need an industry/sector field again, and if so
-   add it back deliberately (schema + migration + DTOs + UI), rather than
-   assuming the old free-text column is still there.
+1. Thêm category cho ngành mới vào `CATEGORIES` trong `prisma/seed.ts`
+   (hoặc qua CRUD Category sẵn có của admin — `POST /categories`).
+2. Thêm từ khoá đại diện vào `POPULAR_KEYWORDS` trong `hero-search.tsx`.
+3. Cập nhật metadata ở `src/app/layout.tsx` và nội dung hero ở
+   `src/app/(main)/page.tsx` nếu chữ "IT" cần trở lại thành từ chung
+   chung hơn.
+4. Kiểm tra `ICON_RULES` trong `category-grid.tsx` đã bao phủ tên
+   category mới.
+5. Quyết định xem company có cần lại field ngành/sector hay không, nếu
+   có thì thêm lại một cách chủ động (schema + migration + DTO + UI),
+   thay vì giả định cột free-text cũ vẫn còn tồn tại.

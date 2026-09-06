@@ -14,6 +14,17 @@ import { UserRole } from '@/common/enums/user-role.enum';
 import { UserStatus } from '@/common/enums/user-status.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
+const hashPassword = (plain: string) => bcrypt.hash(plain, 4);
+
+const buildUser = async (overrides: Partial<Record<string, unknown>> = {}) => ({
+  id: 'user-1',
+  email: 'candidate@example.com',
+  password: await hashPassword('correct-old-pass'),
+  role: UserRole.CANDIDATE,
+  status: UserStatus.ACTIVE,
+  ...overrides,
+});
+
 describe('ChangePasswordHandler', () => {
   let handler: ChangePasswordHandler;
   let userRepository: jest.Mocked<IAuthUserRepositoryPort>;
@@ -59,13 +70,7 @@ describe('ChangePasswordHandler', () => {
   });
 
   it('throws InvalidOldPasswordException when the old password does not match', async () => {
-    userRepository.findById.mockResolvedValue({
-      id: 'user-1',
-      email: 'candidate@example.com',
-      password: await bcrypt.hash('correct-old-pass', 4),
-      role: UserRole.CANDIDATE,
-      status: UserStatus.ACTIVE,
-    } as any);
+    userRepository.findById.mockResolvedValue((await buildUser()) as any);
 
     await expect(
       handler.execute(
@@ -80,13 +85,7 @@ describe('ChangePasswordHandler', () => {
   });
 
   it('hashes the new password, saves it, and revokes every existing session', async () => {
-    userRepository.findById.mockResolvedValue({
-      id: 'user-1',
-      email: 'candidate@example.com',
-      password: await bcrypt.hash('correct-old-pass', 4),
-      role: UserRole.CANDIDATE,
-      status: UserStatus.ACTIVE,
-    } as any);
+    userRepository.findById.mockResolvedValue((await buildUser()) as any);
     userRepository.save.mockImplementation(async (u) => u as any);
 
     await handler.execute(
