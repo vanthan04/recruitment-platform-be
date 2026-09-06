@@ -1,11 +1,8 @@
-import { Cv } from '@/modules/cv/domain/entities/cv.entity';
 import {
   CV_ALLOWED_MIME_TYPES,
   CvFileType,
 } from '@/modules/cv/domain/value-objects/cv-file-type.vo';
 import {
-  CvNotPublishedForApplicationException,
-  CvDeletedForApplicationException,
   CvFileRequiredException,
   CvInvalidFileTypeException,
   CvFileTooLargeException,
@@ -44,20 +41,6 @@ const MAGIC_BYTES: Record<CvFileType, Buffer[]> = {
  * Framework-agnostic — no NestJS or Prisma imports.
  */
 export class CvDomainService {
-  /**
-   * Validate that a CV is ready for job application.
-   * Must be published and not deleted.
-   */
-  static validateForApplication(cv: Cv): void {
-    if (!cv.isPublished) {
-      throw new CvNotPublishedForApplicationException();
-    }
-
-    if (cv.isDeleted) {
-      throw new CvDeletedForApplicationException();
-    }
-  }
-
   /**
    * Validate an uploaded CV file's type and size, and resolve its CvFileType.
    * The declared MIME type (from the client's multipart Content-Type, or a

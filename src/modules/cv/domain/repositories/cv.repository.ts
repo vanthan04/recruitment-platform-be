@@ -8,6 +8,8 @@ import { Cv } from '@/modules/cv/domain/entities/cv.entity';
 export abstract class ICvRepository {
   abstract findById(id: string): Promise<Cv | null>;
   abstract findAllByUserId(userId: string): Promise<Cv[]>;
+  /** Soft-deleted rows past `cutoff` — for the retention-purge cron, which is the one caller that needs to see past the usual `deletedAt: null` filter. */
+  abstract findSoftDeletedBefore(cutoff: Date): Promise<Cv[]>;
   abstract save(cv: Cv): Promise<Cv>;
   abstract update(cv: Cv): Promise<Cv>;
   abstract delete(id: string): Promise<void>;

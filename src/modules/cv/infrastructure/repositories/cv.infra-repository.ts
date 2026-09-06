@@ -22,6 +22,11 @@ export class CvInfraRepository implements ICvRepository {
     return raws.map((r: any) => CvMapper.toDomain(r)!);
   }
 
+  async findSoftDeletedBefore(cutoff: Date): Promise<Cv[]> {
+    const raws = await this.cvPrisma.findSoftDeletedBefore(cutoff);
+    return raws.map((r: any) => CvMapper.toDomain(r)!);
+  }
+
   async save(cv: Cv): Promise<Cv> {
     const data = CvMapper.toPersistence(cv);
     const raw = await this.cvPrisma.create(data);

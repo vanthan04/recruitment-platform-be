@@ -71,26 +71,6 @@ export class CvTitleRequiredException extends BusinessRuleViolationException {
   }
 }
 
-export class CvNotPublishedForApplicationException extends BusinessRuleViolationException {
-  constructor() {
-    super(
-      'Only published CVs can be used for job applications',
-      'CV_NOT_PUBLISHED_FOR_APPLICATION',
-    );
-    this.name = 'CvNotPublishedForApplicationException';
-  }
-}
-
-export class CvDeletedForApplicationException extends BusinessRuleViolationException {
-  constructor() {
-    super(
-      'Deleted CVs cannot be used for job applications',
-      'CV_DELETED_NOT_USABLE_FOR_APPLICATION',
-    );
-    this.name = 'CvDeletedForApplicationException';
-  }
-}
-
 export class CvFileRequiredException extends BusinessRuleViolationException {
   constructor() {
     super('A CV file is required', 'CV_FILE_REQUIRED');

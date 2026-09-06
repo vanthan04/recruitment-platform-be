@@ -22,6 +22,12 @@ export class CvPrismaRepository {
     });
   }
 
+  async findSoftDeletedBefore(cutoff: Date) {
+    return this.prisma.cv.findMany({
+      where: { deletedAt: { not: null, lt: cutoff } },
+    });
+  }
+
   async create(data: any) {
     return this.prisma.cv.create({ data });
   }

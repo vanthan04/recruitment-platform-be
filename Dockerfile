@@ -23,5 +23,10 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json
+# The `node` user/group ships built into the base image (uid/gid 1000) —
+# no need to create one. Ownership must be set explicitly since the COPY
+# --from steps above default to root.
+RUN chown -R node:node /app
+USER node
 EXPOSE 8080
 CMD ["node", "dist/src/main"]

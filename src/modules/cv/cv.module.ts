@@ -12,6 +12,8 @@ import { CreateCvHandler } from '@/modules/cv/application/commands/create-cv.com
 import { UpdateCvHandler } from '@/modules/cv/application/commands/update-cv.command';
 import { DeleteCvHandler } from '@/modules/cv/application/commands/delete-cv.command';
 import { PublishCvHandler } from '@/modules/cv/application/commands/publish-cv.command';
+import { PurgeDeletedCvsHandler } from '@/modules/cv/application/commands/purge-deleted-cvs.command';
+import { PurgeDeletedCvsCron } from '@/modules/cv/application/jobs/purge-deleted-cvs.cron';
 import { GetCvHandler } from '@/modules/cv/application/queries/get-cv.query';
 import { ListMyCvsHandler } from '@/modules/cv/application/queries/list-my-cvs.query';
 import { DownloadCvHandler } from '@/modules/cv/application/queries/download-cv.query';
@@ -33,6 +35,8 @@ import { DownloadCvHandler } from '@/modules/cv/application/queries/download-cv.
     UpdateCvHandler,
     DeleteCvHandler,
     PublishCvHandler,
+    PurgeDeletedCvsHandler,
+    PurgeDeletedCvsCron,
     GetCvHandler,
     ListMyCvsHandler,
     DownloadCvHandler,
