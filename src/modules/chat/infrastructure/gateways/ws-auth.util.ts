@@ -1,4 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from '@/common/strategies/jwt.strategy';
 
 export interface WsAuthPayload {
   id: string;
@@ -39,6 +40,6 @@ export async function authenticateSocket(
 
   // No explicit `secret` here — `jwtService` already carries the one
   // `JwtModule.registerAsync` configured from `ConfigService` (see chat.module.ts).
-  const payload = await jwtService.verifyAsync(token);
+  const payload = await jwtService.verifyAsync<JwtPayload>(token);
   return { id: payload.sub, email: payload.email, role: payload.role };
 }

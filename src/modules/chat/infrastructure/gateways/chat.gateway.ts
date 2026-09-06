@@ -35,6 +35,12 @@ import {
   UserSessionRevokedEvent,
 } from '@/modules/user/infrastructure/events/user-session-revoked.event';
 
+interface ChatSocketData {
+  userId: string;
+  role: string;
+}
+type ChatSocket = Socket<any, any, any, ChatSocketData>;
+
 const userRoom = (userId: string) => `user:${userId}`;
 const conversationRoom = (conversationId: string) =>
   `conversation:${conversationId}`;
@@ -63,7 +69,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly presenceService: ChatPresenceService,
   ) {}
 
-  async handleConnection(client: Socket): Promise<void> {
+  async handleConnection(client: ChatSocket): Promise<void> {
     try {
       const auth = await authenticateSocket(
         this.jwtService,
@@ -85,7 +91,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  async handleDisconnect(client: Socket): Promise<void> {
+  async handleDisconnect(client: ChatSocket): Promise<void> {
     // The rate-limit maps are keyed by userId (not this socket's id) so a
     // reconnect can't reset a user's quota — nothing to clean up per-socket
     // here; a user's entry is naturally bounded (one per distinct user who
@@ -116,10 +122,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('conversation:subscribe')
   async onSubscribe(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: ChatSocket,
     @MessageBody() rawData: unknown,
   ) {
-    const userId = client.data.userId as string;
+    const userId = client.data.userId;
     if (
       !this.consumeQuota(
         this.readTimestamps,
@@ -149,7 +155,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('conversation:unsubscribe')
   async onUnsubscribe(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: ChatSocket,
     @MessageBody() rawData: unknown,
   ) {
     try {
@@ -162,10 +168,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('message:send')
   async onMessageSend(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: ChatSocket,
     @MessageBody() rawData: unknown,
   ) {
-    const userId = client.data.userId as string;
+    const userId = client.data.userId;
 
     if (
       !this.consumeQuota(
@@ -236,10 +242,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('message:read')
   async onMessageRead(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: ChatSocket,
     @MessageBody() rawData: unknown,
   ) {
-    const userId = client.data.userId as string;
+    const userId = client.data.userId;
     if (
       !this.consumeQuota(
         this.readTimestamps,
@@ -271,7 +277,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('typing:start')
   async onTypingStart(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: ChatSocket,
     @MessageBody() rawData: unknown,
   ) {
     await this.broadcastTyping(client, rawData, 'typing:start');
@@ -279,18 +285,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('typing:stop')
   async onTypingStop(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: ChatSocket,
     @MessageBody() rawData: unknown,
   ) {
     await this.broadcastTyping(client, rawData, 'typing:stop');
   }
 
   private async broadcastTyping(
-    client: Socket,
+    client: ChatSocket,
     rawData: unknown,
     event: 'typing:start' | 'typing:stop',
   ): Promise<void> {
-    const userId = client.data.userId as string;
+    const userId = client.data.userId;
     try {
       const data = await validateWsPayload(ConversationIdWsDto, rawData);
       // Unlike message:send/message:read, a bad typing:* event isn't worth

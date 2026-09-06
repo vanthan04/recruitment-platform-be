@@ -44,7 +44,7 @@ import { OauthLoginCodePrismaRepository } from './infrastructure/persistence/oau
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (config: ConfigService) => ({
+      useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: '1d' },
       }),

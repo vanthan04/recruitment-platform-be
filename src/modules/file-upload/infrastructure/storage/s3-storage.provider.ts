@@ -105,7 +105,9 @@ export class S3StorageProvider implements IFileStorageProvider {
         await this.deleteByKey(fileKey);
       }
     } catch (error) {
-      this.logger.error(`Failed to delete file from S3: ${error.message}`);
+      this.logger.error(
+        `Failed to delete file from S3: ${(error as Error).message}`,
+      );
     }
   }
 
@@ -141,7 +143,9 @@ export class S3StorageProvider implements IFileStorageProvider {
       });
       await this.s3Client.send(command);
     } catch (error) {
-      this.logger.error(`Failed to delete S3 object ${key}: ${error.message}`);
+      this.logger.error(
+        `Failed to delete S3 object ${key}: ${(error as Error).message}`,
+      );
     }
   }
 

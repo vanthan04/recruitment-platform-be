@@ -28,7 +28,12 @@ export class VerificationTokenPrismaRepository implements IVerificationTokenRepo
     const row = await this.prisma.verificationToken.findUnique({
       where: { tokenHash },
     });
-    if (!row || row.type !== type || row.usedAt || row.expiresAt < new Date()) {
+    if (
+      !row ||
+      (row.type as VerificationTokenType) !== type ||
+      row.usedAt ||
+      row.expiresAt < new Date()
+    ) {
       return null;
     }
     return row as StoredVerificationToken;

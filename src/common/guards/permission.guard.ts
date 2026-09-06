@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '@/common/decorators/require-permissions.decorator';
 import { Permission } from '@/common/enums/permission.enum';
 import { PermissionsService } from '@/modules/permission/application/permissions.service';
+import { RequestWithUser } from '@/common/types/request-with-user';
 
 // Authorization step of the flow: JwtAuthGuard -> request.user -> PermissionGuard.
 // The permission(s) an endpoint requires come from @RequirePermissions(); whether
@@ -32,7 +33,7 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<RequestWithUser>();
     if (!user) {
       throw new UnauthorizedException();
     }

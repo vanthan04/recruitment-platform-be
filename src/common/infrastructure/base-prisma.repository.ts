@@ -27,34 +27,48 @@ export abstract class BasePrismaRepository<
   async findUnique(
     options: Args['findUnique'],
   ): Promise<Awaited<ReturnType<Delegate['findUnique']>>> {
-    return this.delegate.findUnique(options);
+    // Inside a generic method, `this.delegate.findUnique(...)` only resolves
+    // to the constraint's `Promise<any>` — TS can't narrow it to the real
+    // per-subclass return type until `Delegate` is instantiated by a caller.
+    // The cast asserts what the constraint comment above already documents.
+    return this.delegate.findUnique(options) as Promise<
+      Awaited<ReturnType<Delegate['findUnique']>>
+    >;
   }
 
   async findMany(
     options?: Args['findMany'],
   ): Promise<Awaited<ReturnType<Delegate['findMany']>>> {
-    return this.delegate.findMany(options);
+    return this.delegate.findMany(options) as Promise<
+      Awaited<ReturnType<Delegate['findMany']>>
+    >;
   }
 
   async create(
     options: Args['create'],
   ): Promise<Awaited<ReturnType<Delegate['create']>>> {
-    return this.delegate.create(options);
+    return this.delegate.create(options) as Promise<
+      Awaited<ReturnType<Delegate['create']>>
+    >;
   }
 
   async update(
     options: Args['update'],
   ): Promise<Awaited<ReturnType<Delegate['update']>>> {
-    return this.delegate.update(options);
+    return this.delegate.update(options) as Promise<
+      Awaited<ReturnType<Delegate['update']>>
+    >;
   }
 
   async delete(
     options: Args['delete'],
   ): Promise<Awaited<ReturnType<Delegate['delete']>>> {
-    return this.delegate.delete(options);
+    return this.delegate.delete(options) as Promise<
+      Awaited<ReturnType<Delegate['delete']>>
+    >;
   }
 
   async count(options?: Parameters<Delegate['count']>[0]): Promise<number> {
-    return this.delegate.count(options);
+    return this.delegate.count(options) as Promise<number>;
   }
 }

@@ -54,7 +54,7 @@ import { ListMessagesHandler } from '@/modules/chat/application/queries/list-mes
     // (which isn't exported, so it can't be reused directly).
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (config: ConfigService) => ({
+      useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
       }),
       inject: [ConfigService],
