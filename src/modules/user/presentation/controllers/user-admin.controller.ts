@@ -8,12 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionGuard } from '@/common/guards/permission.guard';
 import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
@@ -23,6 +18,7 @@ import { ApiResponse } from '@/common/dtos/api-response';
 import { AdminListUsersQuery } from '@/modules/user/application/queries/admin-list-users.query';
 import { AdminUpdateUserStatusCommand } from '@/modules/user/application/commands/admin-update-user-status.command';
 import { AdminUpdateUserStatusDto } from '../dtos/admin-update-user-status.dto';
+import { AdminListUsersDto } from '../dtos/admin-list-users.dto';
 
 @ApiTags('admin/users')
 @ApiBearerAuth()
@@ -37,14 +33,9 @@ export class UserAdminController {
   @Get()
   @RequirePermissions(Permission.USER_READ)
   @ApiOperation({ summary: 'List users (Admin)' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  async listUsers(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
+  async listUsers(@Query() query: AdminListUsersDto) {
     const result = await this.queryBus.execute(
-      new AdminListUsersQuery(page, limit),
+      new AdminListUsersQuery(query.page, query.limit),
     );
     return ApiResponse.ok(result.users, 'User list retrieved successfully', {
       total: result.total,
