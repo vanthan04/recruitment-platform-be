@@ -7,6 +7,10 @@ import { IMailPort } from '@/modules/job-alert/application/ports/mail.port';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 200;
+// Bounds how many digest sends (job search + user lookup + mail send) run at
+// once within a batch — high enough to cut wall-clock time vs. one-at-a-time,
+// low enough not to hammer the mail provider or DB with 200 concurrent calls.
+const SEND_CONCURRENCY = 15;
 
 export class SendJobAlertDigestsCommand {}
 
@@ -43,7 +47,7 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
       });
       if (batch.length === 0) break;
 
-      for (const search of batch) {
+      await this.runWithConcurrency(batch, SEND_CONCURRENCY, async (search) => {
         try {
           await this.sendDigestFor(search, since);
           emailsSent++;
@@ -56,7 +60,7 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
             err instanceof Error ? err.stack : err,
           );
         }
-      }
+      });
 
       cursor = batch[batch.length - 1].id;
     }
@@ -66,6 +70,25 @@ export class SendJobAlertDigestsHandler implements ICommandHandler<
         `Sent ${emailsSent} job alert digest email(s)${failures > 0 ? `, ${failures} failed` : ''}`,
       );
     }
+  }
+
+  /** Runs `task` over `items` with at most `concurrency` in flight at once. */
+  private async runWithConcurrency<T>(
+    items: T[],
+    concurrency: number,
+    task: (item: T) => Promise<void>,
+  ): Promise<void> {
+    let nextIndex = 0;
+    const workers = Array.from(
+      { length: Math.min(concurrency, items.length) },
+      async () => {
+        while (nextIndex < items.length) {
+          const item = items[nextIndex++];
+          await task(item);
+        }
+      },
+    );
+    await Promise.all(workers);
   }
 
   private async sendDigestFor(

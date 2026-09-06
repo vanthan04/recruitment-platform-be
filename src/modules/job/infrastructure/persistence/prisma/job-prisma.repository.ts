@@ -16,6 +16,13 @@ export class JobPrismaRepository {
     });
   }
 
+  async findByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    return this.prisma.job.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+    });
+  }
+
   async findAllPaginated(params: {
     skip: number;
     take: number;

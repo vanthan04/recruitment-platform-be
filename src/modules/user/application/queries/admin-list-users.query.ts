@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
 import { normalizePagination } from '@/common/utils/pagination.util';
+import { UserResponseDto } from '@/modules/user/application/dto/user-response.dto';
+import { UserResponseMapper } from '@/modules/user/application/mappers/user-response.mapper';
 
 export class AdminListUsersQuery {
   constructor(
@@ -11,7 +13,7 @@ export class AdminListUsersQuery {
 }
 
 export interface AdminListUsersResult {
-  users: Record<string, any>[];
+  users: UserResponseDto[];
   total: number;
   page: number;
   limit: number;
@@ -36,13 +38,8 @@ export class AdminListUsersHandler implements IQueryHandler<
       normalized.limit,
     );
 
-    const data = users.map((user) => {
-      const { password, ...safeUser } = user as any;
-      return safeUser;
-    });
-
     return {
-      users: data,
+      users: UserResponseMapper.toDtoList(users),
       total,
       page: normalized.page,
       limit: normalized.limit,

@@ -7,6 +7,7 @@ import { JobSortOption } from '@/modules/job/domain/value-objects/job-sort-optio
  */
 export abstract class IJobRepository {
   abstract findById(id: string): Promise<Job | null>;
+  abstract findByIds(ids: string[]): Promise<Job[]>;
   abstract findAllPaginated(params: {
     page: number;
     limit: number;

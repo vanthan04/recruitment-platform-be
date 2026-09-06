@@ -20,4 +20,21 @@ export class ChatJobLookupAdapter implements IChatJobLookupPort {
       companyId: job.companyId,
     };
   }
+
+  async findManyByIds(
+    jobIds: string[],
+  ): Promise<Map<string, ChatJobLookupResult>> {
+    const jobs = await this.jobRepository.findByIds([...new Set(jobIds)]);
+    return new Map(
+      jobs.map((job) => [
+        job.id,
+        {
+          id: job.id,
+          title: job.title,
+          postedById: job.postedById,
+          companyId: job.companyId,
+        },
+      ]),
+    );
+  }
 }

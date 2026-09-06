@@ -19,6 +19,13 @@ export class JobApplicationPrismaRepository {
     });
   }
 
+  async findByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    return this.prisma.jobApplication.findMany({
+      where: { id: { in: ids } },
+    });
+  }
+
   async findAllByJobId(jobId: string, params: { skip: number; take: number }) {
     // No `include` here on purpose — JobApplicationMapper.toDomain only ever
     // reads the JobApplication's own scalar columns. Candidate/CV summaries

@@ -24,4 +24,13 @@ export abstract class IMessageRepository {
     userId: string,
     since: Date | null,
   ): Promise<number>;
+  /** Batch form of {@link findLastMessage} — one query for all conversation ids. */
+  abstract findLastMessages(
+    conversationIds: string[],
+  ): Promise<Map<string, Message>>;
+  /** Batch form of {@link countUnread} — one query for all conversations, each with its own `since` threshold. */
+  abstract countUnreadForConversations(
+    items: { conversationId: string; since: Date | null }[],
+    userId: string,
+  ): Promise<Map<string, number>>;
 }

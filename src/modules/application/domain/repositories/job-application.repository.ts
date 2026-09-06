@@ -2,6 +2,7 @@ import { JobApplication } from '@/modules/application/domain/entities/job-applic
 
 export abstract class IJobApplicationRepository {
   abstract findById(id: string): Promise<JobApplication | null>;
+  abstract findByIds(ids: string[]): Promise<JobApplication[]>;
   abstract findByUserIdAndJobId(
     userId: string,
     jobId: string,

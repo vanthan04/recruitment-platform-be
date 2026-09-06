@@ -20,4 +20,23 @@ export class ChatUserLookupAdapter implements IChatUserLookupPort {
       role: user.role,
     };
   }
+
+  async findManyByIds(
+    userIds: string[],
+  ): Promise<Map<string, ChatUserLookupResult>> {
+    const users = await this.userRepository.findManyByIdsWithProfile([
+      ...new Set(userIds),
+    ]);
+    return new Map(
+      users.map((user) => [
+        user.id,
+        {
+          id: user.id,
+          fullName: user.profile?.fullName ?? user.email,
+          avatarUrl: user.profile?.avatarUrl ?? null,
+          role: user.role,
+        },
+      ]),
+    );
+  }
 }

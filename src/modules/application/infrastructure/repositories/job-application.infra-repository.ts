@@ -26,6 +26,12 @@ export class JobApplicationInfraRepository implements IJobApplicationRepository 
     return JobApplicationMapper.toDomain(raw);
   }
 
+  async findByIds(ids: string[]): Promise<JobApplication[]> {
+    if (ids.length === 0) return [];
+    const raws = await this.applicationPrisma.findByIds(ids);
+    return raws.map((r) => JobApplicationMapper.toDomain(r)!);
+  }
+
   async findAllByJobId(
     jobId: string,
     params: { skip: number; take: number },

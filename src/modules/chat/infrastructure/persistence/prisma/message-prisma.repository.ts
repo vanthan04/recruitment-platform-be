@@ -88,4 +88,34 @@ export class MessagePrismaRepository {
       },
     });
   }
+
+  /** One row per conversationId — the newest message in it, via Postgres `DISTINCT ON`. */
+  async findLastMessages(conversationIds: string[]) {
+    if (conversationIds.length === 0) return [];
+    return this.prisma.message.findMany({
+      where: { conversationId: { in: conversationIds } },
+      include: { attachments: true },
+      orderBy: [{ conversationId: 'asc' }, { createdAt: 'desc' }],
+      distinct: ['conversationId'],
+    });
+  }
+
+  /** One grouped query for all conversations, each with its own `since` threshold. */
+  async countUnreadForConversations(
+    items: { conversationId: string; since: Date | null }[],
+    userId: string,
+  ) {
+    if (items.length === 0) return [];
+    return this.prisma.message.groupBy({
+      by: ['conversationId'],
+      where: {
+        senderId: { not: userId },
+        OR: items.map(({ conversationId, since }) => ({
+          conversationId,
+          ...(since ? { createdAt: { gt: since } } : {}),
+        })),
+      },
+      _count: { _all: true },
+    });
+  }
 }

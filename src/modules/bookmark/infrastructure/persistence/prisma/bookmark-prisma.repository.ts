@@ -14,11 +14,12 @@ export class BookmarkPrismaRepository {
   }
 
   async findAllByUserId(userId: string) {
+    // No `include: { job: true }` — BookmarkMapper.toDomain only reads the
+    // bookmark's own scalar columns; job details are resolved separately by
+    // callers that need them (e.g. FE's getMyBookmarkedJobs), so eager-loading
+    // the full job row here was pure waste on every request.
     return this.prisma.bookmark.findMany({
       where: { userId },
-      include: {
-        job: true,
-      },
       orderBy: { createdAt: 'desc' },
     });
   }

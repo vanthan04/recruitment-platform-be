@@ -9,4 +9,7 @@ export abstract class IChatApplicationLookupPort {
   abstract findById(
     applicationId: string,
   ): Promise<ChatApplicationLookupResult | null>;
+  abstract findManyByIds(
+    applicationIds: string[],
+  ): Promise<Map<string, ChatApplicationLookupResult>>;
 }

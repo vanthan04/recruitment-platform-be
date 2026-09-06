@@ -52,6 +52,8 @@ describe('CreateMessageHandler', () => {
       findPage: jest.fn(),
       findLastMessage: jest.fn(),
       countUnread: jest.fn(),
+      findLastMessages: jest.fn(),
+      countUnreadForConversations: jest.fn(),
     };
     jobLookupPort = {
       findById: jest.fn().mockResolvedValue({
@@ -60,6 +62,7 @@ describe('CreateMessageHandler', () => {
         postedById: 'recruiter-1',
         companyId: 'company-1',
       }),
+      findManyByIds: jest.fn(),
     };
     eventEmitter = { emit: jest.fn() } as any;
     fileStorage = { isOwnedUrl: jest.fn().mockReturnValue(true) };

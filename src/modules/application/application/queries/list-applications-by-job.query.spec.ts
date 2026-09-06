@@ -28,6 +28,7 @@ describe('ListApplicationsByJobHandler', () => {
   beforeEach(() => {
     applicationRepository = {
       findById: jest.fn(),
+      findByIds: jest.fn(),
       findByUserIdAndJobId: jest.fn(),
       findAllByJobId: jest.fn(),
       findAllByUserId: jest.fn(),

@@ -25,4 +25,23 @@ export class ChatApplicationLookupAdapter implements IChatApplicationLookupPort 
       jobId: application.jobId,
     };
   }
+
+  async findManyByIds(
+    applicationIds: string[],
+  ): Promise<Map<string, ChatApplicationLookupResult>> {
+    const applications = await this.applicationRepository.findByIds([
+      ...new Set(applicationIds),
+    ]);
+    return new Map(
+      applications.map((application) => [
+        application.id,
+        {
+          id: application.id,
+          status: application.status,
+          userId: application.userId,
+          jobId: application.jobId,
+        },
+      ]),
+    );
+  }
 }

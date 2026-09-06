@@ -7,4 +7,7 @@ export interface ChatUserLookupResult {
 
 export abstract class IChatUserLookupPort {
   abstract findById(userId: string): Promise<ChatUserLookupResult | null>;
+  abstract findManyByIds(
+    userIds: string[],
+  ): Promise<Map<string, ChatUserLookupResult>>;
 }

@@ -82,10 +82,12 @@ describe('CreateConversationHandler', () => {
       findPage: jest.fn(),
       findLastMessage: jest.fn().mockResolvedValue(null),
       countUnread: jest.fn(),
+      findLastMessages: jest.fn(),
+      countUnreadForConversations: jest.fn(),
     };
-    applicationLookupPort = { findById: jest.fn() };
-    jobLookupPort = { findById: jest.fn() };
-    userLookupPort = { findById: jest.fn() };
+    applicationLookupPort = { findById: jest.fn(), findManyByIds: jest.fn() };
+    jobLookupPort = { findById: jest.fn(), findManyByIds: jest.fn() };
+    userLookupPort = { findById: jest.fn(), findManyByIds: jest.fn() };
 
     handler = new CreateConversationHandler(
       conversationRepository,

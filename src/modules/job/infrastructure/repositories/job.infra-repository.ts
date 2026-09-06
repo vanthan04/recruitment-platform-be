@@ -46,6 +46,12 @@ export class JobInfraRepository implements IJobRepository {
     return enriched;
   }
 
+  async findByIds(ids: string[]): Promise<Job[]> {
+    if (ids.length === 0) return [];
+    const raws = await this.jobPrisma.findByIds(ids);
+    return this.attachSummaries(raws.map((r) => JobMapper.toDomain(r)!));
+  }
+
   async findAllPaginated(params: {
     page: number;
     limit: number;

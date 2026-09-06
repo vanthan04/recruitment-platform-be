@@ -48,31 +48,41 @@ export class ListMyConversationsHandler implements IQueryHandler<
       limit,
     );
 
-    const conversations = await Promise.all(
-      items.map(async ({ conversation, membership }) => {
-        const otherId = conversation.otherParticipantId(userId);
-        const [job, application, otherParticipant, lastMessage, unreadCount] =
-          await Promise.all([
-            this.jobLookupPort.findById(conversation.jobId),
-            this.applicationLookupPort.findById(conversation.applicationId),
-            this.userLookupPort.findById(otherId),
-            this.messageRepository.findLastMessage(conversation.id),
-            this.messageRepository.countUnread(
-              conversation.id,
-              userId,
-              membership.lastReadAt,
-            ),
-          ]);
-
-        return ConversationResponseMapper.toDto(conversation, {
-          jobTitle: job?.title ?? '',
-          applicationStatus: application?.status ?? '',
-          otherParticipant: otherParticipant!,
-          lastMessage,
-          unreadCount,
-        });
-      }),
+    const conversationIds = items.map(({ conversation }) => conversation.id);
+    const jobIds = items.map(({ conversation }) => conversation.jobId);
+    const applicationIds = items.map(
+      ({ conversation }) => conversation.applicationId,
     );
+    const otherIds = items.map(({ conversation }) =>
+      conversation.otherParticipantId(userId),
+    );
+
+    const [jobs, applications, otherParticipants, lastMessages, unreadCounts] =
+      await Promise.all([
+        this.jobLookupPort.findManyByIds(jobIds),
+        this.applicationLookupPort.findManyByIds(applicationIds),
+        this.userLookupPort.findManyByIds(otherIds),
+        this.messageRepository.findLastMessages(conversationIds),
+        this.messageRepository.countUnreadForConversations(
+          items.map(({ conversation, membership }) => ({
+            conversationId: conversation.id,
+            since: membership.lastReadAt,
+          })),
+          userId,
+        ),
+      ]);
+
+    const conversations = items.map(({ conversation }) => {
+      const otherId = conversation.otherParticipantId(userId);
+      return ConversationResponseMapper.toDto(conversation, {
+        jobTitle: jobs.get(conversation.jobId)?.title ?? '',
+        applicationStatus:
+          applications.get(conversation.applicationId)?.status ?? '',
+        otherParticipant: otherParticipants.get(otherId)!,
+        lastMessage: lastMessages.get(conversation.id) ?? null,
+        unreadCount: unreadCounts.get(conversation.id) ?? 0,
+      });
+    });
 
     return { conversations, total, page, limit };
   }
