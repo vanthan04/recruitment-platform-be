@@ -16,9 +16,12 @@ const { spawnSync } = require('child_process');
 const dotenv = require('dotenv');
 
 const envTestPath = path.join(__dirname, '..', '.env.test');
-const result = dotenv.config({ path: envTestPath });
+// Ignore a missing-file error here — CI has no .env.test (gitignored) and
+// sets DATABASE_URL directly via the workflow's `env:` block instead. Only
+// treat it as fatal if DATABASE_URL still isn't set by either route.
+dotenv.config({ path: envTestPath });
 
-if (result.error || !process.env.DATABASE_URL) {
+if (!process.env.DATABASE_URL) {
   console.error(
     `Missing or incomplete .env.test at ${envTestPath}.\n` +
       'e2e tests need a database separate from local dev — copy ' +
