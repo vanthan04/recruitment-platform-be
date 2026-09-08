@@ -25,7 +25,6 @@ import { JobAlertModule } from '@/modules/job-alert/job-alert.module';
 import { ChatModule } from '@/modules/chat/chat.module';
 import { InterviewModule } from '@/modules/interview/interview.module';
 import { envValidationSchema } from '@/common/config/env.validation';
-import appConfig from '@/common/config/app.config';
 
 // Prisma's own `log` option writes straight to stdout via its own
 // formatter — it bypasses pino entirely, so none of the redaction rules in
@@ -45,7 +44,6 @@ const PRISMA_LOG_LEVELS = isProduction
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: envValidationSchema,
-      load: [appConfig],
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
