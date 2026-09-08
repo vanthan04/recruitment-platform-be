@@ -39,25 +39,64 @@ bước dưới.
 ## 2. Các entry SSM Parameter Store
 
 Terraform của repo infra tạo 1 SecureString parameter cho mỗi biến môi
-trường nhạy cảm, dưới path `/recruitment-platform/prod/`:
+trường nhạy cảm, dưới path `/recruitment-platform/prod/`. Danh sách dưới
+đây được đối chiếu trực tiếp với `env.validation.ts` — coi đó là nguồn
+chân lý nếu sau này 2 bên lệch nhau nữa.
+
+**Bắt buộc luôn** (thiếu là container throw lỗi validate và không boot
+được — không có default):
 
 `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRATION`, `JWT_REFRESH_SECRET`,
 `JWT_REFRESH_EXPIRATION`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`,
-`MAIL_PASS`, `MAIL_FROM`, `PORT`, `API_PREFIX`, `S3_REGION`, `S3_BUCKET`,
-`S3_ACCESS_KEY`, `S3_SECRET_KEY`.
+`MAIL_PASS`, `MAIL_FROM`.
 
-`JWT_EXPIRATION` và `JWT_REFRESH_EXPIRATION` đều bắt buộc theo
-`env.validation.ts` (không có default) — container sẽ không khởi động
-được nếu thiếu, nên đừng bỏ sót 2 biến này khi cấp phát ở bước trên.
+`JWT_EXPIRATION` và `JWT_REFRESH_EXPIRATION` đặc biệt dễ bị bỏ sót vì
+không có default — đừng quên khi cấp phát.
 
-Cũng cần set `CORS_ORIGIN` (danh sách origin được phép, cách nhau dấu
-phẩy, vd. domain production của frontend) dưới cùng path. Đây là entry
-duy nhất ở đây không bắt buộc tuyệt đối — `env.validation.ts` cho phép
-bỏ trống — nhưng bỏ trống sẽ khiến cả CORS policy của HTTP
-(`bootstrap.ts`) lẫn CORS policy của Socket.IO
-(`socket-io.adapter.ts`) chấp nhận *mọi* origin trong khi vẫn cho phép
-credentials — ổn cho dev local nhưng không nên để mặc định như vậy ở
-production.
+**Có default nhưng nên set tường minh ở prod**:
+
+- `PORT`, `API_PREFIX` — default `8080` / `api/v1`, thường không cần đổi.
+- `FRONTEND_URL` — default `http://localhost:3000`. **Bắt buộc phải set
+  đúng domain frontend production**, nếu không link callback OAuth
+  (Google/Facebook) sẽ redirect người dùng về localhost.
+- `LOG_LEVEL` — nếu bỏ trống, code tự chọn `info` khi
+  `NODE_ENV=production` (xem `logger.config.ts`), nên có thể không cần
+  set. Nếu set tường minh thì set `info`, không phải `debug` — set
+  `debug` ở đây sẽ ghi log rất nhiều chi tiết request/query không cần
+  thiết ở production.
+- `CORS_ORIGIN` — danh sách origin được phép, cách nhau dấu phẩy (vd.
+  domain production của frontend). `env.validation.ts` cho phép bỏ
+  trống, nhưng bỏ trống sẽ khiến cả CORS policy của HTTP
+  (`bootstrap.ts`) lẫn CORS policy của Socket.IO
+  (`socket-io.adapter.ts`) chấp nhận *mọi* origin trong khi vẫn cho phép
+  credentials — ổn cho dev local nhưng không nên để mặc định như vậy ở
+  production.
+
+**Optional, chỉ cần nếu tính năng tương ứng bật ở prod**:
+
+- Social login: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+  `GOOGLE_CALLBACK_URL`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`,
+  `FACEBOOK_CALLBACK_URL`. Thiếu thì app vẫn boot bình thường, chỉ có
+  route `/auth/google` và `/auth/facebook` không hoạt động.
+- `CV_MAX_FILE_SIZE` — default 10MB, chỉ set nếu muốn đổi giới hạn.
+
+**File-upload storage** — chọn 1 trong 2 bộ theo `STORAGE_PROVIDER`:
+
+- `STORAGE_PROVIDER=s3` (mặc định nếu bỏ trống) — dùng
+  `S3StorageProvider`, cần: `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`,
+  `S3_SECRET_KEY` (bắt buộc), và tuỳ chọn `S3_ENDPOINT` /
+  `S3_FORCE_PATH_STYLE` (khi trỏ vào 1 endpoint S3-compatible như
+  Cloudflare R2 thay vì AWS S3 thật) / `S3_PUBLIC_URL_BASE` (chỉ cần
+  nếu dùng thêm endpoint `/files/upload` công khai với R2).
+- `STORAGE_PROVIDER=supabase` — dùng `SupabaseStorageProvider`, cần:
+  `SUPABASE_PROJECT_REF`, `SUPABASE_S3_REGION`,
+  `SUPABASE_S3_ACCESS_KEY`, `SUPABASE_S3_SECRET_KEY`,
+  `SUPABASE_STORAGE_BUCKET` (bắt buộc), và tuỳ chọn
+  `SUPABASE_PUBLIC_URL_BASE`.
+
+Đặt `STORAGE_PROVIDER` (và đúng bộ biến đi kèm) khớp với backend bạn
+thực sự dùng ở prod — thiếu bộ biến bắt buộc tương ứng cũng khiến
+container không boot được, y hệt lỗi thiếu `JWT_EXPIRATION`.
 
 `scripts/deploy-remote.sh` đọc mọi parameter dưới path đó tại thời
 điểm deploy và truyền từng cái thành 1 flag `-e KEY=VALUE` cho

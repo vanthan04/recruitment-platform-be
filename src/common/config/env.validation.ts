@@ -38,15 +38,71 @@ export const envValidationSchema = Joi.object({
   FACEBOOK_CLIENT_SECRET: Joi.string().allow('').optional(),
   FACEBOOK_CALLBACK_URL: Joi.string().allow('').optional(),
 
-  // S3 File Upload Configuration
-  S3_REGION: Joi.string().required(),
-  S3_BUCKET: Joi.string().required(),
-  S3_ACCESS_KEY: Joi.string().required(),
-  S3_SECRET_KEY: Joi.string().required(),
-  // Set both when pointing at an S3-compatible endpoint (LocalStack, MinIO);
-  // leave unset for real AWS S3.
+  // File Upload Storage Configuration
+  // 's3' (default): S3StorageProvider — real AWS S3, LocalStack (local dev),
+  // or any other S3-compatible endpoint (Cloudflare R2, MinIO) via
+  // S3_ENDPOINT. 'supabase': SupabaseStorageProvider — Supabase Storage's
+  // own S3-compatible API, configured via the SUPABASE_* vars below instead.
+  STORAGE_PROVIDER: Joi.string().valid('s3', 'supabase').default('s3'),
+
+  S3_REGION: Joi.string().when('STORAGE_PROVIDER', {
+    is: 's3',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  S3_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
+    is: 's3',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  S3_ACCESS_KEY: Joi.string().when('STORAGE_PROVIDER', {
+    is: 's3',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  S3_SECRET_KEY: Joi.string().when('STORAGE_PROVIDER', {
+    is: 's3',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  // Set both when pointing at an S3-compatible endpoint (LocalStack, MinIO,
+  // R2); leave unset for real AWS S3.
   S3_ENDPOINT: Joi.string().optional(),
   S3_FORCE_PATH_STYLE: Joi.boolean().default(false),
+  // Only needed for providers (e.g. Cloudflare R2) where the private SigV4
+  // endpoint above can't also serve public GETs — set this to the public
+  // domain (r2.dev / custom domain) so upload() returns a fetchable URL.
+  S3_PUBLIC_URL_BASE: Joi.string().optional(),
+
+  // Supabase Storage Configuration (only used when STORAGE_PROVIDER=supabase)
+  SUPABASE_PROJECT_REF: Joi.string().when('STORAGE_PROVIDER', {
+    is: 'supabase',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  SUPABASE_S3_REGION: Joi.string().when('STORAGE_PROVIDER', {
+    is: 'supabase',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  SUPABASE_S3_ACCESS_KEY: Joi.string().when('STORAGE_PROVIDER', {
+    is: 'supabase',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  SUPABASE_S3_SECRET_KEY: Joi.string().when('STORAGE_PROVIDER', {
+    is: 'supabase',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  SUPABASE_STORAGE_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
+    is: 'supabase',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  // Only needed if the generic /files/upload flow (avatars, chat
+  // attachments) is used against Supabase and public reads are enabled.
+  SUPABASE_PUBLIC_URL_BASE: Joi.string().optional(),
 
   // Max CV upload size in bytes (default 10MB)
   CV_MAX_FILE_SIZE: Joi.number().default(10 * 1024 * 1024),
