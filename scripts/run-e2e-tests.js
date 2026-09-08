@@ -24,10 +24,10 @@ dotenv.config({ path: envTestPath });
 if (!process.env.DATABASE_URL) {
   console.error(
     `Missing or incomplete .env.test at ${envTestPath}.\n` +
-      'e2e tests need a database separate from local dev — copy ' +
-      '.env.test.example to .env.test and point DATABASE_URL at a ' +
-      'test-only database (a different database name on the same ' +
-      'docker-compose postgres works fine).',
+      'e2e tests need a database separate from local dev — create ' +
+      '.env.test with a DATABASE_URL pointing at a test-only database ' +
+      '(a different database name on the same docker-compose postgres ' +
+      'works fine).',
   );
   process.exit(1);
 }
