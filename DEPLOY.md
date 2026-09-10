@@ -137,11 +137,22 @@ lưu SSH key nào cho CI) để yêu cầu instance đang chạy pull image mớ
 đọc lại biến môi trường hiện tại từ SSM Parameter Store, và restart
 container.
 
+Trước khi khởi động container mới, `deploy-remote.sh` chạy `npm run
+db:seed` của chính image đó (qua `docker run --rm --entrypoint npm`) để
+đảm bảo bảng `permissions`/`role_permissions` luôn khớp với code đang
+deploy — thiếu bước này thì `PermissionGuard` chặn mọi route có gắn
+`@RequirePermissions` (kể cả `GET /users/me`) mà không có lỗi boot nào
+báo hiệu, vì mọi thứ trong `seed.ts` đều dùng `upsert` nên chạy lại mỗi
+lần deploy là an toàn. **Migration DB (`prisma migrate deploy`) thì
+chưa được tự động hoá** — vẫn phải áp dụng bằng tay trước khi trigger
+deploy.
+
 `deploy-remote.sh` không tin tưởng mù quáng rằng `docker run -d` trả
 về thành công nghĩa là app đã lên đúng — nó poll `/api/v1/healthcheck`
-trên instance tối đa 60s sau khi khởi động container mới. Nếu image
-mới không "healthy" trong khoảng đó (env var sai, crash lúc boot, hoặc
-migration DB chưa được apply trước), script tự động khởi động lại
+trên instance tối đa 60s sau khi khởi động container mới. Nếu seed
+thất bại, hoặc image mới không "healthy" trong khoảng đó (env var sai,
+crash lúc boot, hoặc migration DB chưa được apply trước), script tự
+động khởi động lại
 image cũ *đã* pass đúng health check này, rồi báo fail job GitHub
 Actions — nhờ vậy 1 lần deploy hỏng sẽ tự phục hồi về image tốt gần
 nhất thay vì để instance chết cho tới khi có người phát hiện và deploy

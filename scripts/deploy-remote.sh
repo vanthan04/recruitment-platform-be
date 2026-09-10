@@ -42,6 +42,21 @@ run_container() {
     "$image"
 }
 
+# RBAC roles/permissions live in the DB (see prisma/seed.ts), not in code
+# the app can fall back on — a fresh or migrated DB with an empty
+# `permissions`/`role_permissions` table makes PermissionGuard reject every
+# guarded route (including GET /users/me) for every user, with no boot-time
+# error to signal it. All of seed.ts's writes are upserts, so running it on
+# every deploy is safe and just re-affirms the current role->permission
+# wiring for this image.
+seed_rbac() {
+  local image="$1"
+  docker run --rm \
+    "${ENV_ARGS[@]}" \
+    --entrypoint npm \
+    "$image" run db:seed
+}
+
 wait_for_healthy() {
   local waited=0
   while [ "$waited" -lt "$HEALTHCHECK_TIMEOUT_SECONDS" ]; do
@@ -54,12 +69,12 @@ wait_for_healthy() {
   return 1
 }
 
-if run_container "$IMAGE" && wait_for_healthy; then
+if seed_rbac "$IMAGE" && run_container "$IMAGE" && wait_for_healthy; then
   echo "Deploy succeeded: $IMAGE is healthy."
   mkdir -p "$(dirname "$LAST_GOOD_IMAGE_FILE")"
   echo "$IMAGE" > "$LAST_GOOD_IMAGE_FILE"
 else
-  echo "New image failed its health check within ${HEALTHCHECK_TIMEOUT_SECONDS}s — rolling back." >&2
+  echo "New image failed to seed RBAC data or its health check within ${HEALTHCHECK_TIMEOUT_SECONDS}s — rolling back." >&2
   docker logs --tail 100 "$CONTAINER_NAME" >&2 || true
 
   if [ -f "$LAST_GOOD_IMAGE_FILE" ]; then
