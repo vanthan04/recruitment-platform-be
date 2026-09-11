@@ -188,19 +188,45 @@ async function main() {
     });
   }
 
-  console.log('Wiring role -> permission assignments...');
+  // Only wires the default permission set for a role that currently has
+  // NONE — i.e. a genuinely fresh role. This seed runs on every deploy
+  // (see deploy.yml), and used to unconditionally upsert every default
+  // role->permission pair regardless of a role's current state: an admin
+  // deliberately revoking a permission via PUT /admin/roles/:id/permissions
+  // (a full replace, see UpdateRolePermissionsHandler) had it silently
+  // re-granted on the very next deploy, with no way to tell "seed re-added
+  // this" from "it was always there". A role with ANY permissions already
+  // assigned is treated as already configured and left alone — this can't
+  // distinguish "admin customized this role" from "admin revoked every
+  // permission down to zero", but that's a narrow, self-correcting edge
+  // case (the role would just have no access until re-granted) compared to
+  // the previous behavior of always overriding deliberate admin changes.
+  console.log('Wiring role -> permission assignments (first-run only)...');
   for (const [roleName, permissionNames] of Object.entries(ROLE_PERMISSIONS)) {
-    const role = await prisma.role.findUniqueOrThrow({ where: { name: roleName } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { name: roleName },
+    });
+    const existingCount = await prisma.rolePermission.count({
+      where: { roleId: role.id },
+    });
+    if (existingCount > 0) {
+      console.log(
+        `  ${roleName}: already has ${existingCount} permission(s) assigned — skipping.`,
+      );
+      continue;
+    }
+
     for (const permissionName of permissionNames) {
       const permission = await prisma.permission.findUniqueOrThrow({
         where: { name: permissionName },
       });
-      await prisma.rolePermission.upsert({
-        where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
-        update: {},
-        create: { roleId: role.id, permissionId: permission.id },
+      await prisma.rolePermission.create({
+        data: { roleId: role.id, permissionId: permission.id },
       });
     }
+    console.log(
+      `  ${roleName}: wired ${permissionNames.length} default permission(s).`,
+    );
   }
 
   console.log('RBAC seed complete.');
