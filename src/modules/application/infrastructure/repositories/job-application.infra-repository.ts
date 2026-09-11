@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
+import { CreateApplicationStatusHistoryInput } from '@/modules/application/domain/repositories/application-status-history.repository';
 import { JobApplication } from '@/modules/application/domain/entities/job-application.entity';
 import { JobApplicationPrismaRepository } from '@/modules/application/infrastructure/persistence/prisma/job-application-prisma.repository';
 import { JobApplicationMapper } from '@/modules/application/infrastructure/persistence/mappers/job-application.mapper';
@@ -58,6 +59,19 @@ export class JobApplicationInfraRepository implements IJobApplicationRepository 
   async update(application: JobApplication): Promise<JobApplication> {
     const data = JobApplicationMapper.toPersistence(application);
     const raw = await this.applicationPrisma.update(application.id, data);
+    return JobApplicationMapper.toDomain(raw)!;
+  }
+
+  async updateWithStatusHistory(
+    application: JobApplication,
+    history: CreateApplicationStatusHistoryInput,
+  ): Promise<JobApplication> {
+    const data = JobApplicationMapper.toPersistence(application);
+    const raw = await this.applicationPrisma.updateWithHistory(
+      application.id,
+      data,
+      history,
+    );
     return JobApplicationMapper.toDomain(raw)!;
   }
 

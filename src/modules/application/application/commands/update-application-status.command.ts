@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
-import { IApplicationStatusHistoryRepository } from '@/modules/application/domain/repositories/application-status-history.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
 import {
   JobApplicationNotFoundException,
@@ -37,7 +36,6 @@ export class UpdateApplicationStatusHandler implements ICommandHandler<
   constructor(
     private readonly applicationRepository: IJobApplicationRepository,
     private readonly jobLookupPort: IJobLookupPort,
-    private readonly statusHistoryRepository: IApplicationStatusHistoryRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -64,15 +62,16 @@ export class UpdateApplicationStatusHandler implements ICommandHandler<
     const fromStatus = application.status;
     application.transitionTo(status);
 
-    const updated = await this.applicationRepository.update(application);
-
-    await this.statusHistoryRepository.create({
-      applicationId: updated.id,
-      fromStatus,
-      toStatus: updated.status,
-      changedById: recruiterId,
-      note: note ?? null,
-    });
+    const updated = await this.applicationRepository.updateWithStatusHistory(
+      application,
+      {
+        applicationId: application.id,
+        fromStatus,
+        toStatus: application.status,
+        changedById: recruiterId,
+        note: note ?? null,
+      },
+    );
 
     this.eventEmitter.emit(
       APPLICATION_STATUS_CHANGED_EVENT,

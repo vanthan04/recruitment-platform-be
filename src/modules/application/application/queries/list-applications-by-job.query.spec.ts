@@ -36,6 +36,7 @@ describe('ListApplicationsByJobHandler', () => {
       findAllByUserId: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      updateWithStatusHistory: jest.fn(),
       countByJobIdGroupedByStatus: jest.fn(),
     };
     jobLookupPort = {

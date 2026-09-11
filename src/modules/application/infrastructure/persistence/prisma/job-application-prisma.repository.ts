@@ -62,6 +62,26 @@ export class JobApplicationPrismaRepository {
     });
   }
 
+  /**
+   * Status update + its audit-history row in one transaction — without this,
+   * a failure between the two writes leaves the application's status
+   * changed with no corresponding history entry explaining when/why.
+   */
+  async updateWithHistory(
+    id: string,
+    data: Prisma.JobApplicationUncheckedUpdateInput,
+    historyData: Prisma.ApplicationStatusHistoryUncheckedCreateInput,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const application = await tx.jobApplication.update({
+        where: { id },
+        data,
+      });
+      await tx.applicationStatusHistory.create({ data: historyData });
+      return application;
+    });
+  }
+
   async countByJobIdGroupedByStatus(jobId: string) {
     return this.prisma.jobApplication.groupBy({
       by: ['status'],
