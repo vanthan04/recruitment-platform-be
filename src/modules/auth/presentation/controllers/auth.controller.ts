@@ -96,6 +96,7 @@ export class AuthController {
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Verify email using code' })
   async verify(@Body() dto: VerifyEmailDto) {
     const result = await this.authService.verifyEmail(dto);
@@ -113,6 +114,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Reset password using code' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     const result = await this.authService.resetPassword(dto);
