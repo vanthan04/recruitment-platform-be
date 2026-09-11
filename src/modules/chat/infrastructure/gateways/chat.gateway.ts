@@ -93,10 +93,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: ChatSocket): Promise<void> {
     // The rate-limit maps are keyed by userId (not this socket's id) so a
-    // reconnect can't reset a user's quota — nothing to clean up per-socket
-    // here; a user's entry is naturally bounded (one per distinct user who
-    // has ever sent/read) and its own timestamps age out via consumeQuota's
-    // sliding-window filter regardless of connection state.
+    // reconnect while still "online" (another socket, or a fast
+    // reconnect racing this disconnect) can't reset a user's quota — that's
+    // still true here since we only evict below once every socket for this
+    // user is gone. Once genuinely offline, keeping the entry serves no
+    // purpose: nothing this process does after this point can be rate
+    // limited on the user's behalf, so leaving it around is pure memory
+    // growth bounded only by the count of distinct users ever connected in
+    // this process's lifetime. Evicting it here bounds both maps to
+    // "currently connected users" instead.
     const userId = client.data?.userId;
     if (!userId) return;
 
@@ -105,6 +110,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.id,
     );
     if (justWentOffline) {
+      this.sendTimestamps.delete(userId);
+      this.readTimestamps.delete(userId);
       await this.broadcastPresence(userId, 'user:offline');
     }
   }

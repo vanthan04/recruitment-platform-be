@@ -238,6 +238,51 @@ describe('ChatGateway', () => {
     });
   });
 
+  describe('handleDisconnect', () => {
+    it("evicts the user's rate-limit entries once their last socket disconnects", async () => {
+      commandBus.execute.mockResolvedValue({ id: 'msg-1' });
+      const client = makeSocket({ id: 'socket-a' });
+
+      // Seed presence + rate-limit state as if this socket had been active
+      // (handleConnection itself does a real JWT/cookie auth check that's
+      // out of scope here).
+      (gateway as any).presenceService.addSocket('candidate-1', 'socket-a');
+      await gateway.onMessageSend(client, {
+        conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        clientMessageId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        content: 'hello',
+      });
+      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(true);
+
+      await gateway.handleDisconnect(client);
+
+      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(false);
+      expect((gateway as any).readTimestamps.has('candidate-1')).toBe(false);
+    });
+
+    it('does not evict entries while the user still has another connected socket', async () => {
+      commandBus.execute.mockResolvedValue({ id: 'msg-1' });
+      const clientA = makeSocket({ id: 'socket-a' });
+      const clientB = makeSocket({ id: 'socket-b' });
+
+      (gateway as any).presenceService.addSocket('candidate-1', 'socket-a');
+      (gateway as any).presenceService.addSocket('candidate-1', 'socket-b');
+      await gateway.onMessageSend(clientA, {
+        conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        clientMessageId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        content: 'hello',
+      });
+
+      await gateway.handleDisconnect(clientA);
+
+      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(true);
+
+      await gateway.handleDisconnect(clientB);
+
+      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(false);
+    });
+  });
+
   describe('handleSessionRevoked', () => {
     it("force-disconnects every socket in the revoked user's personal room", () => {
       gateway.handleSessionRevoked(new UserSessionRevokedEvent('candidate-1'));
