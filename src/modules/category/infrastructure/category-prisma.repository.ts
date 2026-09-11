@@ -8,9 +8,8 @@ import { Category } from '@/modules/category/domain/entities/category.entity';
  * Single Prisma-backed implementation of ICategoryRepository. A "name+slug"
  * lookup table has no swappable-persistence requirement and no second
  * implementation to justify a separate infra-repository/prisma-repository
- * split — see MICROSERVICES_MIGRATION_PLAN.md discussion / the fullstack
- * review for why this collapses what used to be three layers (infra
- * repository -> prisma repository -> mapper) into one.
+ * split, so this collapses what used to be three layers (infra repository
+ * -> prisma repository -> mapper) into one.
  */
 @Injectable()
 export class CategoryPrismaRepository implements ICategoryRepository {

@@ -19,9 +19,9 @@ export class GetCompanyHandler implements IQueryHandler<
 > {
   constructor(private readonly companyRepository: ICompanyRepository) {}
 
-  // No dependency on `job` here — per MICROSERVICES_MIGRATION_PLAN.md the
-  // arrow only ever runs Jobs -> Companies, never the reverse. A client
-  // wanting this company's open jobs calls GET /jobs?companyId=... directly.
+  // No dependency on `job` here — the module dependency arrow only ever
+  // runs Jobs -> Companies, never the reverse. A client wanting this
+  // company's open jobs calls GET /jobs?companyId=... directly.
   async execute({ companyId }: GetCompanyQuery): Promise<CompanyResponseDto> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) {
