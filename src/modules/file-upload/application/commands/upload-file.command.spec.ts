@@ -8,6 +8,9 @@ import {
   InvalidFileTypeException,
 } from '@/modules/file-upload/domain/exceptions/file-upload.exceptions';
 
+const PNG_BYTES = Buffer.from('89504e470d0a1a0a', 'hex'); // real PNG signature
+const PDF_BYTES = Buffer.from('255044462d312e34', 'hex'); // "%PDF-1.4"
+
 function makeFile(
   overrides: Partial<Express.Multer.File> = {},
 ): Express.Multer.File {
@@ -17,7 +20,7 @@ function makeFile(
     encoding: '7bit',
     mimetype: 'image/png',
     size: 1024,
-    buffer: Buffer.from('fake'),
+    buffer: PNG_BYTES,
     ...overrides,
   } as Express.Multer.File;
 }
@@ -77,7 +80,11 @@ describe('UploadFileHandler', () => {
 
     const result = await handler.execute(
       new UploadFileCommand(
-        makeFile({ originalname: 'cv.pdf', mimetype: 'application/pdf' }),
+        makeFile({
+          originalname: 'cv.pdf',
+          mimetype: 'application/pdf',
+          buffer: PDF_BYTES,
+        }),
         'cvs',
         ['application/pdf'],
       ),
@@ -94,5 +101,19 @@ describe('UploadFileHandler', () => {
         ]),
       ),
     ).rejects.toThrow(InvalidFileTypeException);
+  });
+
+  it('rejects a file whose content does not match its declared (allowlisted) mimetype', async () => {
+    // Content-Type says PNG, but the bytes are an arbitrary binary — the
+    // exact spoofing the magic-byte check exists to catch.
+    await expect(
+      handler.execute(
+        new UploadFileCommand(
+          makeFile({ mimetype: 'image/png', buffer: Buffer.from('fake') }),
+          'avatars',
+        ),
+      ),
+    ).rejects.toThrow(InvalidFileTypeException);
+    expect(storageProvider.upload).not.toHaveBeenCalled();
   });
 });

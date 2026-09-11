@@ -17,6 +17,11 @@ import {
 import { FileUploadService } from '../../application/file-upload.service';
 import { ApiResponse } from '@/common/dtos/api-response';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { UploadFileOptionsDto } from '@/modules/file-upload/presentation/dtos/upload-file-options.dto';
+import {
+  ALLOWED_MIME_TYPES_BY_FOLDER,
+  UploadFolder,
+} from '@/modules/file-upload/domain/value-objects/upload-folder.vo';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -40,8 +45,8 @@ export class FileUploadController {
         },
         folder: {
           type: 'string',
-          description: 'Thư mục muốn lưu trữ (Vd: avatars, products)',
-          default: 'general',
+          enum: Object.values(UploadFolder),
+          description: 'Thư mục muốn lưu trữ',
         },
       },
     },
@@ -51,9 +56,13 @@ export class FileUploadController {
   )
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body('folder') folder?: string,
+    @Body() { folder }: UploadFileOptionsDto,
   ) {
-    const result = await this.fileUploadService.uploadFile(file, folder);
+    const result = await this.fileUploadService.uploadFile(
+      file,
+      folder,
+      ALLOWED_MIME_TYPES_BY_FOLDER[folder],
+    );
     return ApiResponse.ok(result, 'Upload file thành công');
   }
 }

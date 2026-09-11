@@ -5,13 +5,14 @@ import {
   FileMissingException,
   InvalidFileTypeException,
 } from '@/modules/file-upload/domain/exceptions/file-upload.exceptions';
+import { FileUploadDomainService } from '@/modules/file-upload/domain/domain-services/file-upload-domain.service';
+import {
+  ALLOWED_MIME_TYPES_BY_FOLDER,
+  UploadFolder,
+} from '@/modules/file-upload/domain/value-objects/upload-folder.vo';
 
-const DEFAULT_ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-];
+const DEFAULT_ALLOWED_MIME_TYPES =
+  ALLOWED_MIME_TYPES_BY_FOLDER[UploadFolder.AVATARS];
 
 export class UploadFileCommand extends Command<{ url: string }> {
   constructor(
@@ -43,6 +44,7 @@ export class UploadFileHandler implements ICommandHandler<
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new InvalidFileTypeException(file.mimetype);
     }
+    FileUploadDomainService.validateFileSignature(file);
 
     const url = await this.storageProvider.upload(file, folder);
 
