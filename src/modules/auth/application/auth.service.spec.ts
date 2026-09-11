@@ -18,7 +18,7 @@ describe('AuthService.exchangeSocialCode', () => {
   let userRepository: jest.Mocked<IAuthUserRepositoryPort>;
   let refreshTokenRepository: jest.Mocked<IRefreshTokenRepositoryPort>;
   let oauthLoginCodeRepository: jest.Mocked<IOauthLoginCodeRepositoryPort>;
-  let jwtService: { signAsync: jest.Mock };
+  let jwtService: { signAsync: jest.Mock; decode: jest.Mock };
   let configService: { get: jest.Mock };
   let service: AuthService;
 
@@ -43,7 +43,12 @@ describe('AuthService.exchangeSocialCode', () => {
       findValidByHash: jest.fn(),
       markUsed: jest.fn(),
     };
-    jwtService = { signAsync: jest.fn().mockResolvedValue('signed-jwt') };
+    jwtService = {
+      signAsync: jest.fn().mockResolvedValue('signed-jwt'),
+      decode: jest
+        .fn()
+        .mockReturnValue({ exp: Math.floor(Date.now() / 1000) + 604800 }),
+    };
     configService = { get: jest.fn() };
 
     service = new AuthService(
@@ -137,7 +142,11 @@ describe('AuthService.refreshTokens', () => {
   let userRepository: jest.Mocked<IAuthUserRepositoryPort>;
   let refreshTokenRepository: jest.Mocked<IRefreshTokenRepositoryPort>;
   let oauthLoginCodeRepository: jest.Mocked<IOauthLoginCodeRepositoryPort>;
-  let jwtService: { signAsync: jest.Mock; verifyAsync: jest.Mock };
+  let jwtService: {
+    signAsync: jest.Mock;
+    verifyAsync: jest.Mock;
+    decode: jest.Mock;
+  };
   let configService: { get: jest.Mock };
   let service: AuthService;
 
@@ -173,6 +182,9 @@ describe('AuthService.refreshTokens', () => {
     jwtService = {
       signAsync: jest.fn().mockResolvedValue('signed-jwt'),
       verifyAsync: jest.fn().mockResolvedValue({ sub: 'user-1' }),
+      decode: jest
+        .fn()
+        .mockReturnValue({ exp: Math.floor(Date.now() / 1000) + 604800 }),
     };
     configService = { get: jest.fn() };
 

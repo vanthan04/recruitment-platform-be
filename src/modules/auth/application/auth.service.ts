@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -35,8 +35,6 @@ import { VerifyEmailDto } from '@/modules/auth/presentation/dtos/verify-email.dt
 import { ForgotPasswordDto } from '@/modules/auth/presentation/dtos/forgot-password.dto';
 import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-password.dto';
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
-
-const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // matches the 7d expiresIn below
 
 @Injectable()
 export class AuthService {
@@ -190,7 +188,12 @@ export class AuthService {
 
   private async storeRefreshToken(userId: string, refreshToken: string) {
     const tokenHash = hashToken(refreshToken);
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+    // Decoding the token we just signed (rather than re-deriving a TTL from
+    // JWT_REFRESH_EXPIRATION ourselves) guarantees this DB row's expiry can
+    // never drift from the JWT's own baked-in `exp` — there's exactly one
+    // source of truth for how long the token is actually valid.
+    const { exp } = this.jwtService.decode<JwtPayload>(refreshToken);
+    const expiresAt = new Date(exp! * 1000);
     await this.refreshTokenRepository.create(userId, tokenHash, expiresAt);
   }
 
@@ -204,7 +207,9 @@ export class AuthService {
         },
         {
           secret: this.configService.get<string>('JWT_SECRET'),
-          expiresIn: '15m',
+          expiresIn: this.configService.get<string>(
+            'JWT_EXPIRATION',
+          ) as JwtSignOptions['expiresIn'],
         },
       ),
       this.jwtService.signAsync(
@@ -219,7 +224,9 @@ export class AuthService {
         },
         {
           secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-          expiresIn: '7d',
+          expiresIn: this.configService.get<string>(
+            'JWT_REFRESH_EXPIRATION',
+          ) as JwtSignOptions['expiresIn'],
         },
       ),
     ]);
