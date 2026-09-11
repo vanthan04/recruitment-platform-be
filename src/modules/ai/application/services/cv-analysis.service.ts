@@ -1,17 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ICvAnalysisRepository } from '@/modules/ai/domain/repositories/cv-analysis.repository';
 import { CvAnalysis } from '@/modules/ai/domain/entities/cv-analysis.entity';
 import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
 import { CvTextExtractor } from '@/modules/ai/infrastructure/text-extraction/cv-text-extractor';
-import { IAiProvider } from '@/modules/ai/infrastructure/providers/ai-provider.interface';
+import { CHAT_MODEL } from '@/modules/ai/infrastructure/providers/chat-model.provider';
 import { CV_ANALYSIS_SYSTEM_PROMPT } from '@/modules/ai/prompts/cv-analysis.prompt';
 import {
-  CvAnalysisExtractionSchema,
+  CvAnalysisExtraction,
+  cvAnalysisExtractionSchema,
   EXTRACT_CV_ANALYSIS_TOOL_NAME,
-  extractCvAnalysisToolDefinition,
+  extractCvAnalysisTool,
 } from '@/modules/ai/schemas/cv-analysis-extraction.schema';
 
 // A CV is a few pages at most — this bound exists only to keep one bad
@@ -24,6 +25,11 @@ const MAX_EXTRACTED_TEXT_CHARS = 20_000;
  * analyze-pending-cvs cron), never re-run per matching request. Never
  * throws: every caller (event listener, cron) treats a single CV's failure
  * as data (CvAnalysisStatus.FAILED), not an exception to propagate.
+ *
+ * Uses its own one-shot chat model call (not RecruitmentAgent's graph —
+ * there's no tool-call loop here, just a single forced structured-output
+ * call) with `tool_choice` forcing exactly one tool, so the model has no
+ * path other than returning the shape cvAnalysisExtractionSchema expects.
  */
 @Injectable()
 export class CvAnalysisService {
@@ -34,8 +40,8 @@ export class CvAnalysisService {
     private readonly cvAnalysisRepository: ICvAnalysisRepository,
     private readonly cvStorage: ICvStoragePort,
     private readonly textExtractor: CvTextExtractor,
-    private readonly aiProvider: IAiProvider,
     private readonly configService: ConfigService,
+    @Inject(CHAT_MODEL) private readonly chatModel: BaseChatModel,
   ) {
     this.model = this.configService.get<string>('AI_MODEL', 'claude-sonnet-5');
   }
@@ -91,32 +97,29 @@ export class CvAnalysisService {
     }
   }
 
-  private async extract(text: string): Promise<CvAnalysisExtractionSchema> {
-    const response = await this.aiProvider.complete({
-      system: CV_ANALYSIS_SYSTEM_PROMPT,
-      tools: [extractCvAnalysisToolDefinition],
-      forceToolUse: EXTRACT_CV_ANALYSIS_TOOL_NAME,
-      messages: [{ role: 'user', content: `CV text:\n\n${text}` }],
-    });
+  private async extract(text: string): Promise<CvAnalysisExtraction> {
+    // Non-null: see the same assertion's doc comment in recruitment.agent.ts.
+    const response = await this.chatModel.bindTools!([extractCvAnalysisTool], {
+      tool_choice: { type: 'tool', name: EXTRACT_CV_ANALYSIS_TOOL_NAME },
+    }).invoke([
+      new SystemMessage(CV_ANALYSIS_SYSTEM_PROMPT),
+      new HumanMessage(`CV text:\n\n${text}`),
+    ]);
 
-    const toolUse = response.toolUses.find(
-      (t) => t.name === EXTRACT_CV_ANALYSIS_TOOL_NAME,
+    const toolCall = response.tool_calls?.find(
+      (call) => call.name === EXTRACT_CV_ANALYSIS_TOOL_NAME,
     );
-    if (!toolUse) {
+    if (!toolCall) {
       throw new Error('AI provider did not call extract_cv_analysis');
     }
 
-    const instance = plainToInstance(CvAnalysisExtractionSchema, toolUse.input);
-    const errors = await validate(instance, {
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    });
-    if (errors.length > 0) {
+    const parseResult = cvAnalysisExtractionSchema.safeParse(toolCall.args);
+    if (!parseResult.success) {
       throw new Error(
-        `AI provider returned invalid CV analysis: ${errors.map((e) => e.toString()).join('; ')}`,
+        `AI provider returned invalid CV analysis: ${parseResult.error.message}`,
       );
     }
 
-    return instance;
+    return parseResult.data;
   }
 }

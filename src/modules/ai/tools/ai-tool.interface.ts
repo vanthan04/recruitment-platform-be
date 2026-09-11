@@ -1,6 +1,5 @@
 import { QueryBus } from '@nestjs/cqrs';
 import { ICvAnalysisRepository } from '@/modules/ai/domain/repositories/cv-analysis.repository';
-import { AiToolDefinition } from '@/modules/ai/infrastructure/providers/ai-provider.interface';
 
 /**
  * Request-scoped context every tool closure is built with — never derived
@@ -14,9 +13,4 @@ export interface ToolContext {
   recruiterId: string;
   jobId: string;
   maxCandidates: number;
-}
-
-export interface AiTool {
-  definition: AiToolDefinition;
-  execute(input: Record<string, unknown>): Promise<unknown>;
 }

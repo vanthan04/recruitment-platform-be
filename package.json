@@ -21,9 +21,11 @@
     "db:seed": "ts-node --transpile-only prisma/seed.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.125.0",
     "@aws-sdk/client-s3": "^3.1125.0",
     "@aws-sdk/s3-request-presigner": "3.1125.0",
+    "@langchain/anthropic": "^1.5.10",
+    "@langchain/core": "^1.2.10",
+    "@langchain/langgraph": "^1.4.14",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
@@ -60,7 +62,8 @@
     "pino-http": "^11.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

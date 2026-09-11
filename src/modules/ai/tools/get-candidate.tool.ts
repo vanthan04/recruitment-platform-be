@@ -1,5 +1,6 @@
-import { AiTool, ToolContext } from '@/modules/ai/tools/ai-tool.interface';
-import { requireString } from '@/modules/ai/tools/tool-input.util';
+import { z } from 'zod';
+import { tool } from '@langchain/core/tools';
+import { ToolContext } from '@/modules/ai/tools/ai-tool.interface';
 
 /**
  * Returns only what recruitment matching needs (name, headline, analyzed
@@ -8,25 +9,23 @@ import { requireString } from '@/modules/ai/tools/tool-input.util';
  * candidate-detail views may show those elsewhere. Never returns a CV file
  * key or download URL; see get-cv-analysis.tool.ts for the same rule.
  */
-export function createGetCandidateTool(ctx: ToolContext): AiTool {
-  return {
-    definition: {
+export function createGetCandidateTool(ctx: ToolContext) {
+  return tool(
+    async (input) => {
+      const candidate = await ctx.cvAnalysisRepository.findCandidateByUserId(
+        input.candidateId,
+      );
+      return JSON.stringify(
+        candidate ?? { found: false, candidateId: input.candidateId },
+      );
+    },
+    {
       name: 'get_candidate',
       description:
         "Retrieve one candidate's profile summary and analyzed CV skills/experience/education for closer evaluation.",
-      inputSchema: {
-        type: 'object',
-        properties: {
-          candidateId: { type: 'string' },
-        },
-        required: ['candidateId'],
-      },
+      schema: z.object({
+        candidateId: z.string(),
+      }),
     },
-    async execute(input) {
-      const candidateId = requireString(input, 'candidateId');
-      const candidate =
-        await ctx.cvAnalysisRepository.findCandidateByUserId(candidateId);
-      return candidate ?? { found: false, candidateId };
-    },
-  };
+  );
 }

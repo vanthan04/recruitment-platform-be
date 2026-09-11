@@ -1,153 +1,166 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import {
-  AiConversationMessage,
-  IAiProvider,
-} from '@/modules/ai/infrastructure/providers/ai-provider.interface';
+  AIMessage,
+  BaseMessage,
+  HumanMessage,
+  SystemMessage,
+  ToolMessage,
+} from '@langchain/core/messages';
+import {
+  StateGraph,
+  MessagesAnnotation,
+  START,
+  END,
+  GraphRecursionError,
+} from '@langchain/langgraph';
+import { ToolNode } from '@langchain/langgraph/prebuilt';
+import { CHAT_MODEL } from '@/modules/ai/infrastructure/providers/chat-model.provider';
 import { ToolRegistry } from '@/modules/ai/tools/tool-registry';
 import { buildRecruitmentSystemPrompt } from '@/modules/ai/prompts/recruitment.prompt';
 import {
-  MatchingResultSchema,
+  matchingResultSchema,
+  MatchingResult,
   SUBMIT_MATCHING_RESULT_TOOL_NAME,
-  submitMatchingResultToolDefinition,
+  submitMatchingResultTool,
 } from '@/modules/ai/schemas/matching-result.schema';
 import {
   AiProviderException,
+  AiTimeoutException,
   InvalidAiOutputException,
 } from '@/modules/ai/domain/exceptions/ai.exceptions';
 
 // Generous enough for get_job + a couple of search_candidates/get_candidate
 // calls + submit; a bound exists purely so a confused model can't loop
-// forever and run up API cost on one HTTP request.
+// forever and run up API cost on one HTTP request. LangGraph's
+// recursionLimit counts every node step (agent+tools each count), hence *2.
 const MAX_TOOL_CALL_ROUNDS = 8;
 
+type GraphState = typeof MessagesAnnotation.State;
+
 /**
- * Single recruitment agent: LLM -> tool call -> tool execution -> tool
- * result -> LLM -> ... -> one submit_matching_result call, which is the
- * only way this loop ends with a result. Only tools present in the
- * ToolRegistry it's given can ever be executed — a tool_use naming
- * anything else is answered with an error tool_result, never executed.
+ * Single recruitment agent, orchestrated as a small LangGraph StateGraph:
+ * "agent" (calls the model with tools bound) <-> "tools" (executes the
+ * ToolRegistry's tools) until the model calls submit_matching_result or
+ * stops calling tools. Deliberately ONE agent node today — adding a second
+ * agent later means adding another node/edge to this same graph (or
+ * composing a subgraph), not restructuring how this one works.
  *
- * No LangGraph/MCP/multi-agent here by design — see CODEBASE_SUMMARY.md-
- * style docs once this ships for how this could evolve toward either.
+ * Only tools present in the ToolRegistry it's given can ever be executed —
+ * they're the only ones passed into the ToolNode below. submit_matching_result
+ * is bound to the model so it CAN be called, but is intentionally excluded
+ * from the ToolNode: it never "runs" against a domain service, it's a
+ * terminal signal whose arguments are read and schema-validated directly.
+ *
+ * No multi-agent/supervisor/MCP here by design — see the module's README
+ * section (once documented) for how this graph could grow into either.
  */
 @Injectable()
 export class RecruitmentAgent {
   private readonly logger = new Logger(RecruitmentAgent.name);
 
-  constructor(private readonly aiProvider: IAiProvider) {}
+  constructor(@Inject(CHAT_MODEL) private readonly model: BaseChatModel) {}
 
   async run(
     tools: ToolRegistry,
     maxCandidates: number,
-  ): Promise<MatchingResultSchema> {
-    const knownCandidateIds = new Set<string>();
+  ): Promise<MatchingResult> {
     const system = buildRecruitmentSystemPrompt(maxCandidates);
-    const toolDefinitions = [
-      ...tools.definitions,
-      submitMatchingResultToolDefinition,
-    ];
-    const messages: AiConversationMessage[] = [
-      {
-        role: 'user',
-        content:
-          'Find and rank the best-matching candidates for this job. Start by calling get_job.',
-      },
-    ];
+    // Non-null: every concrete BaseChatModel this app actually configures
+    // (see chat-model.provider.ts) supports tool calling — bindTools is
+    // only optional on the base type for chat models that categorically
+    // can't do tool calling at all.
+    const modelWithTools = this.model.bindTools!([
+      ...tools.tools,
+      submitMatchingResultTool,
+    ]);
 
-    for (let round = 0; round < MAX_TOOL_CALL_ROUNDS; round++) {
-      const response = await this.aiProvider.complete({
-        system,
-        messages,
-        tools: toolDefinitions,
-      });
+    const graph = new StateGraph(MessagesAnnotation)
+      .addNode('agent', async (state: GraphState) => {
+        const response = await modelWithTools.invoke([
+          new SystemMessage(system),
+          ...state.messages,
+        ]);
+        return { messages: [response] };
+      })
+      .addNode('tools', new ToolNode(tools.tools))
+      .addEdge(START, 'agent')
+      .addConditionalEdges('agent', (state: GraphState) =>
+        this.routeAfterAgent(state.messages),
+      )
+      .addEdge('tools', 'agent')
+      .compile();
 
-      const submission = response.toolUses.find(
-        (toolUse) => toolUse.name === SUBMIT_MATCHING_RESULT_TOOL_NAME,
+    let finalMessages: BaseMessage[];
+    try {
+      const result = await graph.invoke(
+        {
+          messages: [
+            new HumanMessage(
+              'Find and rank the best-matching candidates for this job. Start by calling get_job.',
+            ),
+          ],
+        },
+        { recursionLimit: MAX_TOOL_CALL_ROUNDS * 2 + 2 },
       );
-      if (submission) {
-        return this.validateSubmission(submission.input, knownCandidateIds);
-      }
-
-      if (response.toolUses.length === 0) {
-        // The model ended its turn without submitting — there is no valid
-        // "plain text final answer" path, so this is an invalid response.
+      finalMessages = result.messages;
+    } catch (error) {
+      if (error instanceof GraphRecursionError) {
         this.logger.warn(
-          `RecruitmentAgent: model stopped (${response.stopReason}) without calling ${SUBMIT_MATCHING_RESULT_TOOL_NAME}`,
+          `RecruitmentAgent: exceeded ${MAX_TOOL_CALL_ROUNDS} tool-call rounds without a submission`,
         );
-        throw new InvalidAiOutputException(
-          'The AI provider ended its turn without submitting a result',
+        throw new AiProviderException(
+          'The AI provider did not produce a result within the allowed number of tool-call rounds',
         );
       }
-
-      messages.push({
-        role: 'assistant',
-        content: response.text,
-        toolUses: response.toolUses,
-      });
-
-      const toolResults = await Promise.all(
-        response.toolUses.map(async (toolUse) => {
-          const tool = tools.get(toolUse.name);
-          if (!tool) {
-            this.logger.warn(
-              `RecruitmentAgent: model requested unregistered tool "${toolUse.name}"`,
-            );
-            return {
-              toolUseId: toolUse.id,
-              content: `Tool "${toolUse.name}" does not exist. Only the tools you were given are available.`,
-              isError: true,
-            };
-          }
-
-          try {
-            const result = await tool.execute(toolUse.input);
-            this.collectCandidateIds(toolUse.name, result, knownCandidateIds);
-            return { toolUseId: toolUse.id, content: JSON.stringify(result) };
-          } catch (error) {
-            this.logger.warn(
-              `RecruitmentAgent: tool "${toolUse.name}" failed: ${(error as Error).message}`,
-            );
-            return {
-              toolUseId: toolUse.id,
-              content: `Tool "${toolUse.name}" failed: ${(error as Error).message}`,
-              isError: true,
-            };
-          }
-        }),
-      );
-
-      messages.push({ role: 'user', toolResults });
+      throw this.translateProviderError(error);
     }
 
-    throw new AiProviderException(
-      'The AI provider did not produce a result within the allowed number of tool-call rounds',
-    );
+    return this.extractSubmission(finalMessages);
   }
 
-  private async validateSubmission(
-    rawInput: Record<string, unknown>,
-    knownCandidateIds: Set<string>,
-  ): Promise<MatchingResultSchema> {
-    const instance = plainToInstance(MatchingResultSchema, rawInput);
-    const errors = await validate(instance, {
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    });
-    if (errors.length > 0) {
+  private routeAfterAgent(messages: BaseMessage[]): 'tools' | typeof END {
+    const last = messages[messages.length - 1] as AIMessage;
+    const toolCalls = last.tool_calls ?? [];
+    if (toolCalls.length === 0) return END;
+
+    const hasSubmission = toolCalls.some(
+      (call) => call.name === SUBMIT_MATCHING_RESULT_TOOL_NAME,
+    );
+    if (hasSubmission) return END;
+
+    return 'tools';
+  }
+
+  private extractSubmission(messages: BaseMessage[]): MatchingResult {
+    const last = messages[messages.length - 1] as AIMessage;
+    const toolCalls = last.tool_calls ?? [];
+    const submission = toolCalls.find(
+      (call) => call.name === SUBMIT_MATCHING_RESULT_TOOL_NAME,
+    );
+
+    if (!submission) {
       this.logger.warn(
-        `RecruitmentAgent: submit_matching_result failed schema validation: ${errors
-          .map((e) => e.toString())
-          .join('; ')}`,
+        `RecruitmentAgent: model stopped without calling ${SUBMIT_MATCHING_RESULT_TOOL_NAME}`,
+      );
+      throw new InvalidAiOutputException(
+        'The AI provider ended its turn without submitting a result',
+      );
+    }
+
+    const parseResult = matchingResultSchema.safeParse(submission.args);
+    if (!parseResult.success) {
+      this.logger.warn(
+        `RecruitmentAgent: submit_matching_result failed schema validation: ${parseResult.error.message}`,
       );
       throw new InvalidAiOutputException();
     }
 
     // Defense in depth: never trust a candidateId the model didn't actually
     // receive from search_candidates/get_candidate in this same run — see
-    // module doc comment above.
-    instance.matches = instance.matches.filter((match) => {
+    // class doc comment above.
+    const knownCandidateIds = this.collectKnownCandidateIds(messages);
+    const matches = parseResult.data.matches.filter((match) => {
       const known = knownCandidateIds.has(match.candidateId);
       if (!known) {
         this.logger.warn(
@@ -157,26 +170,67 @@ export class RecruitmentAgent {
       return known;
     });
 
-    return instance;
+    return { matches };
   }
 
-  private collectCandidateIds(
-    toolName: string,
-    result: unknown,
-    knownCandidateIds: Set<string>,
-  ): void {
-    if (toolName !== 'search_candidates' && toolName !== 'get_candidate') {
-      return;
-    }
-    const rows = Array.isArray(result) ? result : [result];
-    for (const row of rows) {
-      if (
-        row &&
-        typeof row === 'object' &&
-        typeof (row as { candidateId?: unknown }).candidateId === 'string'
-      ) {
-        knownCandidateIds.add((row as { candidateId: string }).candidateId);
+  private collectKnownCandidateIds(messages: BaseMessage[]): Set<string> {
+    const toolCallNameById = new Map<string, string>();
+    for (const message of messages) {
+      if (!(message instanceof AIMessage)) continue;
+      for (const call of message.tool_calls ?? []) {
+        if (call.id) toolCallNameById.set(call.id, call.name);
       }
     }
+
+    const ids = new Set<string>();
+    for (const message of messages) {
+      if (!(message instanceof ToolMessage)) continue;
+      const toolName = toolCallNameById.get(message.tool_call_id);
+      if (toolName !== 'search_candidates' && toolName !== 'get_candidate') {
+        continue;
+      }
+      const rows = this.parseToolMessageContent(message.content);
+      for (const row of rows) {
+        if (
+          row &&
+          typeof row === 'object' &&
+          typeof (row as { candidateId?: unknown }).candidateId === 'string'
+        ) {
+          ids.add((row as { candidateId: string }).candidateId);
+        }
+      }
+    }
+    return ids;
+  }
+
+  private parseToolMessageContent(content: unknown): unknown[] {
+    try {
+      const parsed: unknown =
+        typeof content === 'string' ? JSON.parse(content) : content;
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      return [];
+    }
+  }
+
+  private translateProviderError(error: unknown): Error {
+    const err = error as { name?: string; status?: number; message?: string };
+    if (err?.name === 'APIConnectionTimeoutError') {
+      this.logger.error(`Anthropic request timed out: ${err.message}`);
+      return new AiTimeoutException();
+    }
+    if (typeof err?.status === 'number') {
+      // The real provider error (status, request id, raw body) is logged
+      // server-side only — see ai.exceptions.ts's file-level doc comment.
+      this.logger.error(
+        `Anthropic API error (status ${err.status}): ${err.message}`,
+      );
+      return new AiProviderException();
+    }
+    this.logger.error(
+      `Unexpected error calling Anthropic: ${(error as Error)?.message}`,
+      (error as Error)?.stack,
+    );
+    return new AiProviderException();
   }
 }
