@@ -41,6 +41,10 @@ export const buildLoggerOptions = (): Params => {
           'req.body.oldPassword',
           'req.body.newPassword',
           'req.body.refreshToken',
+          // Email-verification / password-reset / OAuth-exchange codes —
+          // each is a single-use secret that alone can verify an email,
+          // reset a password, or complete a login.
+          'req.body.code',
         ],
         censor: '**redacted**',
       },
