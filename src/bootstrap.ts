@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { AppModule } from '@/app.module';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
 import { ChatIoAdapter } from '@/common/adapters/socket-io.adapter';
+import { resolveCorsOptions } from '@/common/config/cors.config';
 
 export async function createHttpApp(): Promise<INestApplication> {
   // bufferLogs holds Nest's bootstrap-phase logs (module init, route
@@ -24,11 +25,7 @@ export async function createHttpApp(): Promise<INestApplication> {
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
 
-  const corsOrigin = process.env.CORS_ORIGIN;
-  app.enableCors({
-    origin: corsOrigin ? corsOrigin.split(',').map((o) => o.trim()) : true,
-    credentials: true,
-  });
+  app.enableCors(resolveCorsOptions(process.env.CORS_ORIGIN));
 
   app.useWebSocketAdapter(new ChatIoAdapter(app));
 

@@ -2,6 +2,7 @@ import type { INestApplicationContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import type { Server, ServerOptions } from 'socket.io';
+import { resolveCorsOptions } from '@/common/config/cors.config';
 
 /**
  * Applies the same CORS_ORIGIN/credentials rule as the HTTP server (main.ts)
@@ -17,10 +18,7 @@ export class ChatIoAdapter extends IoAdapter {
 
   createIOServer(port: number, options?: ServerOptions): Server {
     const corsOrigin = this.app.get(ConfigService).get<string>('CORS_ORIGIN');
-    const cors = {
-      origin: corsOrigin ? corsOrigin.split(',').map((o) => o.trim()) : true,
-      credentials: true,
-    };
+    const cors = resolveCorsOptions(corsOrigin);
     return super.createIOServer(port, { ...options, cors }) as Server;
   }
 }
