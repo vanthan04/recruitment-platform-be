@@ -1,10 +1,22 @@
 import * as Joi from 'joi';
 
 export const envValidationSchema = Joi.object({
+  NODE_ENV: Joi.string()
+    .valid('development', 'production', 'test')
+    .default('development'),
   PORT: Joi.number().default(8080),
   API_PREFIX: Joi.string().default('api/v1'),
   DATABASE_URL: Joi.string().required(),
-  CORS_ORIGIN: Joi.string().optional(),
+  // Optional in dev (falls back to reflecting any origin — see
+  // bootstrap.ts/socket-io.adapter.ts) but required in production: an
+  // operator forgetting to set this would otherwise silently leave the API
+  // open to any origin with credentials, which is worse than refusing to
+  // boot.
+  CORS_ORIGIN: Joi.string().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
   LOG_LEVEL: Joi.string()
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
     .optional(),
