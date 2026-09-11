@@ -23,7 +23,14 @@ import {
   UploadFolder,
 } from '@/modules/file-upload/domain/value-objects/upload-folder.vo';
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+// Same pattern as CV_MAX_FILE_SIZE (cv.controller.ts) — was hardcoded with
+// no way to raise it without a redeploy, unlike every other upload-size
+// concern in the codebase.
+const DEFAULT_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE_BYTES = parseInt(
+  process.env.GENERIC_UPLOAD_MAX_FILE_SIZE || `${DEFAULT_MAX_FILE_SIZE_BYTES}`,
+  10,
+);
 
 @ApiTags('files')
 @Controller('files')
