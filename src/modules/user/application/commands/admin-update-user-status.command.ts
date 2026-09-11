@@ -73,6 +73,8 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
       }
     }
 
+    const isRoleChanging = Boolean(input.role) && input.role !== user.role;
+
     if (input.status) {
       user.changeStatus(input.status);
     }
@@ -82,7 +84,11 @@ export class AdminUpdateUserStatusHandler implements ICommandHandler<AdminUpdate
 
     await this.userRepository.save(user);
 
-    if (input.status === UserStatus.BLOCKED) {
+    // Role is embedded in the JWT and not re-derived per request, so a
+    // stale token would otherwise keep acting under the old role for up to
+    // its remaining lifetime. Block already forces this; a role change
+    // (e.g. demoting a compromised admin) needs the same immediate effect.
+    if (input.status === UserStatus.BLOCKED || isRoleChanging) {
       await this.sessionRevocation.revokeAllForUser(userId);
       this.eventEmitter.emit(
         USER_SESSION_REVOKED_EVENT,

@@ -152,6 +152,41 @@ describe('AdminUpdateUserStatusHandler', () => {
     expect(sessionRevocation.revokeAllForUser).not.toHaveBeenCalled();
   });
 
+  it('revokes all sessions when the role changes, even without a status change', async () => {
+    // Role is embedded in the JWT and not re-derived per request, so a
+    // demoted user's still-valid access token would otherwise keep acting
+    // under the old role until it naturally expires.
+    const user = makeUser({ role: UserRole.RECRUITER });
+    userRepository.findById.mockResolvedValue(user);
+    userRepository.save.mockImplementation(async (u) => u as User);
+
+    await handler.execute(
+      new AdminUpdateUserStatusCommand('admin-1', 'user-1', {
+        role: UserRole.CANDIDATE,
+      }),
+    );
+
+    expect(sessionRevocation.revokeAllForUser).toHaveBeenCalledWith('user-1');
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      USER_SESSION_REVOKED_EVENT,
+      expect.objectContaining({ userId: 'user-1' }),
+    );
+  });
+
+  it('does not revoke sessions when the "new" role is the same as the current one', async () => {
+    const user = makeUser({ role: UserRole.RECRUITER });
+    userRepository.findById.mockResolvedValue(user);
+    userRepository.save.mockImplementation(async (u) => u as User);
+
+    await handler.execute(
+      new AdminUpdateUserStatusCommand('admin-1', 'user-1', {
+        role: UserRole.RECRUITER,
+      }),
+    );
+
+    expect(sessionRevocation.revokeAllForUser).not.toHaveBeenCalled();
+  });
+
   it('throws when an admin tries to block their own account', async () => {
     const admin = makeUser({ id: 'admin-1', role: UserRole.ADMIN });
     userRepository.findById.mockResolvedValue(admin);
