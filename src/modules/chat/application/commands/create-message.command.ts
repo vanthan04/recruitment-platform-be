@@ -112,11 +112,8 @@ export class CreateMessageHandler implements ICommandHandler<
       ),
     });
 
-    const saved = await this.messageRepository.create(message);
-    await this.conversationRepository.touchLastMessageAt(
-      conversationId,
-      saved.createdAt,
-    );
+    const saved =
+      await this.messageRepository.createAndTouchConversation(message);
 
     const recipientId = conversation.otherParticipantId(senderId);
     const job = await this.jobLookupPort.findById(conversation.jobId);

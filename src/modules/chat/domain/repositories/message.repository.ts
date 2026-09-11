@@ -11,7 +11,13 @@ export abstract class IMessageRepository {
     conversationId: string,
     clientMessageId: string,
   ): Promise<Message | null>;
-  abstract create(message: Message): Promise<Message>;
+  /**
+   * Persists the message and bumps the parent conversation's
+   * `lastMessageAt` in one transaction — a message that exists without
+   * its conversation reflecting it (or vice versa, on partial failure)
+   * would leave the conversation list's sort order silently stale.
+   */
+  abstract createAndTouchConversation(message: Message): Promise<Message>;
   abstract update(message: Message): Promise<Message>;
   abstract findPage(
     conversationId: string,

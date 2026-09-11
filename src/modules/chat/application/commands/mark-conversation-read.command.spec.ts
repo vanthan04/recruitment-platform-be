@@ -29,7 +29,6 @@ describe('MarkConversationReadHandler', () => {
       findManyForUser: jest.fn(),
       findMembership: jest.fn(),
       markMemberRead: jest.fn(),
-      touchLastMessageAt: jest.fn(),
     };
     handler = new MarkConversationReadHandler(conversationRepository);
   });

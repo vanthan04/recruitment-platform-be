@@ -115,8 +115,4 @@ export class ConversationInfraRepository implements IConversationRepository {
   ): Promise<void> {
     await this.conversationPrisma.markMemberRead(conversationId, userId, at);
   }
-
-  async touchLastMessageAt(conversationId: string, at: Date): Promise<void> {
-    await this.conversationPrisma.touchLastMessageAt(conversationId, at);
-  }
 }

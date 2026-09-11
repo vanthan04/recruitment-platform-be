@@ -30,7 +30,7 @@ export class MessageInfraRepository implements IMessageRepository {
     return MessageMapper.toDomain(raw);
   }
 
-  async create(message: Message): Promise<Message> {
+  async createAndTouchConversation(message: Message): Promise<Message> {
     const data = MessageMapper.toPersistence(message);
     const attachmentsData = message.attachments.map((a) => ({
       fileName: a.fileName,
@@ -40,7 +40,10 @@ export class MessageInfraRepository implements IMessageRepository {
     }));
 
     try {
-      const raw = await this.messagePrisma.create(data, attachmentsData);
+      const raw = await this.messagePrisma.createAndTouchConversation(
+        data,
+        attachmentsData,
+      );
       return MessageMapper.toDomain(raw)!;
     } catch (error) {
       // CreateMessageHandler already checks findByClientMessageId before

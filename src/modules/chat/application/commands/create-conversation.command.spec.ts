@@ -72,12 +72,11 @@ describe('CreateConversationHandler', () => {
       findManyForUser: jest.fn(),
       findMembership: jest.fn(),
       markMemberRead: jest.fn(),
-      touchLastMessageAt: jest.fn(),
     };
     messageRepository = {
       findById: jest.fn(),
       findByClientMessageId: jest.fn(),
-      create: jest.fn(),
+      createAndTouchConversation: jest.fn(),
       update: jest.fn(),
       findPage: jest.fn(),
       findLastMessage: jest.fn().mockResolvedValue(null),

@@ -25,18 +25,31 @@ export class MessagePrismaRepository {
     });
   }
 
-  async create(
+  /**
+   * Creates the message and bumps the parent conversation's
+   * `lastMessageAt` to the message's own (DB-assigned) `createdAt` in one
+   * transaction, so the two can never fall out of sync on a partial
+   * failure.
+   */
+  async createAndTouchConversation(
     data: Prisma.MessageUncheckedCreateInput,
     attachmentsData: Prisma.MessageAttachmentUncheckedCreateWithoutMessageInput[],
   ) {
-    return this.prisma.message.create({
-      data: {
-        ...data,
-        attachments: attachmentsData.length
-          ? { create: attachmentsData }
-          : undefined,
-      },
-      include: { attachments: true },
+    return this.prisma.$transaction(async (tx) => {
+      const message = await tx.message.create({
+        data: {
+          ...data,
+          attachments: attachmentsData.length
+            ? { create: attachmentsData }
+            : undefined,
+        },
+        include: { attachments: true },
+      });
+      await tx.conversation.update({
+        where: { id: message.conversationId },
+        data: { lastMessageAt: message.createdAt },
+      });
+      return message;
     });
   }
 

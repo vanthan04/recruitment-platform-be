@@ -58,11 +58,4 @@ export class ConversationPrismaRepository {
       data: { lastReadAt: at },
     });
   }
-
-  async touchLastMessageAt(conversationId: string, at: Date) {
-    await this.prisma.conversation.update({
-      where: { id: conversationId },
-      data: { lastMessageAt: at },
-    });
-  }
 }

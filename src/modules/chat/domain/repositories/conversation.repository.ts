@@ -36,5 +36,4 @@ export abstract class IConversationRepository {
     userId: string,
     at: Date,
   ): Promise<void>;
-  abstract touchLastMessageAt(conversationId: string, at: Date): Promise<void>;
 }

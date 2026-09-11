@@ -42,12 +42,11 @@ describe('CreateMessageHandler', () => {
       findManyForUser: jest.fn(),
       findMembership: jest.fn(),
       markMemberRead: jest.fn(),
-      touchLastMessageAt: jest.fn(),
     };
     messageRepository = {
       findById: jest.fn(),
       findByClientMessageId: jest.fn(),
-      create: jest.fn(),
+      createAndTouchConversation: jest.fn(),
       update: jest.fn(),
       findPage: jest.fn(),
       findLastMessage: jest.fn(),
@@ -127,7 +126,7 @@ describe('CreateMessageHandler', () => {
     } as any);
 
     expect(result.id).toBe('msg-1');
-    expect(messageRepository.create).not.toHaveBeenCalled();
+    expect(messageRepository.createAndTouchConversation).not.toHaveBeenCalled();
   });
 
   it('rejects a client-sent SYSTEM message', async () => {
@@ -184,10 +183,10 @@ describe('CreateMessageHandler', () => {
         ],
       } as any),
     ).rejects.toThrow(InvalidAttachmentUrlException);
-    expect(messageRepository.create).not.toHaveBeenCalled();
+    expect(messageRepository.createAndTouchConversation).not.toHaveBeenCalled();
   });
 
-  it('persists the message, touches the conversation, and emits MESSAGE_SENT_EVENT', async () => {
+  it('persists the message (touching the conversation atomically) and emits MESSAGE_SENT_EVENT', async () => {
     conversationRepository.findById.mockResolvedValue(makeConversation());
     messageRepository.findByClientMessageId.mockResolvedValue(null);
     const saved = new Message({
@@ -197,7 +196,7 @@ describe('CreateMessageHandler', () => {
       content: 'hi',
       clientMessageId: 'c-1',
     });
-    messageRepository.create.mockResolvedValue(saved);
+    messageRepository.createAndTouchConversation.mockResolvedValue(saved);
 
     const result = await handler.execute({
       senderId: 'candidate-1',
@@ -209,9 +208,14 @@ describe('CreateMessageHandler', () => {
     } as any);
 
     expect(result.id).toBe('msg-1');
-    expect(conversationRepository.touchLastMessageAt).toHaveBeenCalledWith(
-      'conv-1',
-      saved.createdAt,
+    // The conversation touch is folded into createAndTouchConversation
+    // itself (one Prisma transaction) — no separate touchLastMessageAt
+    // call exists to assert on anymore.
+    expect(messageRepository.createAndTouchConversation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conv-1',
+        clientMessageId: 'c-1',
+      }),
     );
     expect(eventEmitter.emit).toHaveBeenCalledWith(
       MESSAGE_SENT_EVENT,
