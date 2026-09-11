@@ -14,6 +14,7 @@ import {
   DomainException,
   EntityNotFoundException,
   UnauthorizedDomainException,
+  AuthenticationFailedException,
   DuplicateEntityException,
   BusinessRuleViolationException,
 } from '@/common/exceptions/domain.exception';
@@ -131,6 +132,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private mapDomainExceptionToStatus(exception: DomainException): number {
     if (exception instanceof EntityNotFoundException) {
       return HttpStatus.NOT_FOUND;
+    }
+    if (exception instanceof AuthenticationFailedException) {
+      return HttpStatus.UNAUTHORIZED;
     }
     if (exception instanceof UnauthorizedDomainException) {
       return HttpStatus.FORBIDDEN;

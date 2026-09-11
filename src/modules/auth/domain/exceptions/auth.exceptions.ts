@@ -2,6 +2,7 @@ import {
   EntityNotFoundException,
   DuplicateEntityException,
   UnauthorizedDomainException,
+  AuthenticationFailedException,
 } from '@/common/exceptions/domain.exception';
 
 /**
@@ -33,14 +34,14 @@ export class EmailAlreadyRegisteredException extends DuplicateEntityException {
   }
 }
 
-export class InvalidCredentialsException extends UnauthorizedDomainException {
+export class InvalidCredentialsException extends AuthenticationFailedException {
   constructor() {
     super('Email or password is incorrect', 'AUTH_INVALID_CREDENTIALS');
     this.name = 'InvalidCredentialsException';
   }
 }
 
-export class AccountBlockedException extends UnauthorizedDomainException {
+export class AccountBlockedException extends AuthenticationFailedException {
   constructor() {
     super(
       'This account has been blocked. Contact support for assistance.',
@@ -50,7 +51,17 @@ export class AccountBlockedException extends UnauthorizedDomainException {
   }
 }
 
-export class EmailNotVerifiedException extends UnauthorizedDomainException {
+export class AccountLockedException extends AuthenticationFailedException {
+  constructor() {
+    super(
+      'Too many failed login attempts. Please try again later.',
+      'AUTH_ACCOUNT_LOCKED',
+    );
+    this.name = 'AccountLockedException';
+  }
+}
+
+export class EmailNotVerifiedException extends AuthenticationFailedException {
   constructor() {
     super(
       'Please verify your email before logging in.',
@@ -67,21 +78,21 @@ export class InvalidOldPasswordException extends UnauthorizedDomainException {
   }
 }
 
-export class InvalidRefreshTokenException extends UnauthorizedDomainException {
+export class InvalidRefreshTokenException extends AuthenticationFailedException {
   constructor() {
     super('Invalid refresh token', 'AUTH_INVALID_REFRESH_TOKEN');
     this.name = 'InvalidRefreshTokenException';
   }
 }
 
-export class RefreshTokenAccessDeniedException extends UnauthorizedDomainException {
+export class RefreshTokenAccessDeniedException extends AuthenticationFailedException {
   constructor() {
     super('Access denied', 'AUTH_REFRESH_ACCESS_DENIED');
     this.name = 'RefreshTokenAccessDeniedException';
   }
 }
 
-export class InvalidOrExpiredExchangeCodeException extends UnauthorizedDomainException {
+export class InvalidOrExpiredExchangeCodeException extends AuthenticationFailedException {
   constructor() {
     super(
       'This login code is invalid, expired, or already used',

@@ -60,3 +60,19 @@ export class UnauthorizedDomainException extends DomainException {
     this.name = 'UnauthorizedDomainException';
   }
 }
+
+/**
+ * For "you have no valid session/credentials" failures (bad login,
+ * expired/blocked account, invalid or reused refresh token) — maps to
+ * HTTP 401. Distinct from `UnauthorizedDomainException` (403), which is
+ * for an authenticated user acting on a resource they don't own/control.
+ */
+export class AuthenticationFailedException extends DomainException {
+  constructor(
+    message = 'Authentication failed',
+    code = 'AUTHENTICATION_FAILED',
+  ) {
+    super(message, code);
+    this.name = 'AuthenticationFailedException';
+  }
+}

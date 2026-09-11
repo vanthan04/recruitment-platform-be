@@ -3,11 +3,15 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
+import type Redis from 'ioredis';
 import { AppController } from '@/app.controller';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
 import { buildLoggerOptions } from '@/common/config/logger.config';
+import { RedisModule } from '@/common/redis/redis.module';
+import { REDIS_CLIENT } from '@/common/redis/redis.constants';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UserModule } from '@/modules/user/user.module';
 import { PrismaModule } from '@/modules/prisma/prisma.module';
@@ -47,7 +51,19 @@ const PRISMA_LOG_LEVELS = isProduction
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+    RedisModule,
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [REDIS_CLIENT],
+      useFactory: (redis: Redis | null) => ({
+        throttlers: [{ ttl: 60000, limit: 60 }],
+        // Redis-backed storage when available so rate limits are shared
+        // across all instances/processes instead of each tracking its own
+        // in-memory counters; falls back to the default in-memory storage
+        // (per-process only) when REDIS_URL isn't configured.
+        storage: redis ? new ThrottlerStorageRedisService(redis) : undefined,
+      }),
+    }),
     PrismaModule.forRoot({
       log: [...PRISMA_LOG_LEVELS],
       errorFormat: 'pretty',

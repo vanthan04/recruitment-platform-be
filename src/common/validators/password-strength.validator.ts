@@ -1,6 +1,9 @@
 import { registerDecorator, ValidationOptions } from 'class-validator';
 
 export const PASSWORD_MIN_LENGTH = 8;
+// bcrypt silently truncates at 72 bytes; capping input length here also
+// avoids needlessly hashing/comparing pathologically long request bodies.
+export const PASSWORD_MAX_LENGTH = 128;
 
 // Not a full zxcvbn-style strength meter — just a floor that rejects the
 // weakest common passwords (all-digit PINs, a single bare dictionary word)

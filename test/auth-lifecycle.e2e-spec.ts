@@ -150,7 +150,7 @@ describe('Auth session lifecycle + admin guards (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refreshToken })
-        .expect(403);
+        .expect(401);
 
       refreshToken = newRefreshToken;
     });
@@ -174,7 +174,7 @@ describe('Auth session lifecycle + admin guards (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refreshToken: freshRefreshToken })
-        .expect(403);
+        .expect(401);
     });
   });
 
@@ -211,14 +211,14 @@ describe('Auth session lifecycle + admin guards (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refreshToken: targetRefreshToken })
-        .expect(403);
+        .expect(401);
     });
 
     it('a blocked user can no longer log in at all', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ email: targetEmail, password: 'password123' })
-        .expect(403);
+        .expect(401);
     });
 
     it('an admin cannot block their own account', async () => {

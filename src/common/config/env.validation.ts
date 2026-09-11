@@ -14,6 +14,18 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_REFRESH_EXPIRATION: Joi.string().required(),
 
+  // Upstash (or any ioredis-compatible) Redis connection string, e.g.
+  // rediss://default:PASSWORD@HOST:PORT — get this from the Upstash
+  // console's "Redis Connect" tab (ioredis snippet). Optional: unset means
+  // rate limiting falls back to in-memory (per-process) storage and
+  // account login-lockout tracking is disabled — see RedisModule.
+  REDIS_URL: Joi.string().allow('').optional(),
+  // Failed-login lockout (per email, independent of the IP-based
+  // throttler). Only enforced when REDIS_URL is set.
+  LOGIN_LOCKOUT_MAX_ATTEMPTS: Joi.number().default(10),
+  LOGIN_LOCKOUT_WINDOW_SECONDS: Joi.number().default(900),
+  LOGIN_LOCKOUT_DURATION_SECONDS: Joi.number().default(900),
+
   MAIL_HOST: Joi.string().required(),
   MAIL_PORT: Joi.number().required(),
   MAIL_USER: Joi.string().required(),
