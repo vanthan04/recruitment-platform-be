@@ -40,6 +40,7 @@ describe('PurgeDeletedCvsHandler', () => {
       upload: jest.fn(),
       delete: jest.fn().mockResolvedValue(undefined),
       getDownloadUrl: jest.fn(),
+      downloadBuffer: jest.fn(),
     };
     handler = new PurgeDeletedCvsHandler(cvRepository, cvStorage);
   });

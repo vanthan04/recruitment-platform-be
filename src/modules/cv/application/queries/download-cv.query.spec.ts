@@ -42,6 +42,7 @@ describe('DownloadCvHandler', () => {
       upload: jest.fn(),
       delete: jest.fn(),
       getDownloadUrl: jest.fn().mockResolvedValue('https://signed-url'),
+      downloadBuffer: jest.fn(),
     };
     handler = new DownloadCvHandler(cvRepository, cvStorage);
   });

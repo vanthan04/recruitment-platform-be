@@ -189,4 +189,22 @@ export class S3StorageProvider implements IFileStorageProvider {
       expiresIn: options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_EXPIRY_SECONDS,
     });
   }
+
+  async downloadBuffer(key: string): Promise<Buffer> {
+    try {
+      const response = await this.s3Client.send(
+        new GetObjectCommand({ Bucket: this.bucketName, Key: key }),
+      );
+      const bytes = await response.Body!.transformToByteArray();
+      return Buffer.from(bytes);
+    } catch (error) {
+      this.logger.error(
+        `Failed to download S3 object ${key}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to read file. Please try again later.',
+      );
+    }
+  }
 }

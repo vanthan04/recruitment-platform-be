@@ -130,4 +130,19 @@ export const envValidationSchema = Joi.object({
 
   // Max CV upload size in bytes (default 10MB)
   CV_MAX_FILE_SIZE: Joi.number().default(10 * 1024 * 1024),
+
+  // AI Recruitment Agent (Find Matching CVs) — see src/ai. Optional so the
+  // app still boots without it configured; the matching endpoint and the
+  // CV-analysis pipeline just fail at call time until a real key is set,
+  // same reasoning as the OAuth vars above.
+  AI_PROVIDER: Joi.string().valid('anthropic').default('anthropic'),
+  AI_MODEL: Joi.string().default('claude-sonnet-5'),
+  AI_API_KEY: Joi.string().allow('').optional(),
+  // Upper bound on how many deterministically-filtered candidates are ever
+  // sent to the LLM for one matching request.
+  AI_MAX_CANDIDATES: Joi.number().default(30),
+  AI_TEMPERATURE: Joi.number().min(0).max(1).default(0.2),
+  AI_REQUEST_TIMEOUT_MS: Joi.number().default(30_000),
+  // Safety-net cron batch size — see AnalyzePendingCvsCron.
+  AI_ANALYSIS_BATCH_SIZE: Joi.number().default(20),
 });

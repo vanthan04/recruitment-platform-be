@@ -11,4 +11,9 @@ export abstract class ICvStoragePort {
     key: string,
     downloadFilename: string,
   ): Promise<string>;
+  /**
+   * Raw file bytes for server-side processing only (currently: AI CV text
+   * extraction — see src/ai). Never used to serve a file back to a client.
+   */
+  abstract downloadBuffer(key: string): Promise<Buffer>;
 }

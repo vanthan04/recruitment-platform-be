@@ -41,6 +41,13 @@ export abstract class IFileStorageProvider {
   ): Promise<string>;
 
   /**
+   * Download an object's raw bytes. Used only for server-side processing
+   * (e.g. CV text extraction for AI analysis, see src/ai) — never to hand a
+   * file back to a client, which should use getSignedUrl() instead.
+   */
+  abstract downloadBuffer(key: string): Promise<Buffer>;
+
+  /**
    * True if `url` actually points at this app's own storage bucket/endpoint
    * — i.e. it's a value `upload()` itself could have produced, not an
    * arbitrary client-supplied URL. Used wherever a client submits a URL it

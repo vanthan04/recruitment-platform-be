@@ -41,6 +41,6 @@ import { DownloadCvHandler } from '@/modules/cv/application/queries/download-cv.
     ListMyCvsHandler,
     DownloadCvHandler,
   ],
-  exports: [ICvRepository],
+  exports: [ICvRepository, ICvStoragePort],
 })
 export class CvModule {}

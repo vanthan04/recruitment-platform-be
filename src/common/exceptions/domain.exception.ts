@@ -76,3 +76,16 @@ export class AuthenticationFailedException extends DomainException {
     this.name = 'AuthenticationFailedException';
   }
 }
+
+/**
+ * A dependency this app doesn't control (an external AI provider today —
+ * see src/ai) failed, timed out, or returned something unusable — not the
+ * requester's fault, so distinct from BusinessRuleViolationException (400).
+ * Maps to 503: the feature is temporarily unavailable, retryable later.
+ */
+export class ExternalServiceException extends DomainException {
+  constructor(message: string, code = 'EXTERNAL_SERVICE_ERROR') {
+    super(message, code);
+    this.name = 'ExternalServiceException';
+  }
+}

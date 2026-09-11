@@ -59,9 +59,7 @@ export class SupabaseStorageProvider implements IFileStorageProvider {
     this.s3Client = new S3Client({
       region: this.configService.get<string>('SUPABASE_S3_REGION')!,
       credentials: {
-        accessKeyId: this.configService.get<string>(
-          'SUPABASE_S3_ACCESS_KEY',
-        )!,
+        accessKeyId: this.configService.get<string>('SUPABASE_S3_ACCESS_KEY')!,
         secretAccessKey: this.configService.get<string>(
           'SUPABASE_S3_SECRET_KEY',
         )!,
@@ -209,5 +207,23 @@ export class SupabaseStorageProvider implements IFileStorageProvider {
     return getS3SignedUrl(this.s3Client, command, {
       expiresIn: options?.expiresInSeconds ?? DEFAULT_SIGNED_URL_EXPIRY_SECONDS,
     });
+  }
+
+  async downloadBuffer(key: string): Promise<Buffer> {
+    try {
+      const response = await this.s3Client.send(
+        new GetObjectCommand({ Bucket: this.bucketName, Key: key }),
+      );
+      const bytes = await response.Body!.transformToByteArray();
+      return Buffer.from(bytes);
+    } catch (error) {
+      this.logger.error(
+        `Failed to download Supabase Storage object ${key}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to read file. Please try again later.',
+      );
+    }
   }
 }

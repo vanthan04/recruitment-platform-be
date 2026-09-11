@@ -17,6 +17,7 @@ import {
   AuthenticationFailedException,
   DuplicateEntityException,
   BusinessRuleViolationException,
+  ExternalServiceException,
 } from '@/common/exceptions/domain.exception';
 
 @Injectable()
@@ -144,6 +145,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
     if (exception instanceof BusinessRuleViolationException) {
       return HttpStatus.BAD_REQUEST;
+    }
+    if (exception instanceof ExternalServiceException) {
+      return HttpStatus.SERVICE_UNAVAILABLE;
     }
     return HttpStatus.BAD_REQUEST;
   }

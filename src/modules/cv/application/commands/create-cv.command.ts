@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ICvRepository } from '@/modules/cv/domain/repositories/cv.repository';
 import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
 import { Cv } from '@/modules/cv/domain/entities/cv.entity';
@@ -8,6 +9,10 @@ import { CvDomainService } from '@/modules/cv/domain/domain-services/cv-domain.s
 import { CV_FILE_EXTENSIONS } from '@/modules/cv/domain/value-objects/cv-file-type.vo';
 import { CvResponseMapper } from '@/modules/cv/application/mappers/cv-response.mapper';
 import { CvResponseDto } from '@/modules/cv/application/dto/cv-response.dto';
+import {
+  CV_UPLOADED_EVENT,
+  CvUploadedEvent,
+} from '@/modules/cv/infrastructure/events/cv-uploaded.event';
 
 /**
  * S3 key format: cvs/{userId}/{year}/{month}/{cvId}.{extension}.
@@ -46,6 +51,7 @@ export class CreateCvHandler implements ICommandHandler<
     @Inject(ICvStoragePort)
     private readonly cvStorage: ICvStoragePort,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute({
@@ -80,6 +86,12 @@ export class CreateCvHandler implements ICommandHandler<
 
     try {
       const saved = await this.cvRepository.save(cv);
+      // Fire-and-forget — the ai module analyzes this asynchronously; the
+      // upload response must never wait on (or fail because of) that.
+      this.eventEmitter.emit(
+        CV_UPLOADED_EVENT,
+        new CvUploadedEvent(saved.id, userId),
+      );
       return CvResponseMapper.toDto(saved);
     } catch (error) {
       // S3 and PostgreSQL are not one distributed transaction — if the DB

@@ -25,4 +25,8 @@ export class CvStorageAdapter implements ICvStoragePort {
       downloadFilename,
     });
   }
+
+  async downloadBuffer(key: string): Promise<Buffer> {
+    return this.storageProvider.downloadBuffer(key);
+  }
 }

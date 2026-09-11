@@ -37,6 +37,7 @@ describe('UploadFileHandler', () => {
       deleteByKey: jest.fn(),
       getSignedUrl: jest.fn(),
       isOwnedUrl: jest.fn(),
+      downloadBuffer: jest.fn(),
     };
     handler = new UploadFileHandler(storageProvider);
   });
