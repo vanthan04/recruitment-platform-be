@@ -15,9 +15,20 @@ export class SavedSearchInfraRepository implements ISavedSearchRepository {
     return SavedSearchMapper.toDomain(raw);
   }
 
-  async findAllByUserId(userId: string): Promise<SavedSearch[]> {
-    const raws = await this.savedSearchPrisma.findAllByUserId(userId);
-    return raws.map((r) => SavedSearchMapper.toDomain(r)!);
+  async findAllByUserId(
+    userId: string,
+    params: { skip: number; take: number },
+  ): Promise<{ savedSearches: SavedSearch[]; total: number }> {
+    const { savedSearches: raws, total } =
+      await this.savedSearchPrisma.findAllByUserId(userId, params);
+    return {
+      savedSearches: raws.map((r) => SavedSearchMapper.toDomain(r)!),
+      total,
+    };
+  }
+
+  async countByUserId(userId: string): Promise<number> {
+    return this.savedSearchPrisma.countByUserId(userId);
   }
 
   async findAll(): Promise<SavedSearch[]> {

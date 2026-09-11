@@ -5,9 +5,18 @@ import { ICategoryLookupPort } from '@/modules/job-alert/application/ports/categ
 import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.entity';
 import { EmploymentType } from '@/modules/job/domain/value-objects/employment-type.vo';
 import { WorkMode } from '@/modules/job/domain/value-objects/work-mode.vo';
-import { SavedSearchCategoryNotFoundException } from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
+import {
+  SavedSearchCategoryNotFoundException,
+  TooManySavedSearchesException,
+} from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
 import { SavedSearchResponseMapper } from '@/modules/job-alert/application/mappers/saved-search-response.mapper';
 import { SavedSearchResponseDto } from '@/modules/job-alert/application/dto/saved-search-response.dto';
+
+// Each saved search is picked up by the daily digest cron, which runs a
+// full job query + email send per search — nothing stopped a single
+// account from creating an unbounded number of them (accidentally, via a
+// buggy retry loop, or deliberately).
+const MAX_SAVED_SEARCHES_PER_USER = 20;
 
 export interface CreateSavedSearchInput {
   keyword?: string;
@@ -41,6 +50,12 @@ export class CreateSavedSearchHandler implements ICommandHandler<
     userId,
     input,
   }: CreateSavedSearchCommand): Promise<SavedSearchResponseDto> {
+    const existingCount =
+      await this.savedSearchRepository.countByUserId(userId);
+    if (existingCount >= MAX_SAVED_SEARCHES_PER_USER) {
+      throw new TooManySavedSearchesException(MAX_SAVED_SEARCHES_PER_USER);
+    }
+
     if (
       input.categoryId &&
       !(await this.categoryLookupPort.exists(input.categoryId))

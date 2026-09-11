@@ -14,15 +14,24 @@ export class BookmarkPrismaRepository {
     });
   }
 
-  async findAllByUserId(userId: string) {
+  async findAllByUserId(
+    userId: string,
+    params: { skip: number; take: number },
+  ) {
     // No `include: { job: true }` — BookmarkMapper.toDomain only reads the
     // bookmark's own scalar columns; job details are resolved separately by
     // callers that need them (e.g. FE's getMyBookmarkedJobs), so eager-loading
     // the full job row here was pure waste on every request.
-    return this.prisma.bookmark.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [bookmarks, total] = await Promise.all([
+      this.prisma.bookmark.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip: params.skip,
+        take: params.take,
+      }),
+      this.prisma.bookmark.count({ where: { userId } }),
+    ]);
+    return { bookmarks, total };
   }
 
   async create(data: Prisma.BookmarkUncheckedCreateInput) {

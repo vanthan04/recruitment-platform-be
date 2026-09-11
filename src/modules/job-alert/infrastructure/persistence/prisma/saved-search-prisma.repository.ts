@@ -10,11 +10,24 @@ export class SavedSearchPrismaRepository {
     return this.prisma.savedSearch.findUnique({ where: { id } });
   }
 
-  async findAllByUserId(userId: string) {
-    return this.prisma.savedSearch.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAllByUserId(
+    userId: string,
+    params: { skip: number; take: number },
+  ) {
+    const [savedSearches, total] = await Promise.all([
+      this.prisma.savedSearch.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip: params.skip,
+        take: params.take,
+      }),
+      this.prisma.savedSearch.count({ where: { userId } }),
+    ]);
+    return { savedSearches, total };
+  }
+
+  async countByUserId(userId: string) {
+    return this.prisma.savedSearch.count({ where: { userId } });
   }
 
   async findAll() {

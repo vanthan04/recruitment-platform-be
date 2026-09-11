@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -10,6 +10,7 @@ import { ApiResponse } from '@/common/dtos/api-response';
 
 import { ToggleBookmarkCommand } from '@/modules/bookmark/application/commands/toggle-bookmark.command';
 import { ListBookmarksQuery } from '@/modules/bookmark/application/queries/list-bookmarks.query';
+import { PageOptionsDto } from '@/common/dtos/page-options.dto';
 
 @ApiTags('bookmarks')
 @ApiBearerAuth()
@@ -37,8 +38,21 @@ export class BookmarkController {
   @Get()
   @RequirePermissions(Permission.BOOKMARK_READ)
   @ApiOperation({ summary: 'List my bookmarked jobs (Candidate only)' })
-  async list(@GetMe('id') userId: string) {
-    const result = await this.queryBus.execute(new ListBookmarksQuery(userId));
-    return ApiResponse.ok(result, 'Bookmarks retrieved successfully');
+  async list(
+    @GetMe('id') userId: string,
+    @Query() pageOptions: PageOptionsDto,
+  ) {
+    const result = await this.queryBus.execute(
+      new ListBookmarksQuery(userId, pageOptions.page, pageOptions.limit),
+    );
+    return ApiResponse.ok(
+      result.bookmarks,
+      'Bookmarks retrieved successfully',
+      {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      },
+    );
   }
 }

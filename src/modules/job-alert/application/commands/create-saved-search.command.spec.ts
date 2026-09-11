@@ -4,7 +4,10 @@ import {
 } from '@/modules/job-alert/application/commands/create-saved-search.command';
 import { ISavedSearchRepository } from '@/modules/job-alert/domain/repositories/saved-search.repository';
 import { ICategoryLookupPort } from '@/modules/job-alert/application/ports/category-lookup.port';
-import { SavedSearchCategoryNotFoundException } from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
+import {
+  SavedSearchCategoryNotFoundException,
+  TooManySavedSearchesException,
+} from '@/modules/job-alert/domain/exceptions/job-alert.exceptions';
 
 describe('CreateSavedSearchHandler', () => {
   let handler: CreateSavedSearchHandler;
@@ -16,6 +19,7 @@ describe('CreateSavedSearchHandler', () => {
       findById: jest.fn(),
       findAll: jest.fn(),
       findAllByUserId: jest.fn(),
+      countByUserId: jest.fn().mockResolvedValue(0),
       findBatch: jest.fn(),
       save: jest.fn(),
       delete: jest.fn(),
@@ -26,6 +30,18 @@ describe('CreateSavedSearchHandler', () => {
       savedSearchRepository,
       categoryLookupPort,
     );
+  });
+
+  it('throws TooManySavedSearchesException at the per-user cap, before even checking the category', async () => {
+    savedSearchRepository.countByUserId.mockResolvedValue(20);
+
+    await expect(
+      handler.execute(
+        new CreateSavedSearchCommand('user-1', { keyword: 'backend' }),
+      ),
+    ).rejects.toThrow(TooManySavedSearchesException);
+    expect(categoryLookupPort.exists).not.toHaveBeenCalled();
+    expect(savedSearchRepository.save).not.toHaveBeenCalled();
   });
 
   it('throws SavedSearchCategoryNotFoundException when the category does not exist', async () => {

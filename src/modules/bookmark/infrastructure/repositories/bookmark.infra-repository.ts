@@ -16,9 +16,16 @@ export class BookmarkInfraRepository implements IBookmarkRepository {
     return BookmarkMapper.toDomain(raw);
   }
 
-  async findAllByUserId(userId: string): Promise<Bookmark[]> {
-    const raws = await this.bookmarkPrisma.findAllByUserId(userId);
-    return raws.map((r) => BookmarkMapper.toDomain(r)!);
+  async findAllByUserId(
+    userId: string,
+    params: { skip: number; take: number },
+  ): Promise<{ bookmarks: Bookmark[]; total: number }> {
+    const { bookmarks: raws, total } =
+      await this.bookmarkPrisma.findAllByUserId(userId, params);
+    return {
+      bookmarks: raws.map((r) => BookmarkMapper.toDomain(r)!),
+      total,
+    };
   }
 
   async save(bookmark: Bookmark): Promise<Bookmark> {

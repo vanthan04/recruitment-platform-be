@@ -5,6 +5,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -22,6 +23,7 @@ import { CreateSavedSearchCommand } from '@/modules/job-alert/application/comman
 import { DeleteSavedSearchCommand } from '@/modules/job-alert/application/commands/delete-saved-search.command';
 import { ListMySavedSearchesQuery } from '@/modules/job-alert/application/queries/list-my-saved-searches.query';
 import { CreateSavedSearchDto } from '@/modules/job-alert/presentation/dtos/create-saved-search.dto';
+import { PageOptionsDto } from '@/common/dtos/page-options.dto';
 
 @ApiTags('saved-searches')
 @ApiBearerAuth()
@@ -49,11 +51,18 @@ export class SavedSearchController {
   @Get()
   @RequirePermissions(Permission.SAVED_SEARCH_READ)
   @ApiOperation({ summary: 'List my saved searches (Candidate only)' })
-  async list(@GetMe('id') userId: string) {
+  async list(
+    @GetMe('id') userId: string,
+    @Query() pageOptions: PageOptionsDto,
+  ) {
     const result = await this.queryBus.execute(
-      new ListMySavedSearchesQuery(userId),
+      new ListMySavedSearchesQuery(userId, pageOptions.page, pageOptions.limit),
     );
-    return ApiResponse.ok(result, 'Saved searches retrieved successfully');
+    return ApiResponse.ok(
+      result.savedSearches,
+      'Saved searches retrieved successfully',
+      { total: result.total, page: result.page, limit: result.limit },
+    );
   }
 
   @Delete(':id')

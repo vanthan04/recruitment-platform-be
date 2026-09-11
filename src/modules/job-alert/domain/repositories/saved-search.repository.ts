@@ -2,7 +2,11 @@ import { SavedSearch } from '@/modules/job-alert/domain/entities/saved-search.en
 
 export abstract class ISavedSearchRepository {
   abstract findById(id: string): Promise<SavedSearch | null>;
-  abstract findAllByUserId(userId: string): Promise<SavedSearch[]>;
+  abstract findAllByUserId(
+    userId: string,
+    params: { skip: number; take: number },
+  ): Promise<{ savedSearches: SavedSearch[]; total: number }>;
+  abstract countByUserId(userId: string): Promise<number>;
   abstract findAll(): Promise<SavedSearch[]>;
   /** Keyset-paginated batch, ordered by id — for the digest cron, which can't afford to load the whole table into memory at once. */
   abstract findBatch(params: {
