@@ -16,11 +16,25 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
+# Production-only node_modules — the `build` stage's node_modules carries
+# every devDependency (typescript, @nestjs/cli, prisma CLI, ...) needed to
+# generate the client and compile, none of which the running app needs.
+FROM node:24-alpine AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
 FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
+# The generated Prisma client (from `npx prisma generate` in the build
+# stage) lives in node_modules/.prisma/client, separate from the
+# @prisma/client package itself — prod-deps' plain `npm ci --omit=dev`
+# installs the package but never runs generate, so this has to come from
+# build explicitly or @prisma/client has nothing to load at runtime.
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json
 # The `node` user/group ships built into the base image (uid/gid 1000) —
