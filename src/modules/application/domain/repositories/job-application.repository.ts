@@ -12,7 +12,10 @@ export abstract class IJobApplicationRepository {
     jobId: string,
     params: { skip: number; take: number },
   ): Promise<{ applications: JobApplication[]; total: number }>;
-  abstract findAllByUserId(userId: string): Promise<JobApplication[]>;
+  abstract findAllByUserId(
+    userId: string,
+    params: { skip: number; take: number },
+  ): Promise<{ applications: JobApplication[]; total: number }>;
   abstract save(application: JobApplication): Promise<JobApplication>;
   abstract update(application: JobApplication): Promise<JobApplication>;
   /**

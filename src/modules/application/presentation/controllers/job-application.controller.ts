@@ -52,11 +52,18 @@ export class JobApplicationController {
   @Get('my-applications')
   @RequirePermissions(Permission.APPLICATION_READ_OWN)
   @ApiOperation({ summary: 'List my applications (Candidate only)' })
-  async listMyApplications(@GetMe('id') userId: string) {
+  async listMyApplications(
+    @GetMe('id') userId: string,
+    @Query() pageOptions: PageOptionsDto,
+  ) {
     const result = await this.queryBus.execute(
-      new ListMyApplicationsQuery(userId),
+      new ListMyApplicationsQuery(userId, pageOptions.page, pageOptions.limit),
     );
-    return ApiResponse.ok(result, 'Applications retrieved successfully');
+    return ApiResponse.ok(
+      result.applications,
+      'Applications retrieved successfully',
+      { total: result.total, page: result.page, limit: result.limit },
+    );
   }
 
   @Get('job/:jobId')

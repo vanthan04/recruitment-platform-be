@@ -44,11 +44,20 @@ export class JobApplicationPrismaRepository {
     return { applications, total };
   }
 
-  async findAllByUserId(userId: string) {
-    return this.prisma.jobApplication.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAllByUserId(
+    userId: string,
+    params: { skip: number; take: number },
+  ) {
+    const [applications, total] = await Promise.all([
+      this.prisma.jobApplication.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip: params.skip,
+        take: params.take,
+      }),
+      this.prisma.jobApplication.count({ where: { userId } }),
+    ]);
+    return { applications, total };
   }
 
   async create(data: Prisma.JobApplicationUncheckedCreateInput) {
