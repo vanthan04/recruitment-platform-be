@@ -205,6 +205,11 @@ model User {
   conversationMemberships   ConversationMember[]
   sentMessages              Message[]
 
+  // No feature queries on this yet — added proactively since a
+  // "list recruiters of a company" feature is a natural fit given
+  // Company.recruiters already exists, and it's the one FK on this model
+  // without any index.
+  @@index([companyId])
   @@map("users")
 }
 
@@ -573,6 +578,8 @@ model RefreshToken {
   userId String
 
   @@index([userId])
+  // Backs CleanupExpiredTokensHandler's daily `expiresAt < now()` delete.
+  @@index([expiresAt])
   @@map("refresh_tokens")
 }
 
@@ -598,6 +605,10 @@ model OauthLoginCode {
   userId    String
 
   @@index([userId])
+  // Nothing purges these by expiry today (CleanupExpiredTokensHandler only
+  // covers refresh/verification tokens) — added proactively so an
+  // expiry-based cleanup can be added later without a migration.
+  @@index([expiresAt])
   @@map("oauth_login_codes")
 }
 
@@ -626,6 +637,8 @@ model VerificationToken {
   userId    String
 
   @@index([userId])
+  // Backs CleanupExpiredTokensHandler's daily `expiresAt < now()` delete.
+  @@index([expiresAt])
   @@map("verification_tokens")
 }
 
