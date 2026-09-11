@@ -11,7 +11,8 @@ export class JobApplication extends BaseEntity {
   coverLetter: string | null;
   userId: string;
   jobId: string;
-  cvId: string;
+  /** Null once the CV that was applied with has been purged (see PurgeDeletedCvsHandler) — the application record itself is preserved. */
+  cvId: string | null;
 
   constructor(partial: Partial<JobApplication>) {
     super();

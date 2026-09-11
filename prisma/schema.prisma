@@ -410,8 +410,12 @@ model JobApplication {
   userId String
   job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
   jobId  String
-  cv     Cv     @relation(fields: [cvId], references: [id], onDelete: Cascade)
-  cvId   String
+  // Nullable + SetNull (not Cascade): purging a candidate's CV must never
+  // take the hiring record — history, interviews, chat — down with it. See
+  // PurgeDeletedCvsHandler; the file is gone from storage by then anyway, so
+  // losing the pointer is fine, losing the application record is not.
+  cv     Cv?    @relation(fields: [cvId], references: [id], onDelete: SetNull)
+  cvId   String?
   conversation Conversation?
   interviewSchedules InterviewSchedule[]
   statusHistory ApplicationStatusHistory[]

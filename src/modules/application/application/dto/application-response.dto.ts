@@ -10,7 +10,8 @@ export class ApplicationResponseDto {
   coverLetter: string | null;
   userId: string;
   jobId: string;
-  cvId: string;
+  /** Null once the CV used to apply has been purged — the application itself is preserved. */
+  cvId: string | null;
   createdAt: Date;
   updatedAt: Date;
   // Optional relations for richness — never populated by any current
