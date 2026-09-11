@@ -21,7 +21,8 @@ export class InterviewSchedule extends BaseEntity {
   meetingLink: string | null;
   note: string | null;
   status: InterviewStatus;
-  createdById: string;
+  /** Null once the recruiter who scheduled it has been deleted — attribution only, never used for ownership checks. */
+  createdById: string | null;
 
   constructor(partial: Partial<InterviewSchedule>) {
     super();

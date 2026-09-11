@@ -214,6 +214,9 @@ model User {
 
 model Company {
   id          String       @id @default(uuid())
+  // GIN trigram index backs the ILIKE '%keyword%' search on name (see
+  // CompanyLookupAdapter) — raw SQL only, same reasoning as Job.title/
+  // description above. See 20260911123000_job_company_search_trgm_index.
   name        String
   slug        String       @unique
   logoUrl     String?
@@ -229,7 +232,12 @@ model Company {
   deletedAt   DateTime?
 
   // Relations
-  owner       User         @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  // Restrict (not Cascade): there is no hard-delete-user feature today, but
+  // if one is ever added, deleting a recruiter must not be able to silently
+  // wipe their company and, transitively, every other candidate's jobs and
+  // applications against it. Block the delete instead — a real
+  // account-deletion flow should reassign or anonymize, not cascade.
+  owner       User         @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   // "1 active company per recruiter" is enforced by a partial unique index
   // (`ownerId` WHERE `deletedAt IS NULL`), not a plain `@unique` here — a
   // recruiter is allowed to create a new company after soft-deleting the
@@ -313,6 +321,10 @@ model Category {
 
 model Job {
   id             String         @id @default(uuid())
+  // GIN trigram indexes back the ILIKE '%keyword%' search on title and
+  // description (see JobInfraRepository) — not expressible in this DSL
+  // without the postgresqlExtensions preview feature, so they exist only
+  // as raw SQL. See 20260911123000_job_company_search_trgm_index.
   title          String
   description    String
   // City/area — required, the only location field used for search/filter.
@@ -345,7 +357,10 @@ model Job {
   deletedAt   DateTime?
 
   // Relations
-  postedBy     User             @relation(fields: [postedById], references: [id], onDelete: Cascade)
+  // Restrict, same reasoning as Company.owner above — deleting the
+  // recruiter who posted a job must never cascade away applications from
+  // unrelated candidates.
+  postedBy     User             @relation(fields: [postedById], references: [id], onDelete: Restrict)
   postedById   String
   company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId    String
@@ -424,6 +439,9 @@ model JobApplication {
   @@index([jobId])
   @@index([jobId, status])
   @@index([userId, createdAt])
+  // Backs hasRecruiterAccess/hasActiveApplicationReference (CvPrismaRepository),
+  // which filter on cvId first for every CV-download authorization check.
+  @@index([cvId])
   @@map("job_applications")
 }
 
@@ -465,8 +483,13 @@ model InterviewSchedule {
   // Relations
   jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
   jobApplicationId String
-  createdBy        User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  createdById      String
+  // Nullable + SetNull, matching ApplicationStatusHistory.changedById —
+  // this is an attribution field, not part of any ownership check
+  // (interview commands authorize against the job's postedById), so it
+  // should be preserved-but-nulled on user deletion, not cascade the whole
+  // interview record away.
+  createdBy        User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById      String?
 
   @@index([jobApplicationId])
   @@index([jobApplicationId, scheduledAt])

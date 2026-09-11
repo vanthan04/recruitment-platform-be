@@ -7,7 +7,7 @@ export class InterviewResponseDto {
   meetingLink: string | null;
   note: string | null;
   status: string;
-  createdById: string;
+  createdById: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
