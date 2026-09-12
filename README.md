@@ -33,9 +33,9 @@ Backend cho một job portal (ứng viên ứng tuyển việc làm, nhà tuyể
 | Validation | `class-validator` / `class-transformer` |
 | Events | `@nestjs/event-emitter` (pub/sub in-process cho notification) |
 | Scheduled jobs | `@nestjs/schedule` (`@Cron`) — chạy in-process, mỗi job 1 class trong `application/jobs/` của module tương ứng |
-| Rate limiting | `@nestjs/throttler`, `ThrottlerStorage` in-memory mặc định |
+| Rate limiting | `@nestjs/throttler`, `ThrottlerStorage` Redis-backed (`REDIS_URL` bắt buộc — xem `env.validation.ts`) |
 | Logging | `nestjs-pino` / `pino-http` — log JSON có cấu trúc, 1 `requestId` nối access log, mọi app log, và error log của cùng 1 request; tự động ẩn secret (mật khẩu, token, header auth/cookie); dev thì pretty-print, production thì JSON thuần |
-| Deployment | 1 AWS EC2 instance chạy liên tục, chạy image Docker — xem [`DEPLOY.md`](DEPLOY.md) và repo riêng `recruitment-platform-infra` (Terraform) |
+| Deployment | Railway, 1 container dài hạn chạy image Docker, deploy tự động qua GitHub integration — xem [`DEPLOY.md`](DEPLOY.md) |
 | File storage | AWS S3 (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`) |
 | Mail | `nodemailer` |
 | Realtime | `socket.io`, `@nestjs/websockets`, `@nestjs/platform-socket.io` |
@@ -138,18 +138,17 @@ Sau khi chạy, Swagger docs ở `http://localhost:8080/api/v1/docs`.
 
 ### Deploy
 
-Production chạy dưới dạng Docker container trên 1 **AWS EC2**
-instance chạy liên tục — cùng entry point `src/main.ts` như dev local,
-chỉ khác là build qua `Dockerfile` và deploy bởi
-`.github/workflows/deploy.yml`. Xem [`DEPLOY.md`](DEPLOY.md) để biết
-setup đầy đủ, và repo riêng `recruitment-platform-infra` cho phần
-Terraform tạo instance, ECR repo, S3 uploads bucket, và SSM Parameter
-Store entries.
+Production chạy dưới dạng Docker container dài hạn trên **Railway** —
+cùng entry point `src/main.ts` như dev local, chỉ khác là build qua
+`Dockerfile` (migrate + seed chạy tự động trong `CMD` trước khi app
+start) và deploy tự động mỗi khi push lên `main` (Railway's GitHub
+integration, khai báo qua `railway.json`). Xem [`DEPLOY.md`](DEPLOY.md)
+để biết setup đầy đủ.
 
 Cron job (`close-expired-jobs.cron.ts`, `job-alert-digest.cron.ts`)
 và rate limiting đều dựa vào việc chạy 1 process liên tục duy nhất —
 không cần điều phối bên ngoài (DynamoDB, EventBridge) như khi deploy
-qua Lambda.
+qua 1 nền tảng serverless/per-request.
 
 ### Testing
 
