@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -40,7 +40,7 @@ describe('Auth session lifecycle + admin guards (e2e)', () => {
       // file alone calls auth endpoints enough times (register/verify/login,
       // repeated per describe block) to legitimately trip a 5-per-60s limit
       // that isn't what this file is testing.
-      .overrideGuard(ThrottlerGuard)
+      .overrideGuard(APP_GUARD)
       .useValue({ canActivate: () => true })
       .compile();
 

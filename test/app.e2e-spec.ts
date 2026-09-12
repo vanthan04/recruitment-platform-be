@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -39,7 +39,7 @@ describe('Job portal core flow (e2e)', () => {
       // 5-per-60s limit, which is a real production value this suite
       // shouldn't need to shrink itself around. Rate limiting behavior isn't
       // what this file is testing.
-      .overrideGuard(ThrottlerGuard)
+      .overrideGuard(APP_GUARD)
       .useValue({ canActivate: () => true })
       .compile();
 

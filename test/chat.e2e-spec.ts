@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -32,7 +32,7 @@ describe('Chat module (e2e)', () => {
       .overrideProvider(IMailService)
       .useValue(mailServiceMock)
       // See app.e2e-spec.ts's matching override for why.
-      .overrideGuard(ThrottlerGuard)
+      .overrideGuard(APP_GUARD)
       .useValue({ canActivate: () => true })
       .compile();
 
