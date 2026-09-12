@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -31,6 +32,15 @@ describe('Job portal core flow (e2e)', () => {
     })
       .overrideProvider(IMailService)
       .useValue(mailServiceMock)
+      // Real (Redis-backed, per env.validation.ts's now-required REDIS_URL)
+      // throttling is shared across every e2e spec file's own app instance
+      // running against the same test infra — the login/register/etc. call
+      // volume across the whole e2e run legitimately exceeds auth.controller.ts's
+      // 5-per-60s limit, which is a real production value this suite
+      // shouldn't need to shrink itself around. Rate limiting behavior isn't
+      // what this file is testing.
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     app = moduleFixture.createNestApplication();

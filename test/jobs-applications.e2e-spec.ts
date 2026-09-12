@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -34,6 +35,9 @@ describe('Jobs & applications — negative paths (e2e)', () => {
     })
       .overrideProvider(IMailService)
       .useValue(mailServiceMock)
+      // See app.e2e-spec.ts's matching override for why.
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     app = moduleFixture.createNestApplication();

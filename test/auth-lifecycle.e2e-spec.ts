@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -34,6 +35,13 @@ describe('Auth session lifecycle + admin guards (e2e)', () => {
     })
       .overrideProvider(IMailService)
       .useValue(mailServiceMock)
+      // See app.e2e-spec.ts's matching override for why: real Redis-backed
+      // throttling is shared across every e2e file's app instance, and this
+      // file alone calls auth endpoints enough times (register/verify/login,
+      // repeated per describe block) to legitimately trip a 5-per-60s limit
+      // that isn't what this file is testing.
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     app = moduleFixture.createNestApplication();
