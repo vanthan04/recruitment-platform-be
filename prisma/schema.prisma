@@ -294,7 +294,11 @@ model Cv {
   originalName String
   fileType     CvFileType
   mimeType     String
-  fileSize     Int?
+  // Every upload path (create-cv.command.ts) always sets this from Multer's
+  // own file.size — nullable only for historical reasons; backfilled to 0
+  // for any pre-existing NULL row by the migration that added this
+  // constraint (see 20260912140000_cv_file_size_required).
+  fileSize     Int
 
   // S3 object identifier — backend-generated, never derived from originalName
   fileKey      String

@@ -20,7 +20,7 @@ export class Cv extends BaseEntity {
   originalName: string;
   fileType: CvFileType;
   mimeType: string;
-  fileSize: number | null;
+  fileSize: number;
   fileKey: string;
   status: CvStatus;
   deletedAt: Date | null;
@@ -30,7 +30,6 @@ export class Cv extends BaseEntity {
     super();
     Object.assign(this, partial);
     this.status = partial.status ?? CvStatus.PUBLISHED;
-    this.fileSize = partial.fileSize ?? null;
     this.deletedAt = partial.deletedAt ?? null;
   }
 

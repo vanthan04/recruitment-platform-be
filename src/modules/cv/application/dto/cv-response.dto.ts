@@ -10,7 +10,7 @@ export class CvResponseDto {
   originalName: string;
   fileType: string;
   mimeType: string;
-  fileSize: number | null;
+  fileSize: number;
   status: string;
   createdAt: Date;
   updatedAt: Date;
