@@ -11,11 +11,16 @@ export const envValidationSchema = Joi.object({
   // bootstrap.ts/socket-io.adapter.ts) but required in production: an
   // operator forgetting to set this would otherwise silently leave the API
   // open to any origin with credentials, which is worse than refusing to
-  // boot.
+  // boot. `.allow('')` only on the dev/`otherwise` branch — a blank value
+  // must still fail `.required()` in production (a `.env` template
+  // represents "not set" as `KEY=`, which the base string type otherwise
+  // rejects as readily as an actually-required field would reject
+  // `undefined`, crashing boot for a reason that reads like this one but
+  // isn't).
   CORS_ORIGIN: Joi.string().when('NODE_ENV', {
     is: 'production',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   LOG_LEVEL: Joi.string()
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
@@ -69,64 +74,71 @@ export const envValidationSchema = Joi.object({
   // own S3-compatible API, configured via the SUPABASE_* vars below instead.
   STORAGE_PROVIDER: Joi.string().valid('s3', 'supabase').default('s3'),
 
+  // `.allow('')` on every `otherwise` branch below, same reasoning as
+  // CORS_ORIGIN above: `.env.example` templates every one of these blank
+  // when the other storage provider is active, and a bare `Joi.optional()`
+  // rejects that blank value exactly as strictly as `.required()` would
+  // reject it missing — crashing boot for whichever provider *isn't*
+  // selected, not just failing to configure the one that is.
   S3_REGION: Joi.string().when('STORAGE_PROVIDER', {
     is: 's3',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   S3_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
     is: 's3',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   S3_ACCESS_KEY: Joi.string().when('STORAGE_PROVIDER', {
     is: 's3',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   S3_SECRET_KEY: Joi.string().when('STORAGE_PROVIDER', {
     is: 's3',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   // Set both when pointing at an S3-compatible endpoint (LocalStack, MinIO,
   // R2); leave unset for real AWS S3.
-  S3_ENDPOINT: Joi.string().optional(),
+  S3_ENDPOINT: Joi.string().allow('').optional(),
   S3_FORCE_PATH_STYLE: Joi.boolean().default(false),
   // Only needed for providers (e.g. Cloudflare R2) where the private SigV4
   // endpoint above can't also serve public GETs — set this to the public
   // domain (r2.dev / custom domain) so upload() returns a fetchable URL.
-  S3_PUBLIC_URL_BASE: Joi.string().optional(),
+  S3_PUBLIC_URL_BASE: Joi.string().allow('').optional(),
 
   // Supabase Storage Configuration (only used when STORAGE_PROVIDER=supabase)
+  // — same `.allow('')` reasoning as the S3_* block above.
   SUPABASE_PROJECT_REF: Joi.string().when('STORAGE_PROVIDER', {
     is: 'supabase',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   SUPABASE_S3_REGION: Joi.string().when('STORAGE_PROVIDER', {
     is: 'supabase',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   SUPABASE_S3_ACCESS_KEY: Joi.string().when('STORAGE_PROVIDER', {
     is: 'supabase',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   SUPABASE_S3_SECRET_KEY: Joi.string().when('STORAGE_PROVIDER', {
     is: 'supabase',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   SUPABASE_STORAGE_BUCKET: Joi.string().when('STORAGE_PROVIDER', {
     is: 'supabase',
     then: Joi.required(),
-    otherwise: Joi.optional(),
+    otherwise: Joi.string().allow('').optional(),
   }),
   // Only needed if the generic /files/upload flow (avatars, chat
   // attachments) is used against Supabase and public reads are enabled.
-  SUPABASE_PUBLIC_URL_BASE: Joi.string().optional(),
+  SUPABASE_PUBLIC_URL_BASE: Joi.string().allow('').optional(),
 
   // Max CV upload size in bytes (default 10MB)
   CV_MAX_FILE_SIZE: Joi.number().default(10 * 1024 * 1024),
