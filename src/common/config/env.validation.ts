@@ -41,6 +41,11 @@ export const envValidationSchema = Joi.object({
   // ConfigService directly, bypassing this schema — it should never trigger
   // via the app's real boot path.)
   REDIS_URL: Joi.string().required(),
+  // Global per-IP request budget (app.module.ts) — leave at the default in
+  // real deployments. Only exists as an env override for e2e CI, where
+  // REDIS_URL being required means this counter is genuinely shared across
+  // every e2e spec file's own app instance in the same run.
+  GLOBAL_THROTTLE_LIMIT: Joi.number().default(60),
   // Failed-login lockout (per email, independent of the IP-based throttler).
   LOGIN_LOCKOUT_MAX_ATTEMPTS: Joi.number().default(10),
   LOGIN_LOCKOUT_WINDOW_SECONDS: Joi.number().default(900),

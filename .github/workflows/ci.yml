@@ -79,6 +79,15 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:password@localhost:5432/recruitment_platform?schema=public
       REDIS_URL: redis://localhost:6379
+      # REDIS_URL being required (env.validation.ts) means these throttle
+      # counters are now genuinely shared, via the one Redis instance above,
+      # across every e2e spec file's own app instance in this run — their
+      # combined request volume (66 total HTTP calls across all four files
+      # at last count) legitimately exceeds both real-deployment defaults
+      # (60 global, 5 on auth endpoints). Raised generously rather than
+      # tuned to the exact current count so the suite has headroom to grow.
+      GLOBAL_THROTTLE_LIMIT: "1000"
+      AUTH_THROTTLE_LIMIT: "1000"
       JWT_SECRET: ci-test-secret
       JWT_EXPIRATION: "900000"
       JWT_REFRESH_SECRET: ci-test-refresh-secret

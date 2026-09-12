@@ -43,6 +43,18 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 const ACCESS_TOKEN_COOKIE = 'access_token';
 const ACCESS_TOKEN_COOKIE_MAX_AGE_MS = 15 * 60 * 1000; // matches AuthService.getTokens' 15m access token expiry
 
+// `@Throttle()` is evaluated once at class-definition time (module load,
+// before Nest's DI container exists), so it can't read this from an
+// injected ConfigService the way every other env-driven value in this
+// codebase does — reading process.env directly here is the standard way to
+// make a decorator argument configurable. Real deployments should never
+// set AUTH_THROTTLE_LIMIT (default 5 is the intended brute-force defense)
+// — ci.yml's e2e job raises it instead, because every e2e spec file's own
+// app instance now shares one real Redis-backed counter across the whole
+// test run (REDIS_URL is required — see env.validation.ts), where each
+// file previously had its own in-memory counter reset per app instance.
+const AUTH_THROTTLE_LIMIT = Number(process.env.AUTH_THROTTLE_LIMIT) || 5;
+
 // Populated by JwtAuthGuard (Passport) from JwtStrategy.validate()'s return
 // value — see jwt.strategy.ts.
 interface AuthenticatedRequest extends Request {
@@ -78,7 +90,7 @@ export class AuthController {
   }
 
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() dto: RegisterRequestDto) {
     const result = await this.authService.register(dto);
@@ -90,7 +102,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Login user' })
   async login(
     @Body() dto: LoginRequestDto,
@@ -103,7 +115,7 @@ export class AuthController {
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Verify email using code' })
   async verify(@Body() dto: VerifyEmailDto) {
     const result = await this.authService.verifyEmail(dto);
@@ -112,7 +124,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Request password reset' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const result = await this.authService.forgotPassword(dto);
@@ -121,7 +133,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Reset password using code' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     const result = await this.authService.resetPassword(dto);
@@ -223,7 +235,7 @@ export class AuthController {
 
   @Post('social/exchange')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Exchange a social-login code for JWT tokens' })
   async socialExchange(
     @Body() dto: SocialExchangeDto,

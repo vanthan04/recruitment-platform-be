@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
@@ -55,9 +55,22 @@ const PRISMA_LOG_LEVELS = isProduction
     RedisModule,
     ThrottlerModule.forRootAsync({
       imports: [RedisModule],
-      inject: [REDIS_CLIENT],
-      useFactory: (redis: Redis | null) => ({
-        throttlers: [{ ttl: 60000, limit: 60 }],
+      inject: [REDIS_CLIENT, ConfigService],
+      useFactory: (redis: Redis | null, configService: ConfigService) => ({
+        // Configurable (default 60) for the same reason
+        // auth.controller.ts's AUTH_THROTTLE_LIMIT is: REDIS_URL is
+        // required, so this counter is now genuinely shared across
+        // whatever's connected to the same Redis — including every e2e
+        // spec file's own app instance in one CI run, whose combined
+        // request volume across the whole suite legitimately exceeds 60.
+        // ci.yml's e2e job raises this; real deployments should leave it
+        // at the default.
+        throttlers: [
+          {
+            ttl: 60000,
+            limit: configService.get<number>('GLOBAL_THROTTLE_LIMIT', 60),
+          },
+        ],
         // Redis-backed storage when available so rate limits are shared
         // across all instances/processes instead of each tracking its own
         // in-memory counters; falls back to the default in-memory storage
