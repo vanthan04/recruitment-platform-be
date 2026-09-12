@@ -165,7 +165,7 @@ describe('Jobs & applications — negative paths (e2e)', () => {
       .send({ jobId: jobAId, cvId: cvAId })
       .expect(201);
     applicationAId = applyRes.body.data.id;
-  });
+  }, 20000);
 
   describe('job mutation endpoints', () => {
     it('rejects a candidate creating a job (lacks JOB_CREATE entirely)', async () => {

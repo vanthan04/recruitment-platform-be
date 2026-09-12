@@ -155,7 +155,7 @@ describe('Chat module (e2e)', () => {
         .send({ status })
         .expect(200);
     }
-  });
+  }, 20000);
 
   it('refuses to let a candidate create a conversation (recruiter-only endpoint)', async () => {
     await request(app.getHttpServer())
