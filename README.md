@@ -19,6 +19,7 @@ Backend cho một job portal (ứng viên ứng tuyển việc làm, nhà tuyể
 - **RBAC (Permission)** — phân quyền role → permission dựa trên DB (`roles`/`permissions`/`role_permissions`); mọi route controller khai báo permission cần thiết qua `@RequirePermissions`, kiểm tra bởi `PermissionGuard` (có cache, đổi quyền không cần deploy lại); có endpoint admin để xem role/permission và thay toàn bộ permission của 1 role.
 - **Chat** — hội thoại realtime giữa candidate và recruiter qua WebSocket (Socket.IO), gắn với 1 job/application (`applicationId`/`jobId`); gửi/sửa/xoá mềm tin nhắn, lịch sử phân trang kiểu cursor, đã đọc, đang gõ, trạng thái online, xác thực WS bằng cookie, giới hạn tốc độ gửi.
 - **Interview scheduling** — recruiter đặt/dời/huỷ/hoàn thành/đánh dấu không đến buổi phỏng vấn cho 1 đơn ứng tuyển (địa điểm trực tiếp `location` và/hoặc `meetingLink` online, cần ít nhất 1 trong 2, `durationMinutes` tuỳ chọn); candidate được gửi email ở mọi thay đổi. Cả 4 hành động sau khi đặt lịch chỉ hợp lệ khi interview còn `SCHEDULED`/`RESCHEDULED` — interview đã `COMPLETED`/`NO_SHOW` không huỷ/dời lại được nữa.
+- **AI Recruitment Agent** — 4 tính năng hỗ trợ recruiter, chỉ recommend/soạn draft, không tự động đổi dữ liệu: **tìm ứng viên phù hợp** cho 1 job (`POST /jobs/:jobId/matching-candidates`, agent LangGraph tự gọi tool để lọc + xếp hạng), **hỏi đáp AI về 1 ứng viên** (`.../candidates/:candidateId/screening-questions`), **gợi ý skill** từ taxonomy có sẵn cho job (`POST /jobs/skill-suggestions`), **soạn draft job posting** từ vài gợi ý (`POST /jobs/draft`). CV được phân tích cấu trúc (skills/kinh nghiệm/học vấn) bất đồng bộ ngay sau khi upload, dùng lại nhiều lần cho các lần tìm kiếm sau — không gửi lại toàn bộ file cho AI mỗi lần. Mỗi tính năng chọn provider AI riêng (Anthropic/OpenAI/Gemini) qua env, xem [API_GUIDE.md §4.14](API_GUIDE.md#414-ai-recruitment-agent-jobs-module-ai).
 
 ## Công nghệ sử dụng
 
@@ -83,6 +84,7 @@ src/
 │   ├── mail/             # Mail provider (Nodemailer)
 │   ├── chat/             # Hội thoại/tin nhắn realtime (Socket.IO gateway, presence)
 │   ├── interview/         # Lịch phỏng vấn (đặt/dời/huỷ/hoàn thành/no-show, email candidate)
+│   ├── ai/               # AI matching/screening/skill-suggestion/job-draft (LangGraph agent + tool)
 │   └── prisma/           # PrismaService dùng chung
 ├── bootstrap.ts      # Setup app Nest dùng chung (helmet, prefix, validation pipe, Swagger, pino logger,
 │                    # exception filter) — dùng trong main.ts
@@ -112,6 +114,8 @@ Tạo file `.env` ở thư mục gốc project:
 | `S3_ENDPOINT` | không | Set khi dùng provider tương thích S3 khác (vd. MinIO, R2) |
 | `CV_MAX_FILE_SIZE` | không (mặc định `10485760`, tức 10MB) | Giới hạn nghiệp vụ cho CV upload, tính bytes (Multer có ceiling cứng 20MB) |
 | `LOG_LEVEL` | không (mặc định `debug` ở dev, `info` ở prod) | `fatal`/`error`/`warn`/`info`/`debug`/`trace`/`silent` |
+| `<CAPABILITY>_AI_PROVIDER` / `<CAPABILITY>_AI_MODEL` | không | 1 cặp cho mỗi tính năng AI (`MATCHING`/`CV_ANALYSIS`/`SCREENING`/`SKILL_SUGGESTION`/`JOB_DRAFT`) — provider là `anthropic`/`openai`/`google`, mỗi tính năng chọn độc lập. Thiếu key của provider đang chọn thì app vẫn chạy, chỉ tính năng đó lỗi lúc gọi. Xem đầy đủ ở `.env.example` |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` | không (cần key của provider nào đang chọn ở trên) | API key theo provider, dùng chung cho mọi tính năng chọn provider đó |
 
 ### Cài đặt
 
@@ -150,7 +154,7 @@ qua Lambda.
 ### Testing
 
 ```bash
-npm test        # unit test (domain entity + command/query handler) — hiện tại 246 test / 62 suite
+npm test        # unit test (domain entity + command/query handler) — hiện tại 460 test / 105 suite
 npm run test:e2e  # e2e: register → verify → login → tạo company/job → upload+publish CV → apply; luồng chat
 ```
 
@@ -160,7 +164,7 @@ Bộ e2e chạy trên `DATABASE_URL` đang cấu hình, mail provider được o
 
 Toàn bộ route có prefix `/api/v1`. Resource root:
 
-`auth`, `users`, `admin/users`, `admin/roles`, `admin/permissions`, `companies`, `categories`, `skills`, `jobs`, `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`, `conversations`, `messages`, `interviews`
+`auth`, `users`, `admin/users`, `admin/roles`, `admin/permissions`, `companies`, `categories`, `skills`, `jobs` (bao gồm `jobs/:jobId/matching-candidates`, `jobs/:jobId/candidates/:candidateId/screening-questions`, `jobs/skill-suggestions`, `jobs/draft` — module `ai`), `cvs`, `job-applications`, `bookmarks`, `notifications`, `saved-searches`, `files`, `conversations`, `messages`, `interviews`
 
 Shape đầy đủ của request/response xem Swagger tại `/api/v1/docs`, hoặc [API_GUIDE.md](API_GUIDE.md) cho phần diễn giải chi tiết theo resource. Chat còn có 1 WebSocket namespace (`/ws`) — xem [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) cho danh sách event.
 

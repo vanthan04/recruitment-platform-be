@@ -363,6 +363,21 @@ Quản lý role → permission mapping (database-driven, đổi quyền không c
 | `GET /admin/roles/:id/permissions` | `ADMIN` | Danh sách permission hiện gán cho role |
 | `PUT /admin/roles/:id/permissions` | `ADMIN` | `{ permissionIds: string[] }` — **thay thế toàn bộ** danh sách permission của role (không phải merge); cache permission (TTL ~30s) sẽ tự invalidate sau khi đổi |
 
+### 4.14. AI Recruitment Agent (`/jobs/...`, module `ai`)
+
+4 tính năng AI-hỗ-trợ (mới, 2026-09-12) — tất cả đều **chỉ recommend, không tự động thay đổi dữ liệu** (không đổi status application, không tự tạo/sửa job, không xoá CV). Recruiter luôn là người quyết định cuối cùng.
+
+| Method & Path | Auth | Body | Ghi chú |
+|---|---|---|---|
+| `POST /jobs/:jobId/matching-candidates` | 🔒 permission `job:match:candidates` | — | Chỉ owner của job. AI xếp hạng ứng viên phù hợp nhất trong pool ứng viên đã phân tích CV — `data`: `{ jobId, matches: [{ candidateId, score, matchedSkills, missingSkills, reason }] }` |
+| `POST /jobs/:jobId/candidates/:candidateId/screening-questions` | 🔒 permission `candidate:screen` | `{ question, priorMessages? }` | Chỉ owner của job. Hỏi đáp tự do về 1 ứng viên cụ thể — `priorMessages?: { role: 'user'\|'assistant', content }[]` để tiếp tục hội thoại (client tự giữ lịch sử, backend không lưu). `data`: `{ jobId, candidateId, answer }` |
+| `POST /jobs/skill-suggestions` | 🔒 permission `job:create` | `{ title?, description }` | Gợi ý skill có thật trong taxonomy hiện có (không bịa skill mới) khớp với mô tả job — `data`: `{ suggestedSkills: { id, name, slug }[] }` |
+| `POST /jobs/draft` | 🔒 permission `job:create` | `{ hints }` | Soạn draft job posting từ vài gợi ý ngắn — **không tự tạo job**, FE cho recruiter sửa lại rồi gọi `POST /jobs` như bình thường. `data`: `{ title, description, requirements: string[], benefits: string[] }` |
+
+⚠️ **CV chỉ "sẵn sàng cho matching/screening" sau khi được phân tích xong** — mỗi CV upload xong sẽ được phân tích cấu trúc (skills/experience/education) bất đồng bộ (event + cron dọn định kỳ), không phải ngay lập tức. Một CV vừa upload có thể chưa xuất hiện trong kết quả `matching-candidates` trong vài giây/phút đầu.
+
+⚠️ **Cần cấu hình API key mới dùng được** — mỗi tính năng trong 4 tính năng trên chọn provider AI riêng qua env (`MATCHING_AI_PROVIDER`/`SCREENING_AI_PROVIDER`/`SKILL_SUGGESTION_AI_PROVIDER`/`JOB_DRAFT_AI_PROVIDER`, giá trị `anthropic`/`openai`/`google`, xem `.env.example`). Nếu API key của provider tương ứng chưa cấu hình, app vẫn khởi động bình thường — chỉ endpoint đó trả lỗi `503` (`code: AI_PROVIDER_ERROR`/`AI_PROVIDER_TIMEOUT`/`AI_INVALID_OUTPUT`) khi gọi.
+
 ---
 
 ## 5. Enums tham khảo nhanh
@@ -387,6 +402,7 @@ Quản lý role → permission mapping (database-driven, đổi quyền không c
 | `MessageType` | `TEXT`, `IMAGE`, `FILE`, `SYSTEM` (chỉ server tạo, không nhận từ client) |
 | `ChatParticipantRole` | `CANDIDATE`, `RECRUITER` |
 | `InterviewStatus` (thêm `COMPLETED`/`NO_SHOW`) | `SCHEDULED`, `RESCHEDULED`, `COMPLETED`, `CANCELLED`, `NO_SHOW` |
+| `CvAnalysisStatus` (nội bộ module `ai`, không expose qua API) | `PENDING`, `COMPLETED`, `FAILED` |
 
 `industry` (free-text field cũ trên `Company`) đã bị xoá hoàn toàn khỏi schema — không còn trong danh sách enum/field nào.
 
@@ -405,3 +421,4 @@ Quản lý role → permission mapping (database-driven, đổi quyền không c
 9. ~~`Company.companyType` chưa có trong DTO nào~~ — **đã fix**: `companyType` (`PRODUCT`/`OUTSOURCING`/`STARTUP`/`CONSULTING`) đã nhận/trả được qua `POST/PATCH /companies` và response `Company` (mục 4.2).
 10. **Company chỉ chặn trùng owner ở mức "1 công ty đang active"** — soft-delete công ty cũ rồi tạo công ty mới vẫn được (ràng buộc unique ở DB là partial index `WHERE deletedAt IS NULL`, không phải unique tuyệt đối trên `ownerId`).
 11. **Lỗi trùng dữ liệu race-condition trả `409 DUPLICATE_ENTITY`** — nếu 2 request gần như đồng thời cùng vi phạm 1 ràng buộc unique ở DB (vd. apply 2 lần cùng lúc, tạo 2 company cùng lúc), request thua sẽ nhận `409` với `code: "DUPLICATE_ENTITY"` thay vì lỗi nghiệp vụ cụ thể hơn (vd. không phải luôn là `ALREADY_APPLIED`) — FE nên xử lý `DUPLICATE_ENTITY` như 1 trường hợp chung "dữ liệu đã tồn tại, thử tải lại".
+12. **`matching-candidates` có thể trả `matches: []` dù job rõ ràng có ứng viên phù hợp** — không phải lỗi, nghĩa là chưa có CV nào trong pool được phân tích xong (`CvAnalysisStatus=COMPLETED`) khớp yêu cầu, hoặc job chưa gắn skill nào. Không nên hiển thị như lỗi, hiển thị như "chưa có kết quả, thử lại sau".
