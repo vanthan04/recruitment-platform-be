@@ -137,15 +137,17 @@ lưu SSH key nào cho CI) để yêu cầu instance đang chạy pull image mớ
 đọc lại biến môi trường hiện tại từ SSM Parameter Store, và restart
 container.
 
-Trước khi khởi động container mới, `deploy-remote.sh` chạy `npm run
-db:seed` của chính image đó (qua `docker run --rm --entrypoint npm`) để
-đảm bảo bảng `permissions`/`role_permissions` luôn khớp với code đang
-deploy — thiếu bước này thì `PermissionGuard` chặn mọi route có gắn
+Trước khi khởi động container mới, `deploy-remote.sh` chạy `npx prisma
+migrate deploy` rồi `npm run db:seed` của chính image đó (qua `docker
+run --rm --entrypoint ...`) để đảm bảo schema DB và bảng
+`permissions`/`role_permissions` luôn khớp với code đang deploy —
+thiếu seed thì `PermissionGuard` chặn mọi route có gắn
 `@RequirePermissions` (kể cả `GET /users/me`) mà không có lỗi boot nào
-báo hiệu, vì mọi thứ trong `seed.ts` đều dùng `upsert` nên chạy lại mỗi
-lần deploy là an toàn. **Migration DB (`prisma migrate deploy`) thì
-chưa được tự động hoá** — vẫn phải áp dụng bằng tay trước khi trigger
-deploy.
+báo hiệu; thiếu migration thì container mới chạy nhưng crash ở query
+đầu tiên đụng cột/bảng chưa tồn tại. `prisma migrate deploy` chỉ áp
+dụng các migration đã commit sẵn (không tự sinh migration mới) và là
+no-op nếu DB đã cập nhật, nên chạy lại mỗi lần deploy là an toàn —
+giống hệt lý do `seed.ts` dùng toàn `upsert`.
 
 `deploy-remote.sh` không tin tưởng mù quáng rằng `docker run -d` trả
 về thành công nghĩa là app đã lên đúng — nó poll `/api/v1/healthcheck`

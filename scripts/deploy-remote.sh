@@ -42,6 +42,21 @@ run_container() {
     "$image"
 }
 
+# Was a manual pre-deploy step (see DEPLOY.md history) — easy to forget,
+# and forgetting it doesn't fail loudly: the old container keeps serving
+# traffic against a stale schema until the new image's first query against
+# a missing column/table blows up at request time instead of at deploy
+# time. `prisma migrate deploy` only applies already-committed, already
+# reviewed migrations (it never generates new ones), and is safe to run
+# every deploy — a no-op when the DB is already up to date.
+run_migrations() {
+  local image="$1"
+  docker run --rm \
+    "${ENV_ARGS[@]}" \
+    --entrypoint npx \
+    "$image" prisma migrate deploy
+}
+
 # RBAC roles/permissions live in the DB (see prisma/seed.ts), not in code
 # the app can fall back on — a fresh or migrated DB with an empty
 # `permissions`/`role_permissions` table makes PermissionGuard reject every
@@ -69,12 +84,12 @@ wait_for_healthy() {
   return 1
 }
 
-if seed_rbac "$IMAGE" && run_container "$IMAGE" && wait_for_healthy; then
+if run_migrations "$IMAGE" && seed_rbac "$IMAGE" && run_container "$IMAGE" && wait_for_healthy; then
   echo "Deploy succeeded: $IMAGE is healthy."
   mkdir -p "$(dirname "$LAST_GOOD_IMAGE_FILE")"
   echo "$IMAGE" > "$LAST_GOOD_IMAGE_FILE"
 else
-  echo "New image failed to seed RBAC data or its health check within ${HEALTHCHECK_TIMEOUT_SECONDS}s — rolling back." >&2
+  echo "New image failed to migrate/seed its DB or its health check within ${HEALTHCHECK_TIMEOUT_SECONDS}s — rolling back." >&2
   docker logs --tail 100 "$CONTAINER_NAME" >&2 || true
 
   if [ -f "$LAST_GOOD_IMAGE_FILE" ]; then

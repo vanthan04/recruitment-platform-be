@@ -33,6 +33,13 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 // browser has no way to attach an Authorization header to a WS handshake,
 // so this is the only channel it has. REST calls keep using the JSON-body
 // access_token as a Bearer header, same as always; this cookie is additive.
+//
+// This is NOT the same cookie the frontend's own BFF layer manages (see
+// recruitment-platform-fe's lib/middlewares/session.middleware.ts) — that
+// one lives on the *frontend's* domain and is read by its server-only API
+// client for its own Node-to-Node calls to this API, which never relay a
+// Set-Cookie back to the browser. Two separate cookies, two separate
+// origins, two separate purposes; don't try to collapse them into one.
 const ACCESS_TOKEN_COOKIE = 'access_token';
 const ACCESS_TOKEN_COOKIE_MAX_AGE_MS = 15 * 60 * 1000; // matches AuthService.getTokens' 15m access token expiry
 
