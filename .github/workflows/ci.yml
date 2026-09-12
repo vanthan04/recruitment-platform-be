@@ -20,8 +20,15 @@ jobs:
       # codebase (never enforced) — report only, don't block on it yet.
       - run: npx eslint "{src,apps,libs,test}/**/*.ts"
         continue-on-error: true
-      # Report-only: surface known-vulnerable dependencies without blocking
-      # the build on transitive advisories the team hasn't triaged yet.
+      # Blocking at the critical threshold: nothing in the tree is currently
+      # critical, so this can't false-fail. High-severity stays report-only
+      # since the only two left (deepmerge-ts via @prisma/config, mysql2 via
+      # prisma's own multi-driver support) are Prisma-CLI-only transitive
+      # deps this app never exercises at runtime (datasource is postgresql
+      # only, prisma.config.ts is static, not attacker-influenced) — the
+      # audit's own suggested "fix" is a Prisma major-version *downgrade*,
+      # which would be a worse trade than living with these two for now.
+      - run: npm audit --audit-level=critical
       - run: npm audit --audit-level=high
         continue-on-error: true
       - run: npm run build

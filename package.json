@@ -54,7 +54,7 @@
     "joi": "^18.1.2",
     "mammoth": "^1.12.2",
     "nestjs-pino": "^5.1.0",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^10.0.8",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
@@ -96,6 +96,9 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0"
+  },
+  "overrides": {
+    "multer": "^2.3.0"
   },
   "jest": {
     "moduleFileExtensions": [
