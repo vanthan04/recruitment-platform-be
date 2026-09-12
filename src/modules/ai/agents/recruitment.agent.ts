@@ -15,8 +15,9 @@ import {
   GraphRecursionError,
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { CHAT_MODEL } from '@/modules/ai/infrastructure/providers/chat-model.provider';
-import { ToolRegistry } from '@/modules/ai/tools/tool-registry';
+import { MATCHING_CHAT_MODEL } from '@/modules/ai/infrastructure/providers/chat-model.provider';
+import { translateProviderError } from '@/modules/ai/infrastructure/providers/provider-error.util';
+import { MatchingToolRegistry } from '@/modules/ai/tools/matching-tool-registry';
 import { buildRecruitmentSystemPrompt } from '@/modules/ai/prompts/recruitment.prompt';
 import {
   matchingResultSchema,
@@ -26,7 +27,6 @@ import {
 } from '@/modules/ai/schemas/matching-result.schema';
 import {
   AiProviderException,
-  AiTimeoutException,
   InvalidAiOutputException,
 } from '@/modules/ai/domain/exceptions/ai.exceptions';
 
@@ -41,12 +41,12 @@ type GraphState = typeof MessagesAnnotation.State;
 /**
  * Single recruitment agent, orchestrated as a small LangGraph StateGraph:
  * "agent" (calls the model with tools bound) <-> "tools" (executes the
- * ToolRegistry's tools) until the model calls submit_matching_result or
+ * MatchingToolRegistry's tools) until the model calls submit_matching_result or
  * stops calling tools. Deliberately ONE agent node today — adding a second
  * agent later means adding another node/edge to this same graph (or
  * composing a subgraph), not restructuring how this one works.
  *
- * Only tools present in the ToolRegistry it's given can ever be executed —
+ * Only tools present in the MatchingToolRegistry it's given can ever be executed —
  * they're the only ones passed into the ToolNode below. submit_matching_result
  * is bound to the model so it CAN be called, but is intentionally excluded
  * from the ToolNode: it never "runs" against a domain service, it's a
@@ -59,10 +59,12 @@ type GraphState = typeof MessagesAnnotation.State;
 export class RecruitmentAgent {
   private readonly logger = new Logger(RecruitmentAgent.name);
 
-  constructor(@Inject(CHAT_MODEL) private readonly model: BaseChatModel) {}
+  constructor(
+    @Inject(MATCHING_CHAT_MODEL) private readonly model: BaseChatModel,
+  ) {}
 
   async run(
-    tools: ToolRegistry,
+    tools: MatchingToolRegistry,
     maxCandidates: number,
   ): Promise<MatchingResult> {
     const system = buildRecruitmentSystemPrompt(maxCandidates);
@@ -113,7 +115,7 @@ export class RecruitmentAgent {
           'The AI provider did not produce a result within the allowed number of tool-call rounds',
         );
       }
-      throw this.translateProviderError(error);
+      throw translateProviderError(error, this.logger);
     }
 
     return this.extractSubmission(finalMessages);
@@ -211,26 +213,5 @@ export class RecruitmentAgent {
     } catch {
       return [];
     }
-  }
-
-  private translateProviderError(error: unknown): Error {
-    const err = error as { name?: string; status?: number; message?: string };
-    if (err?.name === 'APIConnectionTimeoutError') {
-      this.logger.error(`Anthropic request timed out: ${err.message}`);
-      return new AiTimeoutException();
-    }
-    if (typeof err?.status === 'number') {
-      // The real provider error (status, request id, raw body) is logged
-      // server-side only — see ai.exceptions.ts's file-level doc comment.
-      this.logger.error(
-        `Anthropic API error (status ${err.status}): ${err.message}`,
-      );
-      return new AiProviderException();
-    }
-    this.logger.error(
-      `Unexpected error calling Anthropic: ${(error as Error)?.message}`,
-      (error as Error)?.stack,
-    );
-    return new AiProviderException();
   }
 }

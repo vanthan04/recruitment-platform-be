@@ -7,7 +7,7 @@ import { ensureOwner } from '@/common/utils/ownership.util';
 import { ICvAnalysisRepository } from '@/modules/ai/domain/repositories/cv-analysis.repository';
 import { normalizeSkills } from '@/modules/ai/domain/entities/cv-analysis.entity';
 import { RecruitmentAgent } from '@/modules/ai/agents/recruitment.agent';
-import { ToolRegistry } from '@/modules/ai/tools/tool-registry';
+import { MatchingToolRegistry } from '@/modules/ai/tools/matching-tool-registry';
 import { ToolContext } from '@/modules/ai/tools/ai-tool.interface';
 
 export interface CandidateMatch {
@@ -97,7 +97,7 @@ export class AiMatchingService {
       jobId,
       maxCandidates,
     };
-    const registry = new ToolRegistry(toolContext);
+    const registry = new MatchingToolRegistry(toolContext);
 
     const result = await this.recruitmentAgent.run(registry, maxCandidates);
 

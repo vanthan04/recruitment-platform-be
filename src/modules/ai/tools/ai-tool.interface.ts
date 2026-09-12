@@ -13,4 +13,13 @@ export interface ToolContext {
   recruiterId: string;
   jobId: string;
   maxCandidates: number;
+  /**
+   * Set only when exactly one candidate is already the subject of the
+   * conversation (screening Q&A) — when present, get_candidate ignores
+   * whatever candidateId the model passes and always uses this one, same
+   * "never trust the LLM for a scoping value we already know" rule as
+   * get_job's jobId. Left undefined for matching, where the candidate
+   * genuinely varies call to call and must come from search results.
+   */
+  candidateId?: string;
 }

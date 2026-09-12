@@ -2,7 +2,7 @@ import { AIMessage } from '@langchain/core/messages';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { QueryBus } from '@nestjs/cqrs';
 import { RecruitmentAgent } from '@/modules/ai/agents/recruitment.agent';
-import { ToolRegistry } from '@/modules/ai/tools/tool-registry';
+import { MatchingToolRegistry } from '@/modules/ai/tools/matching-tool-registry';
 import { ICvAnalysisRepository } from '@/modules/ai/domain/repositories/cv-analysis.repository';
 import {
   AiProviderException,
@@ -33,7 +33,7 @@ function makeFakeModel(
   return { bindTools: () => ({ invoke }) } as unknown as BaseChatModel;
 }
 
-function makeToolRegistry(): ToolRegistry {
+function makeToolRegistry(): MatchingToolRegistry {
   const queryBus = { execute: jest.fn() } as unknown as QueryBus;
   const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
     findByCvId: jest.fn(),
@@ -45,7 +45,7 @@ function makeToolRegistry(): ToolRegistry {
     findCandidateByUserId: jest.fn(),
     findCvFileInfo: jest.fn(),
   };
-  return new ToolRegistry({
+  return new MatchingToolRegistry({
     queryBus,
     cvAnalysisRepository,
     recruiterId: 'recruiter-1',

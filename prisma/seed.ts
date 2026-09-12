@@ -15,10 +15,21 @@ const ROLES = [
 const PERMISSIONS = [
   // job
   { name: 'job:create', description: 'Create a job posting' },
-  { name: 'job:update', description: 'Update a job posting (incl. close/reopen)' },
+  {
+    name: 'job:update',
+    description: 'Update a job posting (incl. close/reopen)',
+  },
   { name: 'job:delete', description: 'Delete a job posting' },
   { name: 'job:read:own', description: 'List own job postings, any status' },
-  { name: 'job:match:candidates', description: 'Run AI candidate matching for own job posting' },
+  {
+    name: 'job:match:candidates',
+    description: 'Run AI candidate matching for own job posting',
+  },
+  {
+    name: 'candidate:screen',
+    description:
+      'Ask AI screening questions about a candidate for own job posting',
+  },
   // company
   { name: 'company:create', description: 'Create a company' },
   { name: 'company:update', description: 'Update a company' },
@@ -32,7 +43,10 @@ const PERMISSIONS = [
   { name: 'skill:update', description: 'Update a skill' },
   { name: 'skill:delete', description: 'Delete a skill' },
   // saved search / job alert
-  { name: 'saved-search:create', description: 'Create a saved job search / alert' },
+  {
+    name: 'saved-search:create',
+    description: 'Create a saved job search / alert',
+  },
   { name: 'saved-search:read', description: 'List own saved job searches' },
   { name: 'saved-search:delete', description: 'Delete own saved job search' },
   // bookmark
@@ -43,26 +57,44 @@ const PERMISSIONS = [
   { name: 'user:update', description: "Update a user's status/role (admin)" },
   // job application
   { name: 'application:create', description: 'Apply for a job' },
-  { name: 'application:read', description: 'Read applications for jobs the recruiter owns' },
+  {
+    name: 'application:read',
+    description: 'Read applications for jobs the recruiter owns',
+  },
   { name: 'application:read:own', description: 'Read own job applications' },
-  { name: 'application:update', description: 'Update an application status (recruiter)' },
-  { name: 'application:withdraw:own', description: 'Withdraw own job application' },
+  {
+    name: 'application:update',
+    description: 'Update an application status (recruiter)',
+  },
+  {
+    name: 'application:withdraw:own',
+    description: 'Withdraw own job application',
+  },
   // cv
   { name: 'cv:create', description: 'Create a CV' },
   { name: 'cv:read:own', description: 'List own CVs' },
   { name: 'cv:update:own', description: 'Update/publish/upload own CV' },
   { name: 'cv:delete:own', description: 'Delete own CV' },
   // chat
-  { name: 'conversation:create', description: 'Start a conversation for an accepted application' },
+  {
+    name: 'conversation:create',
+    description: 'Start a conversation for an accepted application',
+  },
   // interview
   { name: 'interview:create', description: 'Schedule an interview' },
   { name: 'interview:update', description: 'Reschedule/cancel an interview' },
-  { name: 'interview:read', description: 'View interviews for a job application' },
+  {
+    name: 'interview:read',
+    description: 'View interviews for a job application',
+  },
   // profile (self-service, available to every role)
   { name: 'profile:read:own', description: 'Read own profile' },
   { name: 'profile:update:own', description: 'Update own profile' },
   // RBAC administration
-  { name: 'role:permission:manage', description: 'View/manage role -> permission assignments (admin)' },
+  {
+    name: 'role:permission:manage',
+    description: 'View/manage role -> permission assignments (admin)',
+  },
 ] as const;
 
 // IT-only for now — platform is scoped to IT recruitment (see
@@ -73,7 +105,10 @@ const CATEGORIES = [
   { name: 'Lập trình Backend', slug: 'lap-trinh-backend' },
   { name: 'Lập trình Mobile', slug: 'lap-trinh-mobile' },
   { name: 'DevOps / SRE', slug: 'devops-sre' },
-  { name: 'Kiểm thử phần mềm (QA/Tester)', slug: 'kiem-thu-phan-mem-qa-tester' },
+  {
+    name: 'Kiểm thử phần mềm (QA/Tester)',
+    slug: 'kiem-thu-phan-mem-qa-tester',
+  },
   { name: 'Dữ liệu & AI', slug: 'du-lieu-ai' },
   { name: 'An ninh mạng (Security)', slug: 'an-ninh-mang-security' },
   { name: 'Business Analyst / Product', slug: 'business-analyst-product' },
@@ -136,6 +171,7 @@ const ROLE_PERMISSIONS: Record<(typeof ROLES)[number]['name'], string[]> = {
     'job:delete',
     'job:read:own',
     'job:match:candidates',
+    'candidate:screen',
     'company:create',
     'company:update',
     'company:delete',

@@ -6,7 +6,7 @@ import { ICvAnalysisRepository } from '@/modules/ai/domain/repositories/cv-analy
 import { CvAnalysis } from '@/modules/ai/domain/entities/cv-analysis.entity';
 import { ICvStoragePort } from '@/modules/cv/application/ports/cv-storage.port';
 import { CvTextExtractor } from '@/modules/ai/infrastructure/text-extraction/cv-text-extractor';
-import { CHAT_MODEL } from '@/modules/ai/infrastructure/providers/chat-model.provider';
+import { CV_ANALYSIS_CHAT_MODEL } from '@/modules/ai/infrastructure/providers/chat-model.provider';
 import { CV_ANALYSIS_SYSTEM_PROMPT } from '@/modules/ai/prompts/cv-analysis.prompt';
 import {
   CvAnalysisExtraction,
@@ -41,7 +41,7 @@ export class CvAnalysisService {
     private readonly cvStorage: ICvStoragePort,
     private readonly textExtractor: CvTextExtractor,
     private readonly configService: ConfigService,
-    @Inject(CHAT_MODEL) private readonly chatModel: BaseChatModel,
+    @Inject(CV_ANALYSIS_CHAT_MODEL) private readonly chatModel: BaseChatModel,
   ) {
     this.model = this.configService.get<string>('AI_MODEL', 'claude-sonnet-5');
   }

@@ -131,18 +131,46 @@ export const envValidationSchema = Joi.object({
   // Max CV upload size in bytes (default 10MB)
   CV_MAX_FILE_SIZE: Joi.number().default(10 * 1024 * 1024),
 
-  // AI Recruitment Agent (Find Matching CVs) — see src/ai. Optional so the
-  // app still boots without it configured; the matching endpoint and the
-  // CV-analysis pipeline just fail at call time until a real key is set,
-  // same reasoning as the OAuth vars above.
-  AI_PROVIDER: Joi.string().valid('anthropic').default('anthropic'),
-  AI_MODEL: Joi.string().default('claude-sonnet-5'),
-  AI_API_KEY: Joi.string().allow('').optional(),
+  // AI features — see src/modules/ai. Optional so the app still boots
+  // without any of this configured; each AI endpoint just fails at call
+  // time until its provider's API key is set, same reasoning as the OAuth
+  // vars above.
+  //
+  // Each capability picks its own provider/model independently — e.g.
+  // matching can run on Claude while screening runs on GPT — see
+  // chat-model.provider.ts's buildChatModel(). Whichever provider a
+  // capability names, its API key always comes from the corresponding
+  // provider-keyed var below (ANTHROPIC_API_KEY etc.), not a per-capability key.
+  MATCHING_AI_PROVIDER: Joi.string()
+    .valid('anthropic', 'openai', 'google')
+    .default('anthropic'),
+  MATCHING_AI_MODEL: Joi.string().optional(),
+  CV_ANALYSIS_AI_PROVIDER: Joi.string()
+    .valid('anthropic', 'openai', 'google')
+    .default('anthropic'),
+  CV_ANALYSIS_AI_MODEL: Joi.string().optional(),
+  SCREENING_AI_PROVIDER: Joi.string()
+    .valid('anthropic', 'openai', 'google')
+    .default('anthropic'),
+  SCREENING_AI_MODEL: Joi.string().optional(),
+  SKILL_SUGGESTION_AI_PROVIDER: Joi.string()
+    .valid('anthropic', 'openai', 'google')
+    .default('anthropic'),
+  SKILL_SUGGESTION_AI_MODEL: Joi.string().optional(),
+  JOB_DRAFT_AI_PROVIDER: Joi.string()
+    .valid('anthropic', 'openai', 'google')
+    .default('anthropic'),
+  JOB_DRAFT_AI_MODEL: Joi.string().optional(),
+  ANTHROPIC_API_KEY: Joi.string().allow('').optional(),
+  OPENAI_API_KEY: Joi.string().allow('').optional(),
+  GOOGLE_API_KEY: Joi.string().allow('').optional(),
+  // Shared across every capability — only provider/model differ per capability.
+  AI_TEMPERATURE: Joi.number().min(0).max(1).default(0.2),
+  AI_REQUEST_TIMEOUT_MS: Joi.number().default(30_000),
+  AI_MAX_RESPONSE_TOKENS: Joi.number().default(4096),
   // Upper bound on how many deterministically-filtered candidates are ever
   // sent to the LLM for one matching request.
   AI_MAX_CANDIDATES: Joi.number().default(30),
-  AI_TEMPERATURE: Joi.number().min(0).max(1).default(0.2),
-  AI_REQUEST_TIMEOUT_MS: Joi.number().default(30_000),
   // Safety-net cron batch size — see AnalyzePendingCvsCron.
   AI_ANALYSIS_BATCH_SIZE: Joi.number().default(20),
 });

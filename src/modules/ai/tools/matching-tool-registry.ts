@@ -7,13 +7,14 @@ import { createGetCvAnalysisTool } from '@/modules/ai/tools/get-cv-analysis.tool
 import { createGetApplicationsTool } from '@/modules/ai/tools/get-applications.tool';
 
 /**
- * The agent's explicit tool allow-list, built fresh per request from an
- * already-authorized ToolContext. RecruitmentAgent binds these (plus the
- * separate, never-executed submit_matching_result tool) to the model and
- * builds its LangGraph ToolNode from exactly this list — nothing outside
- * this registry can ever be executed.
+ * RecruitmentAgent's (matching) explicit tool allow-list, built fresh per
+ * request from an already-authorized ToolContext. The agent binds these
+ * (plus the separate, never-executed submit_matching_result tool) to the
+ * model and builds its LangGraph ToolNode from exactly this list — nothing
+ * outside this registry can ever be executed. See ScreeningToolRegistry for
+ * the smaller set used by candidate screening Q&A.
  */
-export class ToolRegistry {
+export class MatchingToolRegistry {
   readonly tools: StructuredToolInterface[];
 
   constructor(context: ToolContext) {
