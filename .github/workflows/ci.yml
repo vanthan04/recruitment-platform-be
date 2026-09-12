@@ -65,8 +65,20 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # REDIS_URL is required (see env.validation.ts) — the app won't boot
+      # without it, e2e included.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:password@localhost:5432/recruitment_platform?schema=public
+      REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-test-secret
       JWT_EXPIRATION: "900000"
       JWT_REFRESH_SECRET: ci-test-refresh-secret

@@ -41,6 +41,23 @@ services:
       timeout: 5s
       retries: 10
 
+  # REDIS_URL is required (see env.validation.ts) — distributed rate-limit
+  # storage and account login-lockout tracking both depend on it. Matches
+  # `REDIS_URL=redis://localhost:6379` in .env.example. Swap for a real
+  # Upstash URL instead of running this locally if you'd rather not.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
   localstack_data:
+  redis_data:
