@@ -141,26 +141,33 @@ export const envValidationSchema = Joi.object({
   // chat-model.provider.ts's buildChatModel(). Whichever provider a
   // capability names, its API key always comes from the corresponding
   // provider-keyed var below (ANTHROPIC_API_KEY etc.), not a per-capability key.
+  // `.allow('')` on every *_AI_MODEL below matters for the same reason it
+  // does on the OAuth vars above: `.env.example` documents leaving these
+  // blank to mean "use the provider's default" (see chat-model.provider.ts),
+  // which a `.env` file represents as `KEY=` (empty string), not an absent
+  // line — plain `.optional()` only tolerates `undefined` and would crash
+  // the entire app at boot on a literal empty value, not just fail the one
+  // AI capability that left it blank.
   MATCHING_AI_PROVIDER: Joi.string()
     .valid('anthropic', 'openai', 'google')
-    .default('anthropic'),
-  MATCHING_AI_MODEL: Joi.string().optional(),
+    .default('google'),
+  MATCHING_AI_MODEL: Joi.string().allow('').optional(),
   CV_ANALYSIS_AI_PROVIDER: Joi.string()
     .valid('anthropic', 'openai', 'google')
-    .default('anthropic'),
-  CV_ANALYSIS_AI_MODEL: Joi.string().optional(),
+    .default('google'),
+  CV_ANALYSIS_AI_MODEL: Joi.string().allow('').optional(),
   SCREENING_AI_PROVIDER: Joi.string()
     .valid('anthropic', 'openai', 'google')
-    .default('anthropic'),
-  SCREENING_AI_MODEL: Joi.string().optional(),
+    .default('google'),
+  SCREENING_AI_MODEL: Joi.string().allow('').optional(),
   SKILL_SUGGESTION_AI_PROVIDER: Joi.string()
     .valid('anthropic', 'openai', 'google')
-    .default('anthropic'),
-  SKILL_SUGGESTION_AI_MODEL: Joi.string().optional(),
+    .default('google'),
+  SKILL_SUGGESTION_AI_MODEL: Joi.string().allow('').optional(),
   JOB_DRAFT_AI_PROVIDER: Joi.string()
     .valid('anthropic', 'openai', 'google')
-    .default('anthropic'),
-  JOB_DRAFT_AI_MODEL: Joi.string().optional(),
+    .default('google'),
+  JOB_DRAFT_AI_MODEL: Joi.string().allow('').optional(),
   ANTHROPIC_API_KEY: Joi.string().allow('').optional(),
   OPENAI_API_KEY: Joi.string().allow('').optional(),
   GOOGLE_API_KEY: Joi.string().allow('').optional(),

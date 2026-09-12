@@ -63,14 +63,27 @@ export function buildChatModel(
   configService: ConfigService,
   capability: AiCapability,
 ): BaseChatModel {
+  // 'google' here only matters if this ever runs against a ConfigService
+  // that skipped Joi validation (e.g. constructed directly in a test) — in
+  // the real app, env.validation.ts's own `.default('google')` has already
+  // filled this in by the time ConfigModule exposes it, so this is a
+  // fallback of a fallback. Keep both in sync when changing the project's
+  // default provider.
   const provider = configService.get<string>(
     `${capability}_AI_PROVIDER`,
-    'anthropic',
+    'google',
   );
-  const model = configService.get<string>(
-    `${capability}_AI_MODEL`,
-    DEFAULT_MODEL_BY_PROVIDER[provider] ?? DEFAULT_MODEL_BY_PROVIDER.anthropic,
-  );
+  // Not `configService.get(key, default)` — ConfigService only falls back
+  // to the default value for `undefined`, not for an empty string, and
+  // `.env.example` documents leaving *_AI_MODEL blank (i.e. `KEY=`, which is
+  // an empty string, not an absent key) to mean "use this provider's
+  // default". `||` treats both "absent" and "blank" as "use the default",
+  // matching what the docs actually promise.
+  const modelOverride = configService.get<string>(`${capability}_AI_MODEL`);
+  const model =
+    modelOverride ||
+    DEFAULT_MODEL_BY_PROVIDER[provider] ||
+    DEFAULT_MODEL_BY_PROVIDER.google;
   const temperature = configService.get<number>('AI_TEMPERATURE', 0.2);
   const timeout = configService.get<number>('AI_REQUEST_TIMEOUT_MS', 30_000);
   const maxTokens = configService.get<number>('AI_MAX_RESPONSE_TOKENS', 4096);
