@@ -1,76 +1,89 @@
-# Deploy lên AWS (1 EC2 instance duy nhất)
+# Deploy lên Railway
 
-Đây là **bộ khung** — `scripts/deploy-remote.sh` và
-`.github/workflows/deploy.yml` đã sẵn sàng chạy ngay khi các tài nguyên
-AWS bên dưới tồn tại và các placeholder đã được điền. Không có gì ở đây
-tự tạo tài nguyên AWS cả; việc đó thuộc về repo riêng
-[`recruitment-platform-infra`](../recruitment-platform-infra) (Terraform).
+Backend deploy lên [Railway](https://railway.com) như 1 service chạy
+container dài hạn (build từ `Dockerfile` ở root repo này), không phải
+serverless/per-request. `railway.json` khai báo builder + healthcheck;
+Railway tự build lại và deploy mỗi khi có commit mới trên `main` (GitHub
+integration — xem mục 3).
 
-## Vì sao chọn 1 EC2 thay vì Lambda hay ECS
+## Vì sao 1 container dài hạn, không phải serverless
 
-Module chat dùng Socket.IO thật (kết nối WebSocket sống lâu dài).
-Lambda + API Gateway HTTP API không giữ được kết nối đó — mỗi lần
-invoke chỉ sống trong đúng thời gian xử lý 1 request. Một instance
-chạy liên tục giữ WebSocket hoạt động mà không cần đổi gì trong code.
-ECS Fargate cũng làm được, nhưng thường phải đi kèm Application Load
-Balancer, tốn thêm phí cố định ~$16-18/tháng dù traffic thấp — không
-đáng ở quy mô này. 1 instance EC2 `t3.micro` chạy trực tiếp image
-Docker rẻ hơn nhiều và đơn giản hơn để suy luận bằng tay.
-
-Entry point Lambda cũ (`src/lambda.ts`) và các cron handler nhắm tới
-EventBridge (`src/handlers/`) đã bị xoá — xem `CODEBASE_SUMMARY.md`
-mục 4a để biết lịch sử của lần migrate đó. Cron job giờ chạy in-process
-qua `@nestjs/schedule`
+Module chat dùng Socket.IO thật (kết nối WebSocket sống lâu dài) — một
+nền tảng chạy theo từng request (mỗi lần invoke chỉ sống trong đúng thời
+gian xử lý 1 request) không giữ được kết nối đó. Cron job cũng chạy
+in-process qua `@nestjs/schedule`
 (`src/modules/job/application/jobs/close-expired-jobs.cron.ts`,
-`src/modules/job-alert/application/jobs/job-alert-digest.cron.ts`), và
-rate limiting dùng storage in-memory mặc định của `@nestjs/throttler`
-— cả hai đều dựa vào việc đây là 1 process sống liên tục, mà 1 instance
-EC2 duy nhất đáp ứng đúng điều đó.
+`src/modules/job-alert/application/jobs/job-alert-digest.cron.ts`), dựa
+vào việc đây là 1 process sống liên tục — một service Railway thông
+thường (không phải Function) đáp ứng đúng điều đó.
 
-## 1. Tài nguyên AWS (do `recruitment-platform-infra` cấp phát, không phải ở đây)
+(Repo này trước đây nhắm tới AWS EC2 — `.github/workflows/deploy.yml` và
+`scripts/deploy-remote.sh` của flow đó đã bị xoá khi chuyển sang Railway.
+Lịch sử migrate từ Lambda sang container dài hạn trước đó nữa: xem
+`CODEBASE_SUMMARY.md` mục 4a.)
 
-Repo đó dùng Terraform để tạo EC2 instance, Elastic IP, security
-group, IAM instance role, ECR repository, S3 upload bucket, và các
-entry SSM Parameter Store. Xem `README.md` của repo đó để biết bước
-bootstrap 1 lần và cách chạy workflow `infra.yml`. Sau khi apply xong,
-ghi lại output — bạn sẽ cần EC2 instance ID và tên ECR repository ở
-bước dưới.
+## 1. Migration DB + seed RBAC — chạy tự động lúc container start
 
-## 2. Các entry SSM Parameter Store
+`Dockerfile`'s `CMD` chạy theo thứ tự mỗi khi container khởi động (kể cả
+restart thường, không chỉ deploy mới):
 
-Terraform của repo infra tạo 1 SecureString parameter cho mỗi biến môi
-trường nhạy cảm, dưới path `/recruitment-platform/prod/`. Danh sách dưới
-đây được đối chiếu trực tiếp với `env.validation.ts` — coi đó là nguồn
-chân lý nếu sau này 2 bên lệch nhau nữa.
+```
+npx prisma migrate deploy && npm run db:seed && node dist/src/main
+```
+
+- `prisma migrate deploy` chỉ áp dụng các migration đã commit sẵn (không
+  tự sinh migration mới) và là no-op nếu DB đã cập nhật — an toàn để
+  chạy lại mỗi lần start.
+- `npm run db:seed` upsert bảng `roles`/`permissions`/`role_permissions`
+  — thiếu bước này thì `PermissionGuard` chặn mọi route có gắn
+  `@RequirePermissions` (kể cả `GET /users/me`) mà không có lỗi boot nào
+  báo hiệu.
+- Nếu 1 trong 2 lệnh trên fail, container thoát với mã lỗi khác 0 và
+  `node dist/src/main` không bao giờ chạy — Railway's healthcheck
+  (`railway.json`) sẽ thấy deploy mới không "healthy" và **giữ nguyên
+  deployment cũ đang chạy tốt** thay vì cutover sang bản hỏng.
+
+Cả `prisma`, `ts-node`, `typescript` (đều là devDependencies) được cài
+thêm riêng vào production image cho đúng mục đích này — xem comment
+trong `Dockerfile`'s `prod-deps` stage.
+
+## 2. Biến môi trường (set trong Railway dashboard hoặc `railway variables set`)
+
+Danh sách dưới đây đối chiếu trực tiếp với `env.validation.ts` — coi đó
+là nguồn chân lý nếu sau này 2 bên lệch nhau.
 
 **Bắt buộc luôn** (thiếu là container throw lỗi validate và không boot
 được — không có default):
 
 `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRATION`, `JWT_REFRESH_SECRET`,
 `JWT_REFRESH_EXPIRATION`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`,
-`MAIL_PASS`, `MAIL_FROM`.
+`MAIL_PASS`, `MAIL_FROM`, `REDIS_URL`, `NODE_ENV=production`,
+`CORS_ORIGIN` (bắt buộc riêng khi `NODE_ENV=production`).
 
 `JWT_EXPIRATION` và `JWT_REFRESH_EXPIRATION` đặc biệt dễ bị bỏ sót vì
 không có default — đừng quên khi cấp phát.
 
+Nếu `DATABASE_URL` trỏ vào 1 connection pooled (Neon `-pooler` host,
+hoặc bất kỳ DB nào có PgBouncer phía trước), set thêm `DIRECT_URL` trỏ
+vào connection direct/unpooled của cùng DB đó — `prisma migrate deploy`
+cần session-level advisory lock mà transaction-mode pooling không cung
+cấp được (xem `prisma.config.ts`). Không set thì migrate có thể lỗi dù
+`DATABASE_URL` vẫn đúng cho phần còn lại của app.
+
 **Có default nhưng nên set tường minh ở prod**:
 
-- `PORT`, `API_PREFIX` — default `8080` / `api/v1`, thường không cần đổi.
+- `PORT` — Railway tự inject `PORT` cho service, không cần set tay
+  (code đọc `process.env.PORT`, default `8080` chỉ dùng khi chạy local).
 - `FRONTEND_URL` — default `http://localhost:3000`. **Bắt buộc phải set
   đúng domain frontend production**, nếu không link callback OAuth
   (Google/Facebook) sẽ redirect người dùng về localhost.
 - `LOG_LEVEL` — nếu bỏ trống, code tự chọn `info` khi
   `NODE_ENV=production` (xem `logger.config.ts`), nên có thể không cần
-  set. Nếu set tường minh thì set `info`, không phải `debug` — set
-  `debug` ở đây sẽ ghi log rất nhiều chi tiết request/query không cần
-  thiết ở production.
+  set. Nếu set tường minh thì set `info`, không phải `debug`.
 - `CORS_ORIGIN` — danh sách origin được phép, cách nhau dấu phẩy (vd.
-  domain production của frontend). `env.validation.ts` cho phép bỏ
-  trống, nhưng bỏ trống sẽ khiến cả CORS policy của HTTP
-  (`bootstrap.ts`) lẫn CORS policy của Socket.IO
-  (`socket-io.adapter.ts`) chấp nhận *mọi* origin trong khi vẫn cho phép
-  credentials — ổn cho dev local nhưng không nên để mặc định như vậy ở
-  production.
+  domain production của frontend). Bắt buộc khi `NODE_ENV=production` —
+  container từ chối boot nếu thiếu, thay vì âm thầm chấp nhận mọi origin
+  trong khi vẫn cho phép credentials.
 
 **Optional, chỉ cần nếu tính năng tương ứng bật ở prod**:
 
@@ -78,7 +91,15 @@ không có default — đừng quên khi cấp phát.
   `GOOGLE_CALLBACK_URL`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`,
   `FACEBOOK_CALLBACK_URL`. Thiếu thì app vẫn boot bình thường, chỉ có
   route `/auth/google` và `/auth/facebook` không hoạt động.
+- AI features (`src/modules/ai`): `<CAPABILITY>_AI_PROVIDER`/
+  `<CAPABILITY>_AI_MODEL` cho mỗi tính năng (mặc định `google`/
+  `gemini-3-pro`), cộng `GOOGLE_API_KEY`/`ANTHROPIC_API_KEY`/
+  `OPENAI_API_KEY` tương ứng. Thiếu key thì app vẫn boot, chỉ endpoint
+  AI đó trả `503` khi gọi.
 - `CV_MAX_FILE_SIZE` — default 10MB, chỉ set nếu muốn đổi giới hạn.
+- `GLOBAL_THROTTLE_LIMIT`/`AUTH_THROTTLE_LIMIT` — **không set ở prod**
+  (default 60 và 5 là giá trị bảo mật thật). Chỉ tồn tại để CI e2e
+  nâng ngưỡng — xem comment trong `app.module.ts`/`auth.controller.ts`.
 
 **File-upload storage** — chọn 1 trong 2 bộ theo `STORAGE_PROVIDER`:
 
@@ -87,7 +108,10 @@ không có default — đừng quên khi cấp phát.
   `S3_SECRET_KEY` (bắt buộc), và tuỳ chọn `S3_ENDPOINT` /
   `S3_FORCE_PATH_STYLE` (khi trỏ vào 1 endpoint S3-compatible như
   Cloudflare R2 thay vì AWS S3 thật) / `S3_PUBLIC_URL_BASE` (chỉ cần
-  nếu dùng thêm endpoint `/files/upload` công khai với R2).
+  nếu dùng thêm endpoint `/files/upload` công khai với R2). Railway
+  không có khái niệm "instance IAM role" như EC2 — credential tường
+  minh (`S3_ACCESS_KEY`/`S3_SECRET_KEY`) là cách duy nhất, không phải
+  việc cần dọn sau.
 - `STORAGE_PROVIDER=supabase` — dùng `SupabaseStorageProvider`, cần:
   `SUPABASE_PROJECT_REF`, `SUPABASE_S3_REGION`,
   `SUPABASE_S3_ACCESS_KEY`, `SUPABASE_S3_SECRET_KEY`,
@@ -98,74 +122,39 @@ không có default — đừng quên khi cấp phát.
 thực sự dùng ở prod — thiếu bộ biến bắt buộc tương ứng cũng khiến
 container không boot được, y hệt lỗi thiếu `JWT_EXPIRATION`.
 
-`scripts/deploy-remote.sh` đọc mọi parameter dưới path đó tại thời
-điểm deploy và truyền từng cái thành 1 flag `-e KEY=VALUE` cho
-`docker run` — nên thêm 1 biến môi trường mới chỉ là thêm 1 parameter
-mới dưới cùng path, không cần sửa workflow. Bản thân path chỉ set 1
-lần, trong `SSM_PARAM_PATH` của `deploy.yml`.
+## 3. Build & deploy tự động
 
-## 3. GitHub Secrets & Variables (chỉ dùng cho deploy workflow)
+Railway's GitHub integration theo dõi repo này: mỗi push/merge vào
+`main` tự động trigger build (Docker, từ `Dockerfile` — không cần
+Nixpacks) rồi deploy, không qua GitHub Actions. `ci.yml` (build/lint/
+test/audit) vẫn chạy độc lập trên mỗi push/PR như một quality gate,
+nhưng **không** trigger hay chặn deploy — 2 việc tách biệt.
 
-Các mục này **tách biệt** với entry SSM Parameter Store ở trên —
-GitHub Secrets chỉ giúp `deploy.yml` xác thực với AWS và biết *deploy
-vào đâu*. Chúng không bao giờ được container đang chạy đọc; container
-chỉ đọc từ SSM Parameter Store (mục 2). Đừng đặt cùng 1 giá trị ở cả
-hai chỗ rồi kỳ vọng chúng làm cùng 1 việc.
+`railway.json` khai báo:
 
-**Secrets** (Settings của repo → Secrets and variables → Actions → Secrets):
-- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` — thông
-  tin đăng nhập cho 1 IAM user **quyền hạn hẹp**: `ecr:*` trên đúng ECR
-  repo của repo này và `ssm:SendCommand`/`ssm:GetCommandInvocation`
-  trên đúng 1 EC2 instance này. Cố tình không dùng chung credential
-  rộng hơn mà repo infra dùng để cấp phát tài nguyên — nguyên tắc
-  least privilege, key deploy bị lộ cũng không thể sửa hạ tầng. Nên
-  chuyển sang OIDC (`role-to-assume` trong
-  `aws-actions/configure-aws-credentials`) khi đã quen với setup này —
-  không cần lưu key dài hạn ở đâu cả.
+- `build.builder: DOCKERFILE` — build từ `Dockerfile`, không auto-detect.
+- `deploy.healthcheckPath: /api/v1/healthcheck` — Railway đợi endpoint
+  này trả 200 trước khi cutover traffic sang deployment mới; hết
+  `healthcheckTimeout` (100s) mà chưa healthy thì deployment mới bị coi
+  là fail, traffic vẫn ở deployment cũ.
+- `deploy.restartPolicyType: ON_FAILURE` (tối đa 3 lần retry) — nếu
+  container crash (kể cả do migrate/seed fail ở mục 1), Railway tự
+  restart trước khi coi là fail hẳn.
 
-**Variables** (cùng trang, tab Variables):
-- `ECR_REPOSITORY` — tên repo, lấy từ output Terraform của repo infra.
-- `EC2_INSTANCE_ID` — instance ID, lấy từ output Terraform của repo infra.
+Không set `startCommand` trong `railway.json` — cố tình để trống, dùng
+`CMD` của `Dockerfile` làm nguồn chân lý duy nhất cho lệnh khởi động,
+tránh 2 chỗ có thể lệch nhau.
 
-## 4. Chạy 1 lần deploy
+## 4. Deploy thủ công (khi cần)
 
-Tab Actions → workflow **Deploy** → **Run workflow**. Workflow chỉ
-chạy bằng `workflow_dispatch` (không tự chạy khi push) cho tới khi bạn
-hoàn tất setup ở trên. Bên dưới: build Docker image, push lên ECR, sau
-đó dùng **SSM Run Command** (không phải SSH — không mở port 22, không
-lưu SSH key nào cho CI) để yêu cầu instance đang chạy pull image mới,
-đọc lại biến môi trường hiện tại từ SSM Parameter Store, và restart
-container.
-
-Trước khi khởi động container mới, `deploy-remote.sh` chạy `npx prisma
-migrate deploy` rồi `npm run db:seed` của chính image đó (qua `docker
-run --rm --entrypoint ...`) để đảm bảo schema DB và bảng
-`permissions`/`role_permissions` luôn khớp với code đang deploy —
-thiếu seed thì `PermissionGuard` chặn mọi route có gắn
-`@RequirePermissions` (kể cả `GET /users/me`) mà không có lỗi boot nào
-báo hiệu; thiếu migration thì container mới chạy nhưng crash ở query
-đầu tiên đụng cột/bảng chưa tồn tại. `prisma migrate deploy` chỉ áp
-dụng các migration đã commit sẵn (không tự sinh migration mới) và là
-no-op nếu DB đã cập nhật, nên chạy lại mỗi lần deploy là an toàn —
-giống hệt lý do `seed.ts` dùng toàn `upsert`.
-
-`deploy-remote.sh` không tin tưởng mù quáng rằng `docker run -d` trả
-về thành công nghĩa là app đã lên đúng — nó poll `/api/v1/healthcheck`
-trên instance tối đa 60s sau khi khởi động container mới. Nếu seed
-thất bại, hoặc image mới không "healthy" trong khoảng đó (env var sai,
-crash lúc boot, hoặc migration DB chưa được apply trước), script tự
-động khởi động lại
-image cũ *đã* pass đúng health check này, rồi báo fail job GitHub
-Actions — nhờ vậy 1 lần deploy hỏng sẽ tự phục hồi về image tốt gần
-nhất thay vì để instance chết cho tới khi có người phát hiện và deploy
-lại bằng tay. Marker "image tốt gần nhất" nằm ở
-`/opt/recruitment-platform-be/last-good-image` ngay trên instance; với
-1 instance hoàn toàn mới chưa deploy gì, không có gì để rollback về,
-nên lần deploy đầu tiên thất bại sẽ chỉ báo fail (không có gì để khôi phục).
+Cài Railway CLI (`npm i -g @railway/cli`), `railway login`, `railway
+link` vào đúng project, rồi `railway up` để build + deploy trực tiếp từ
+máy — bỏ qua bước chờ GitHub integration, hữu ích khi debug 1 thay đổi
+chưa muốn commit. Xem log real-time bằng `railway logs`.
 
 ## Việc cần làm sau (không phải điểm chặn)
 
-`S3StorageProvider` đang dùng credential `S3_ACCESS_KEY`/`S3_SECRET_KEY`
-tường minh thay vì dựa vào quyền IAM của instance role để truy cập S3.
-Cấu hình hiện tại vẫn chạy tốt, nhưng có thể dọn lại sau: bỏ key tường
-minh khỏi S3 client và dựa vào instance role — bớt 1 secret phải quản lý.
+Chưa có Redis/Postgres riêng do Railway quản lý — `DATABASE_URL` đang
+trỏ Neon, `REDIS_URL` cần trỏ 1 instance Upstash (hoặc Railway's Redis
+plugin, nếu muốn mọi thứ nằm chung 1 project Railway để đơn giản hoá
+việc quản lý biến môi trường/network).
