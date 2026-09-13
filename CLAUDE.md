@@ -6,9 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 NestJS backend for a job portal (IT recruitment only — no multi-industry `industry` field by design). Candidates apply to jobs, recruiters post jobs and manage applicants. PostgreSQL via Prisma. Built as **Clean Architecture / DDD**: every business module is split into `domain / application / infrastructure / presentation` layers.
 
-This repo is one of three sibling repos that make up the platform:
-- `recruitment-platform-fe` (Next.js frontend, calls this API server-side)
-- `recruitment-platform-edge` (Cloudflare Worker, proxies `/socket.io/*` from the FE's domain to this backend in production)
+This repo has one sibling: `recruitment-platform-fe` (Next.js frontend on Vercel). No edge/proxy layer sits in front of this backend — the frontend's BFF layer calls this API's origin directly server-side (`BACKEND_URL`), and the browser connects directly to it for the chat socket too (`NEXT_PUBLIC_BACKEND_URL` on the frontend). `CORS_ORIGIN` (required in production, see `env.validation.ts`) must allowlist the frontend's exact origin since the two are cross-origin.
 
 ## Commands
 
