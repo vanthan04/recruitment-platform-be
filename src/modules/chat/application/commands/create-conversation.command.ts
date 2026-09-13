@@ -10,6 +10,7 @@ import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.
 import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-lookup.port';
 import { ConversationResponseMapper } from '@/modules/chat/application/mappers/conversation-response.mapper';
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 import {
   ChatApplicationNotFoundException,
   ChatJobNotFoundException,
@@ -41,6 +42,7 @@ export class CreateConversationHandler implements ICommandHandler<
     private readonly applicationLookupPort: IChatApplicationLookupPort,
     private readonly jobLookupPort: IChatJobLookupPort,
     private readonly userLookupPort: IChatUserLookupPort,
+    private readonly attachmentUrlResolver: MessageAttachmentUrlResolver,
   ) {}
 
   async execute({
@@ -93,12 +95,16 @@ export class CreateConversationHandler implements ICommandHandler<
 
     const candidate = await this.userLookupPort.findById(saved.candidateId);
 
-    return ConversationResponseMapper.toDto(saved, {
+    const dto = ConversationResponseMapper.toDto(saved, {
       jobTitle: job.title,
       applicationStatus: application.status,
       otherParticipant: candidate!,
       lastMessage: await this.messageRepository.findLastMessage(saved.id),
       unreadCount: 0,
     });
+    dto.lastMessage = await this.attachmentUrlResolver.resolveNullable(
+      dto.lastMessage,
+    );
+    return dto;
   }
 }

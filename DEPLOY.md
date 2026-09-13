@@ -124,11 +124,34 @@ container không boot được, y hệt lỗi thiếu `JWT_EXPIRATION`.
 
 ## 3. Build & deploy tự động
 
-Railway's GitHub integration theo dõi repo này: mỗi push/merge vào
-`main` tự động trigger build (Docker, từ `Dockerfile` — không cần
-Nixpacks) rồi deploy, không qua GitHub Actions. `ci.yml` (build/lint/
-test/audit) vẫn chạy độc lập trên mỗi push/PR như một quality gate,
-nhưng **không** trigger hay chặn deploy — 2 việc tách biệt.
+Deploy đi qua `ci.yml`'s `deploy` job, **không** qua Railway's GitHub
+integration nữa — job đó chỉ chạy sau khi cả `build-and-test` và `e2e`
+pass, rồi tự gọi `railway up` (Docker build + deploy, vẫn từ
+`Dockerfile` như trước). Trước đây Railway's GitHub integration tự
+deploy mỗi push lên `main` độc lập với `ci.yml`, nghĩa là 1 build hỏng
+hoặc e2e fail vẫn lên production được — giờ deploy chỉ chạy khi cả 2
+quality gate xanh.
+
+**Setup 1 lần** (bắt buộc để gate thật sự có tác dụng — làm cả 2 bước
+dưới, thiếu 1 trong 2 thì `deploy` job bị skip vô hại hoặc bị double-deploy):
+
+1. Tắt "Deploy on Push" ở Railway dashboard: service này → Settings →
+   Source → tắt auto-deploy từ GitHub. Không tắt bước này thì Railway
+   vẫn tự deploy mỗi push bất kể `ci.yml` pass hay fail, y hệt trước —
+   `deploy` job của `ci.yml` chỉ là 1 đường deploy song song, không thay
+   thế được đường cũ nếu nó còn bật.
+2. Tạo Railway token (Railway dashboard → Account Settings → Tokens,
+   hoặc 1 Project Token scoped vào đúng project/environment này) và set
+   2 GitHub Actions secrets ở repo Settings → Secrets and variables →
+   Actions:
+   - `RAILWAY_TOKEN` — token vừa tạo.
+   - `RAILWAY_SERVICE` — tên (hoặc id) của service này trong Railway
+     project (xem trong Railway dashboard, hoặc `railway status` sau
+     khi `railway link`).
+
+Thiếu `RAILWAY_TOKEN` thì `deploy` job tự skip (không fail) — `ci.yml`
+vẫn chạy `build-and-test`/`e2e` bình thường, chỉ riêng bước deploy
+không chạy cho tới khi setup xong 2 bước trên.
 
 `railway.json` khai báo:
 

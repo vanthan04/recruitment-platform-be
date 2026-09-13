@@ -4,8 +4,10 @@ import { IConversationRepository } from '@/modules/chat/domain/repositories/conv
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
 import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import { Message } from '@/modules/chat/domain/entities/message.entity';
+import { MessageAttachment } from '@/modules/chat/domain/entities/message-attachment.entity';
 import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
 import { MESSAGE_SENT_EVENT } from '@/modules/chat/infrastructure/events/message-sent.event';
 import { InvalidAttachmentUrlException } from '@/modules/chat/domain/exceptions/chat.exceptions';
@@ -32,7 +34,8 @@ describe('CreateMessageHandler', () => {
   let messageRepository: jest.Mocked<IMessageRepository>;
   let jobLookupPort: jest.Mocked<IChatJobLookupPort>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
-  let fileStorage: jest.Mocked<Pick<IFileStorageProvider, 'isOwnedUrl'>>;
+  let fileStorage: jest.Mocked<Pick<IFileStorageProvider, 'getSignedUrl'>>;
+  let attachmentUrlResolver: MessageAttachmentUrlResolver;
 
   beforeEach(() => {
     conversationRepository = {
@@ -64,14 +67,19 @@ describe('CreateMessageHandler', () => {
       findManyByIds: jest.fn(),
     };
     eventEmitter = { emit: jest.fn() } as any;
-    fileStorage = { isOwnedUrl: jest.fn().mockReturnValue(true) };
+    fileStorage = {
+      getSignedUrl: jest.fn().mockResolvedValue('https://signed.example/x'),
+    };
+    attachmentUrlResolver = new MessageAttachmentUrlResolver(
+      fileStorage as any,
+    );
 
     handler = new CreateMessageHandler(
       conversationRepository,
       messageRepository,
       jobLookupPort,
       eventEmitter,
-      fileStorage as any,
+      attachmentUrlResolver,
     );
   });
 
@@ -161,10 +169,9 @@ describe('CreateMessageHandler', () => {
     ).rejects.toThrow(BusinessRuleViolationException);
   });
 
-  it('rejects an attachment whose fileUrl is not one of our own upload URLs', async () => {
+  it('rejects an attachment whose fileKey is not a private chat-attachments key our own upload flow produced', async () => {
     conversationRepository.findById.mockResolvedValue(makeConversation());
     messageRepository.findByClientMessageId.mockResolvedValue(null);
-    fileStorage.isOwnedUrl.mockReturnValue(false);
 
     await expect(
       handler.execute({
@@ -176,7 +183,7 @@ describe('CreateMessageHandler', () => {
         attachments: [
           {
             fileName: 'track.png',
-            fileUrl: 'https://attacker.example/track.png',
+            fileKey: 'https://attacker.example/track.png',
             mimeType: 'image/png',
             fileSize: 1,
           },
@@ -225,5 +232,51 @@ describe('CreateMessageHandler', () => {
         senderId: 'candidate-1',
       }),
     );
+  });
+
+  it('accepts a valid chat-attachments key and resolves it into a signed URL in the response', async () => {
+    conversationRepository.findById.mockResolvedValue(makeConversation());
+    messageRepository.findByClientMessageId.mockResolvedValue(null);
+    const key = 'chat-attachments/2f6e6b2a-1234-4a1b-9c3d-abcdef123456.pdf';
+    const saved = new Message({
+      id: 'msg-1',
+      conversationId: 'conv-1',
+      senderId: 'candidate-1',
+      content: '',
+      clientMessageId: 'c-1',
+      attachments: [
+        new MessageAttachment({
+          id: 'att-1',
+          messageId: 'msg-1',
+          fileName: 'resume.pdf',
+          fileUrl: key,
+          mimeType: 'application/pdf',
+          fileSize: 1024,
+        }),
+      ],
+    });
+    messageRepository.createAndTouchConversation.mockResolvedValue(saved);
+
+    const result = await handler.execute({
+      senderId: 'candidate-1',
+      conversationId: 'conv-1',
+      clientMessageId: 'c-1',
+      content: '',
+      messageType: MessageType.TEXT,
+      attachments: [
+        {
+          fileName: 'resume.pdf',
+          fileKey: key,
+          mimeType: 'application/pdf',
+          fileSize: 1024,
+        },
+      ],
+    } as any);
+
+    expect(fileStorage.getSignedUrl).toHaveBeenCalledWith(
+      key,
+      expect.objectContaining({ downloadFilename: 'resume.pdf' }),
+    );
+    expect(result.attachments[0].fileUrl).toBe('https://signed.example/x');
   });
 });

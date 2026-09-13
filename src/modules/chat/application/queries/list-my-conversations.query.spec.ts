@@ -7,6 +7,7 @@ import { IMessageRepository } from '@/modules/chat/domain/repositories/message.r
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
 import { IChatApplicationLookupPort } from '@/modules/chat/application/ports/application-lookup.port';
 import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-lookup.port';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import { ConversationMember } from '@/modules/chat/domain/entities/conversation-member.entity';
 import { ChatParticipantRole } from '@/modules/chat/domain/value-objects/chat-participant-role.vo';
@@ -67,6 +68,7 @@ describe('ListMyConversationsHandler', () => {
       jobLookupPort,
       applicationLookupPort,
       userLookupPort,
+      new MessageAttachmentUrlResolver({ getSignedUrl: jest.fn() } as any),
     );
   });
 

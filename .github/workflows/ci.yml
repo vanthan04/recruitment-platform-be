@@ -120,3 +120,29 @@ jobs:
           AWS_SECRET_ACCESS_KEY: test
           AWS_DEFAULT_REGION: ap-southeast-1
       - run: npm run test:e2e
+
+  # Railway's own GitHub integration used to deploy on every push to `main`
+  # independently of this workflow's result — a red build/failing e2e run
+  # could still reach production, with only Railway's post-deploy
+  # healthcheck as a backstop (catches boot failures, not logic/security
+  # regressions). This job replaces that: it only runs after both quality
+  # gates above pass, and only deploys via `railway up` (see DEPLOY.md §3)
+  # — Railway's own "Deploy on Push" integration must be turned OFF in the
+  # service's Settings → Source for this to actually gate anything, since
+  # both triggers firing would just double-deploy without blocking either.
+  #
+  # `if: ... && secrets.RAILWAY_TOKEN != ''` makes this a no-op (skipped,
+  # not failed) until RAILWAY_TOKEN/RAILWAY_SERVICE are configured as repo
+  # secrets — see DEPLOY.md §3 for how to set them up.
+  deploy:
+    name: Deploy to Railway
+    needs: [build-and-test, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.RAILWAY_TOKEN != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: npm install -g @railway/cli
+      - run: railway up --service "$RAILWAY_SERVICE" --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}

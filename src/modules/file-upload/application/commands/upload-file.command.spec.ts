@@ -117,4 +117,29 @@ describe('UploadFileHandler', () => {
     ).rejects.toThrow(InvalidFileTypeException);
     expect(storageProvider.upload).not.toHaveBeenCalled();
   });
+
+  it('uploads a chat-attachments file privately (uploadBuffer + key) instead of through the public upload() path', async () => {
+    const result = await handler.execute(
+      new UploadFileCommand(
+        makeFile({
+          originalname: 'resume.pdf',
+          mimetype: 'application/pdf',
+          buffer: PDF_BYTES,
+        }),
+        'chat-attachments',
+        ['application/pdf'],
+      ),
+    );
+
+    expect(storageProvider.upload).not.toHaveBeenCalled();
+    expect(storageProvider.uploadBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: expect.stringMatching(/^chat-attachments\/.+\.pdf$/),
+        buffer: PDF_BYTES,
+        mimeType: 'application/pdf',
+      }),
+    );
+    expect(result.url).toBeUndefined();
+    expect(result.key).toMatch(/^chat-attachments\/.+\.pdf$/);
+  });
 });

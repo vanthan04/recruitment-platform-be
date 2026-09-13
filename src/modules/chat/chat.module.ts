@@ -31,6 +31,7 @@ import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
 import { ChatGateway } from '@/modules/chat/infrastructure/gateways/chat.gateway';
 import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat-presence.service';
 import { ChatEventsListener } from '@/modules/chat/infrastructure/listeners/chat-events.listener';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 
 import { CreateConversationHandler } from '@/modules/chat/application/commands/create-conversation.command';
 import { CreateMessageHandler } from '@/modules/chat/application/commands/create-message.command';
@@ -77,6 +78,7 @@ import { ListMessagesHandler } from '@/modules/chat/application/queries/list-mes
     ChatGateway,
     ChatPresenceService,
     ChatEventsListener,
+    MessageAttachmentUrlResolver,
 
     CreateConversationHandler,
     CreateMessageHandler,

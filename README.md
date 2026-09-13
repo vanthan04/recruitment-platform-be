@@ -35,7 +35,7 @@ Backend cho một job portal (ứng viên ứng tuyển việc làm, nhà tuyể
 | Scheduled jobs | `@nestjs/schedule` (`@Cron`) — chạy in-process, mỗi job 1 class trong `application/jobs/` của module tương ứng |
 | Rate limiting | `@nestjs/throttler`, `ThrottlerStorage` Redis-backed (`REDIS_URL` bắt buộc — xem `env.validation.ts`) |
 | Logging | `nestjs-pino` / `pino-http` — log JSON có cấu trúc, 1 `requestId` nối access log, mọi app log, và error log của cùng 1 request; tự động ẩn secret (mật khẩu, token, header auth/cookie); dev thì pretty-print, production thì JSON thuần |
-| Deployment | Railway, 1 container dài hạn chạy image Docker, deploy tự động qua GitHub integration — xem [`DEPLOY.md`](DEPLOY.md) |
+| Deployment | Railway, 1 container dài hạn chạy image Docker, deploy tự động qua `ci.yml`'s `deploy` job sau khi test/e2e pass — xem [`DEPLOY.md`](DEPLOY.md) |
 | File storage | AWS S3 (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`) |
 | Mail | `nodemailer` |
 | Realtime | `socket.io`, `@nestjs/websockets`, `@nestjs/platform-socket.io` |

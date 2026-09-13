@@ -26,6 +26,13 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { GoogleAuthGuard } from '@/common/guards/google-auth.guard';
 import { FacebookAuthGuard } from '@/common/guards/facebook-auth.guard';
 import { SocialProfile } from '@/common/strategies/google.strategy';
+import { parseCookie } from '@/common/utils/cookie.util';
+import {
+  OAUTH_STATE_COOKIE,
+  isValidOAuthNonce,
+  oauthStateCookieOptions,
+  parseOAuthState,
+} from '@/common/utils/oauth-state.util';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 // The chat WebSocket gateway (ws-auth.util.ts) authenticates the socket
@@ -59,6 +66,15 @@ const AUTH_THROTTLE_LIMIT = Number(process.env.AUTH_THROTTLE_LIMIT) || 5;
 // value — see jwt.strategy.ts.
 interface AuthenticatedRequest extends Request {
   user: { id: string; email: string; role: string };
+}
+
+// Populated by GoogleAuthGuard/FacebookAuthGuard (Passport) from
+// google.strategy.ts/facebook.strategy.ts's validate() return value.
+// `headers.cookie` is needed to read back the CSRF nonce cookie those same
+// guards set on the initiation request — see oauth-state.util.ts.
+interface SocialCallbackRequest extends Request {
+  user: SocialProfile | { error: string };
+  query: { state?: string };
 }
 
 @ApiTags('auth')
@@ -207,8 +223,7 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback (redirects to frontend)' })
   async googleCallback(
-    @Req()
-    req: { user: SocialProfile | { error: string }; query: { state?: string } },
+    @Req() req: SocialCallbackRequest,
     @Res() res: Response,
   ) {
     return this.handleSocialCallback(req, res);
@@ -226,8 +241,7 @@ export class AuthController {
   @UseGuards(FacebookAuthGuard)
   @ApiOperation({ summary: 'Facebook OAuth callback (redirects to frontend)' })
   async facebookCallback(
-    @Req()
-    req: { user: SocialProfile | { error: string }; query: { state?: string } },
+    @Req() req: SocialCallbackRequest,
     @Res() res: Response,
   ) {
     return this.handleSocialCallback(req, res);
@@ -247,10 +261,28 @@ export class AuthController {
   }
 
   private async handleSocialCallback(
-    req: { user: SocialProfile | { error: string }; query: { state?: string } },
+    req: SocialCallbackRequest,
     res: Response,
   ) {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Single-use: consumed here regardless of outcome, so a captured
+    // callback URL can't be replayed against a second cookie-bearing browser.
+    res.clearCookie(OAUTH_STATE_COOKIE, oauthStateCookieOptions(isProduction));
+
+    // Verified BEFORE calling socialLogin — this is what actually stops
+    // login CSRF (an attacker's captured callback URL replayed into a
+    // victim's browser): the nonce only exists in the cookie the *victim's*
+    // browser would have received from their own /auth/google request, so
+    // an attacker-initiated flow's state can never match it.
+    const parsedState = parseOAuthState(req.query.state);
+    const cookieNonce = parseCookie(req.headers.cookie, OAUTH_STATE_COOKIE);
+    if (!parsedState || !isValidOAuthNonce(cookieNonce, parsedState.nonce)) {
+      return res.redirect(
+        `${frontendUrl}/auth/callback?error=OAUTH_STATE_MISMATCH`,
+      );
+    }
 
     if ('error' in req.user) {
       return res.redirect(
@@ -261,7 +293,7 @@ export class AuthController {
     try {
       const { code } = await this.authService.socialLogin(
         req.user,
-        req.query.state,
+        parsedState.role,
       );
       return res.redirect(`${frontendUrl}/auth/callback?code=${code}`);
     } catch {

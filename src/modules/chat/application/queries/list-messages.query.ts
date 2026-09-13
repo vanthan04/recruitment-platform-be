@@ -5,6 +5,7 @@ import { IMessageRepository } from '@/modules/chat/domain/repositories/message.r
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { MessagePageResponseDto } from '@/modules/chat/application/dto/message-response.dto';
 import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 
 export class ListMessagesQuery extends Query<MessagePageResponseDto> {
   constructor(
@@ -26,6 +27,7 @@ export class ListMessagesHandler implements IQueryHandler<
   constructor(
     private readonly conversationRepository: IConversationRepository,
     private readonly messageRepository: IMessageRepository,
+    private readonly attachmentUrlResolver: MessageAttachmentUrlResolver,
   ) {}
 
   async execute({
@@ -46,7 +48,9 @@ export class ListMessagesHandler implements IQueryHandler<
     );
 
     const dto = new MessagePageResponseDto();
-    dto.items = MessageResponseMapper.toDtoList(items);
+    dto.items = await this.attachmentUrlResolver.resolveMany(
+      MessageResponseMapper.toDtoList(items),
+    );
     dto.nextCursor = nextCursor;
     return dto;
   }

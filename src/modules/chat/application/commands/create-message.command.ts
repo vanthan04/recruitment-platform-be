@@ -9,7 +9,11 @@ import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { MessageResponseDto } from '@/modules/chat/application/dto/message-response.dto';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
-import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
+import {
+  UploadFolder,
+  isPrivateUploadKey,
+} from '@/modules/file-upload/domain/value-objects/upload-folder.vo';
 import {
   MESSAGE_SENT_EVENT,
   MessageSentEvent,
@@ -24,7 +28,8 @@ import {
 
 export interface CreateMessageAttachmentInput {
   fileName: string;
-  fileUrl: string;
+  /** Storage key from POST /files/upload?folder=chat-attachments — never a URL. */
+  fileKey: string;
   mimeType: string;
   fileSize: number;
 }
@@ -55,7 +60,7 @@ export class CreateMessageHandler implements ICommandHandler<
     private readonly messageRepository: IMessageRepository,
     private readonly jobLookupPort: IChatJobLookupPort,
     private readonly eventEmitter: EventEmitter2,
-    private readonly fileStorage: IFileStorageProvider,
+    private readonly attachmentUrlResolver: MessageAttachmentUrlResolver,
   ) {}
 
   async execute(command: CreateMessageCommand): Promise<MessageResponseDto> {
@@ -80,7 +85,9 @@ export class CreateMessageHandler implements ICommandHandler<
       clientMessageId,
     );
     if (existing) {
-      return MessageResponseMapper.toDto(existing);
+      return this.attachmentUrlResolver.resolve(
+        MessageResponseMapper.toDto(existing),
+      );
     }
 
     if (messageType === MessageType.SYSTEM) {
@@ -92,11 +99,15 @@ export class CreateMessageHandler implements ICommandHandler<
     if (!content.trim() && attachments.length === 0) {
       throw new EmptyMessageException();
     }
-    // A client-supplied fileUrl that isn't actually one of our own upload
-    // URLs is a tracking-pixel/phishing vector dressed up as an attachment
-    // (a legitimate-looking fileName/mimeType pointing at an attacker host).
+    // A client-supplied fileKey that doesn't match the exact shape our own
+    // upload flow produces is a tracking-pixel/phishing vector dressed up as
+    // an attachment (a legitimate-looking fileName/mimeType pointing at
+    // whatever the forged key actually resolves to) — DTO-level validation
+    // already checks this shape; re-checked here as the domain boundary.
     for (const attachment of attachments) {
-      if (!this.fileStorage.isOwnedUrl(attachment.fileUrl)) {
+      if (
+        !isPrivateUploadKey(UploadFolder.CHAT_ATTACHMENTS, attachment.fileKey)
+      ) {
         throw new InvalidAttachmentUrlException();
       }
     }
@@ -107,8 +118,18 @@ export class CreateMessageHandler implements ICommandHandler<
       content: content.trim(),
       messageType,
       clientMessageId,
+      // The domain/persistence field is still named `fileUrl` (see
+      // message-attachment.entity.ts) — it holds a private storage key until
+      // MessageAttachmentUrlResolver turns it into a real URL at read time.
       attachments: attachments.map(
-        (a) => new MessageAttachment({ ...a, messageId: '' }),
+        (a) =>
+          new MessageAttachment({
+            fileName: a.fileName,
+            fileUrl: a.fileKey,
+            mimeType: a.mimeType,
+            fileSize: a.fileSize,
+            messageId: '',
+          }),
       ),
     });
 
@@ -117,7 +138,9 @@ export class CreateMessageHandler implements ICommandHandler<
 
     const recipientId = conversation.otherParticipantId(senderId);
     const job = await this.jobLookupPort.findById(conversation.jobId);
-    const dto = MessageResponseMapper.toDto(saved);
+    const dto = await this.attachmentUrlResolver.resolve(
+      MessageResponseMapper.toDto(saved),
+    );
     this.eventEmitter.emit(
       MESSAGE_SENT_EVENT,
       new MessageSentEvent(

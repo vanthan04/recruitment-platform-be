@@ -13,6 +13,7 @@ import {
   IChatUserLookupPort,
   ChatUserLookupResult,
 } from '@/modules/chat/application/ports/user-lookup.port';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import {
   EntityNotFoundException,
@@ -94,6 +95,7 @@ describe('CreateConversationHandler', () => {
       applicationLookupPort,
       jobLookupPort,
       userLookupPort,
+      new MessageAttachmentUrlResolver({ getSignedUrl: jest.fn() } as any),
     );
   });
 

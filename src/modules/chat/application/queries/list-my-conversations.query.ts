@@ -7,6 +7,7 @@ import { IChatApplicationLookupPort } from '@/modules/chat/application/ports/app
 import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-lookup.port';
 import { ConversationResponseMapper } from '@/modules/chat/application/mappers/conversation-response.mapper';
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 
 export class ListMyConversationsQuery extends Query<ListMyConversationsResult> {
   constructor(
@@ -37,6 +38,7 @@ export class ListMyConversationsHandler implements IQueryHandler<
     private readonly jobLookupPort: IChatJobLookupPort,
     private readonly applicationLookupPort: IChatApplicationLookupPort,
     private readonly userLookupPort: IChatUserLookupPort,
+    private readonly attachmentUrlResolver: MessageAttachmentUrlResolver,
   ) {}
 
   async execute({
@@ -74,17 +76,23 @@ export class ListMyConversationsHandler implements IQueryHandler<
         ),
       ]);
 
-    const conversations = items.map(({ conversation }) => {
-      const otherId = conversation.otherParticipantId(userId);
-      return ConversationResponseMapper.toDto(conversation, {
-        jobTitle: jobs.get(conversation.jobId)?.title ?? '',
-        applicationStatus:
-          applications.get(conversation.applicationId)?.status ?? '',
-        otherParticipant: otherParticipants.get(otherId)!,
-        lastMessage: lastMessages.get(conversation.id) ?? null,
-        unreadCount: unreadCounts.get(conversation.id) ?? 0,
-      });
-    });
+    const conversations = await Promise.all(
+      items.map(async ({ conversation }) => {
+        const otherId = conversation.otherParticipantId(userId);
+        const dto = ConversationResponseMapper.toDto(conversation, {
+          jobTitle: jobs.get(conversation.jobId)?.title ?? '',
+          applicationStatus:
+            applications.get(conversation.applicationId)?.status ?? '',
+          otherParticipant: otherParticipants.get(otherId)!,
+          lastMessage: lastMessages.get(conversation.id) ?? null,
+          unreadCount: unreadCounts.get(conversation.id) ?? 0,
+        });
+        dto.lastMessage = await this.attachmentUrlResolver.resolveNullable(
+          dto.lastMessage,
+        );
+        return dto;
+      }),
+    );
 
     return { conversations, total, page, limit };
   }

@@ -8,6 +8,7 @@ import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-looku
 import { ConversationResponseMapper } from '@/modules/chat/application/mappers/conversation-response.mapper';
 import { ConversationResponseDto } from '@/modules/chat/application/dto/conversation-response.dto';
 import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
+import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 
 export class GetConversationQuery extends Query<ConversationResponseDto> {
   constructor(
@@ -30,6 +31,7 @@ export class GetConversationHandler implements IQueryHandler<
     private readonly jobLookupPort: IChatJobLookupPort,
     private readonly applicationLookupPort: IChatApplicationLookupPort,
     private readonly userLookupPort: IChatUserLookupPort,
+    private readonly attachmentUrlResolver: MessageAttachmentUrlResolver,
   ) {}
 
   async execute({
@@ -57,12 +59,16 @@ export class GetConversationHandler implements IQueryHandler<
       membership?.lastReadAt ?? null,
     );
 
-    return ConversationResponseMapper.toDto(conversation, {
+    const dto = ConversationResponseMapper.toDto(conversation, {
       jobTitle: job?.title ?? '',
       applicationStatus: application?.status ?? '',
       otherParticipant: otherParticipant!,
       lastMessage,
       unreadCount,
     });
+    dto.lastMessage = await this.attachmentUrlResolver.resolveNullable(
+      dto.lastMessage,
+    );
+    return dto;
   }
 }
