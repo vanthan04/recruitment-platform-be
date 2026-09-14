@@ -132,29 +132,36 @@ jobs:
   # service's Settings → Source for this to actually gate anything, since
   # both triggers firing would just double-deploy without blocking either.
   #
-  # Each step below has its own `if: secrets.RAILWAY_TOKEN != ''` (repeated,
-  # not hoisted to the job level) — GitHub Actions doesn't expose the
-  # `secrets` context to a job-level `if:` at all ("Unrecognized named-value:
-  # 'secrets'" — a hard parse error that fails the *entire workflow file*,
-  # not just this job, discovered the hard way: every push from the commit
-  # that first added this job onward silently never ran build-and-test/e2e
-  # either, since a job-level `if:` referencing `secrets` makes GitHub
-  # reject the whole YAML file before scheduling anything). Steps, unlike
-  # jobs, do have access to `secrets` in `if:` — this makes every step here
-  # a no-op (job shows "skipped", not failed) until RAILWAY_TOKEN/
+  # GitHub Actions doesn't expose the `secrets` context to a job-level `if:`
+  # at all — that alone is a hard parse error that fails the *entire
+  # workflow file* ("Unrecognized named-value: 'secrets'"), not just this
+  # job (discovered the hard way: every push since the commit that first
+  # added this job never ran build-and-test/e2e either, because a broken
+  # job-level `if:` anywhere makes GitHub reject the whole YAML file before
+  # scheduling anything). A first fix attempt moved the same expression to
+  # each step's `if:` instead — also wrong: `secrets` isn't available in
+  # step-level `if:` either, same parse failure. The only place `secrets`
+  # is unconditionally valid is a `env:` block (job- or step-level) — so
+  # that's relayed into RAILWAY_TOKEN_SET here, and every step's `if:`
+  # checks `env.RAILWAY_TOKEN_SET` instead of `secrets.RAILWAY_TOKEN`
+  # directly (the `env` context, unlike `secrets`, *is* available in
+  # step-level `if:`). Net effect matches the original intent: every step
+  # no-ops (job shows "skipped", not failed) until RAILWAY_TOKEN/
   # RAILWAY_SERVICE are configured as repo secrets — see DEPLOY.md §3.
   deploy:
     name: Deploy to Railway
     needs: [build-and-test, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN_SET: ${{ secrets.RAILWAY_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v7
-        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        if: ${{ env.RAILWAY_TOKEN_SET == 'true' }}
       - run: npm install -g @railway/cli
-        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        if: ${{ env.RAILWAY_TOKEN_SET == 'true' }}
       - run: railway up --service "$RAILWAY_SERVICE" --detach
-        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        if: ${{ env.RAILWAY_TOKEN_SET == 'true' }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
