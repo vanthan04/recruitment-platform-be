@@ -7,11 +7,21 @@ import { ToolContext } from '@/modules/ai/tools/ai-tool.interface';
  * text). The analysis already distilled everything relevant; re-feeding the
  * full document into the prompt would waste tokens and needlessly widen the
  * prompt-injection surface for no benefit (see recruitment.prompt.ts).
+ *
+ * Uses findByCvIdForJob (not findByCvId) — scoped to `ctx.jobId`'s applicant
+ * pool, same rule as get_candidate/search_candidates: a CV belonging to a
+ * candidate who never applied to this job resolves to "not found" even if
+ * the CV/analysis exists, since a `cvId` could otherwise be guessed or
+ * hallucinated by the model independently of what search_candidates/
+ * get_candidate actually returned.
  */
 export function createGetCvAnalysisTool(ctx: ToolContext) {
   return tool(
     async (input) => {
-      const analysis = await ctx.cvAnalysisRepository.findByCvId(input.cvId);
+      const analysis = await ctx.cvAnalysisRepository.findByCvIdForJob(
+        input.cvId,
+        ctx.jobId,
+      );
       if (!analysis || !analysis.isSearchable) {
         return JSON.stringify({ found: false, cvId: input.cvId });
       }

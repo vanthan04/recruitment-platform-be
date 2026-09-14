@@ -14,6 +14,15 @@ export interface CandidateSearchFilters {
   minExperienceYears?: number;
   /** Deterministic pool size cap — see AI_MAX_CANDIDATES. */
   limit: number;
+  /**
+   * Restricts the pool to candidates who have applied to this job — AI
+   * candidate discovery is scoped to the recruiter's own applicant pool per
+   * job, never a platform-wide résumé search (see get_applications, which
+   * already worked this way). Required, not optional: every caller has an
+   * authorized jobId in scope by construction (AiMatchingService,
+   * search-candidates.tool.ts) and none should be able to omit it.
+   */
+  jobId: string;
 }
 
 /**
@@ -55,10 +64,27 @@ export abstract class ICvAnalysisRepository {
   abstract searchCandidatePool(
     filters: CandidateSearchFilters,
   ): Promise<CandidateSearchResult[]>;
-  /** Single candidate's analyzed profile, for the getCandidate/getCvAnalysis tools. */
+  /**
+   * Single candidate's analyzed profile, for the get_candidate tool — `jobId`
+   * scopes this to the recruiter's own applicant pool (same rule as
+   * searchCandidatePool): returns null if this candidate has no application
+   * for that job, even if the candidate/analysis otherwise exists.
+   */
   abstract findCandidateByUserId(
     userId: string,
+    jobId: string,
   ): Promise<CandidateSearchResult | null>;
+  /**
+   * One CV's structured analysis by id, for the get_cv_analysis tool —
+   * `jobId`-scoped the same way as findCandidateByUserId. Deliberately a
+   * separate method from findByCvId (used internally by CvAnalysisService
+   * to check for an existing analysis before running one, with no job in
+   * scope at all) rather than adding a required jobId there.
+   */
+  abstract findByCvIdForJob(
+    cvId: string,
+    jobId: string,
+  ): Promise<CvAnalysis | null>;
   /** File metadata needed to download+extract a CV's text — never the analysis itself. */
   abstract findCvFileInfo(cvId: string): Promise<CvFileInfo | null>;
 }

@@ -37,6 +37,7 @@ function makeToolRegistry(): MatchingToolRegistry {
   const queryBus = { execute: jest.fn() } as unknown as QueryBus;
   const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
     findByCvId: jest.fn(),
+    findByCvIdForJob: jest.fn(),
     save: jest.fn(),
     findPendingCvIds: jest.fn(),
     searchCandidatePool: jest

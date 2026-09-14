@@ -18,6 +18,7 @@ describe('get_candidate tool', () => {
   it('returns the analyzed candidate profile when found', async () => {
     const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
       findByCvId: jest.fn(),
+      findByCvIdForJob: jest.fn(),
       save: jest.fn(),
       findPendingCvIds: jest.fn(),
       searchCandidatePool: jest.fn(),
@@ -42,6 +43,7 @@ describe('get_candidate tool', () => {
 
     expect(cvAnalysisRepository.findCandidateByUserId).toHaveBeenCalledWith(
       'cand-1',
+      'job-1',
     );
     expect(result.candidateId).toBe('cand-1');
   });
@@ -49,6 +51,7 @@ describe('get_candidate tool', () => {
   it('reports found: false for a candidate with no completed analysis', async () => {
     const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
       findByCvId: jest.fn(),
+      findByCvIdForJob: jest.fn(),
       save: jest.fn(),
       findPendingCvIds: jest.fn(),
       searchCandidatePool: jest.fn(),
@@ -63,5 +66,30 @@ describe('get_candidate tool', () => {
     );
 
     expect(result).toEqual({ found: false, candidateId: 'cand-missing' });
+  });
+
+  it("passes ctx.jobId through, scoping the lookup to that job's applicant pool", async () => {
+    const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
+      findByCvId: jest.fn(),
+      findByCvIdForJob: jest.fn(),
+      save: jest.fn(),
+      findPendingCvIds: jest.fn(),
+      searchCandidatePool: jest.fn(),
+      findCandidateByUserId: jest.fn().mockResolvedValue(null),
+      findCvFileInfo: jest.fn(),
+    };
+
+    await createGetCandidateTool({
+      queryBus: {} as any,
+      cvAnalysisRepository,
+      recruiterId: 'recruiter-1',
+      jobId: 'job-42',
+      maxCandidates: 30,
+    }).invoke({ candidateId: 'cand-never-applied' });
+
+    expect(cvAnalysisRepository.findCandidateByUserId).toHaveBeenCalledWith(
+      'cand-never-applied',
+      'job-42',
+    );
   });
 });

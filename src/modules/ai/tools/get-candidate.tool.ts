@@ -13,19 +13,24 @@ import { ToolContext } from '@/modules/ai/tools/ai-tool.interface';
  * scope), it always wins over the model's input — same defensive pattern
  * as get_job's jobId. For matching, `ctx.candidateId` is undefined and the
  * model's own input is used, since the candidate genuinely varies per call.
+ * Either way, `ctx.jobId` scopes the lookup to that job's applicant pool —
+ * a candidate who never applied to this job resolves to "not found" here,
+ * same rule as search_candidates.
  */
 export function createGetCandidateTool(ctx: ToolContext) {
   return tool(
     async (input) => {
       const candidateId = ctx.candidateId ?? input.candidateId;
-      const candidate =
-        await ctx.cvAnalysisRepository.findCandidateByUserId(candidateId);
+      const candidate = await ctx.cvAnalysisRepository.findCandidateByUserId(
+        candidateId,
+        ctx.jobId,
+      );
       return JSON.stringify(candidate ?? { found: false, candidateId });
     },
     {
       name: 'get_candidate',
       description:
-        "Retrieve one candidate's profile summary and analyzed CV skills/experience/education for closer evaluation.",
+        "Retrieve one candidate's profile summary and analyzed CV skills/experience/education for closer evaluation. Only works for candidates who applied to this job.",
       schema: z.object({
         candidateId: z.string(),
       }),

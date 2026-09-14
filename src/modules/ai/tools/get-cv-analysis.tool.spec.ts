@@ -19,6 +19,7 @@ function makeCtx(
 function makeRepo(): jest.Mocked<ICvAnalysisRepository> {
   return {
     findByCvId: jest.fn(),
+    findByCvIdForJob: jest.fn(),
     save: jest.fn(),
     findPendingCvIds: jest.fn(),
     searchCandidatePool: jest.fn(),
@@ -39,7 +40,7 @@ describe('get_cv_analysis tool', () => {
       extractedText: 'this candidate has a secret salary of $999,999',
       model: 'claude-sonnet-5',
     });
-    cvAnalysisRepository.findByCvId.mockResolvedValue(analysis);
+    cvAnalysisRepository.findByCvIdForJob.mockResolvedValue(analysis);
 
     const result = JSON.parse(
       await createGetCvAnalysisTool(makeCtx(cvAnalysisRepository)).invoke({
@@ -47,6 +48,10 @@ describe('get_cv_analysis tool', () => {
       }),
     );
 
+    expect(cvAnalysisRepository.findByCvIdForJob).toHaveBeenCalledWith(
+      'cv-1',
+      'job-1',
+    );
     expect(result).toEqual({
       cvId: 'cv-1',
       summary: 'Backend engineer',
@@ -59,7 +64,7 @@ describe('get_cv_analysis tool', () => {
 
   it('reports found: false for a CV with no completed analysis', async () => {
     const cvAnalysisRepository = makeRepo();
-    cvAnalysisRepository.findByCvId.mockResolvedValue(
+    cvAnalysisRepository.findByCvIdForJob.mockResolvedValue(
       new CvAnalysis({ cvId: 'cv-2', status: CvAnalysisStatus.PENDING }),
     );
 
@@ -70,5 +75,20 @@ describe('get_cv_analysis tool', () => {
     );
 
     expect(result).toEqual({ found: false, cvId: 'cv-2' });
+  });
+
+  it('reports found: false for a real, analyzed CV whose owner never applied to this job', async () => {
+    const cvAnalysisRepository = makeRepo();
+    // findByCvIdForJob itself resolves null in this case — the repository
+    // is what enforces the applicant-pool scoping, not this tool.
+    cvAnalysisRepository.findByCvIdForJob.mockResolvedValue(null);
+
+    const result = JSON.parse(
+      await createGetCvAnalysisTool(makeCtx(cvAnalysisRepository)).invoke({
+        cvId: 'cv-3',
+      }),
+    );
+
+    expect(result).toEqual({ found: false, cvId: 'cv-3' });
   });
 });

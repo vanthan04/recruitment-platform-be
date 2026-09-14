@@ -74,6 +74,7 @@ export class AiMatchingService {
     const precheckPool = await this.cvAnalysisRepository.searchCandidatePool({
       skills: jobSkillNames,
       limit: maxCandidates,
+      jobId,
     });
 
     this.logger.info(

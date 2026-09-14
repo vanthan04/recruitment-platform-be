@@ -13,6 +13,7 @@ function makeService(overrides: { postedById?: string } = {}) {
   };
   const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
     findByCvId: jest.fn(),
+    findByCvIdForJob: jest.fn(),
     save: jest.fn(),
     findPendingCvIds: jest.fn(),
     searchCandidatePool: jest.fn(),

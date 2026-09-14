@@ -37,6 +37,7 @@ describe('AiMatchingService', () => {
     queryBus = { execute: jest.fn() };
     cvAnalysisRepository = {
       findByCvId: jest.fn(),
+      findByCvIdForJob: jest.fn(),
       save: jest.fn(),
       findPendingCvIds: jest.fn(),
       searchCandidatePool: jest.fn(),
@@ -81,6 +82,17 @@ describe('AiMatchingService', () => {
 
     expect(result).toEqual({ jobId: 'job-1', matches: [] });
     expect(agent.run).not.toHaveBeenCalled();
+  });
+
+  it('scopes the precheck pool query to this job (applicant pool, not platform-wide)', async () => {
+    queryBus.execute.mockResolvedValue(makeJob());
+    cvAnalysisRepository.searchCandidatePool.mockResolvedValue([]);
+
+    await service.findMatchingCandidates('recruiter-1', 'job-1');
+
+    expect(cvAnalysisRepository.searchCandidatePool).toHaveBeenCalledWith(
+      expect.objectContaining({ jobId: 'job-1' }),
+    );
   });
 
   it('invokes the agent and maps its result when the pool is non-empty', async () => {

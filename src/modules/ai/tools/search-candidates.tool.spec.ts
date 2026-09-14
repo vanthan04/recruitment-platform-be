@@ -8,6 +8,7 @@ function makeCtx(overrides: Partial<ToolContext> = {}): {
 } {
   const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
     findByCvId: jest.fn(),
+    findByCvIdForJob: jest.fn(),
     save: jest.fn(),
     findPendingCvIds: jest.fn(),
     searchCandidatePool: jest.fn().mockResolvedValue([]),
@@ -40,6 +41,7 @@ describe('search_candidates tool', () => {
       skills: ['nestjs', 'postgresql'],
       minExperienceYears: 2,
       limit: 5,
+      jobId: 'job-1',
     });
   });
 
@@ -52,6 +54,17 @@ describe('search_candidates tool', () => {
       skills: [],
       minExperienceYears: undefined,
       limit: 5,
+      jobId: 'job-1',
     });
+  });
+
+  it('scopes the search to the job in ctx, not something the model can override', async () => {
+    const { ctx, cvAnalysisRepository } = makeCtx({ jobId: 'job-42' });
+
+    await createSearchCandidatesTool(ctx).invoke({} as any);
+
+    expect(cvAnalysisRepository.searchCandidatePool).toHaveBeenCalledWith(
+      expect.objectContaining({ jobId: 'job-42' }),
+    );
   });
 });

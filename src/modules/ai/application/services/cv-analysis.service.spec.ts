@@ -24,6 +24,7 @@ function makeFakeModel(response: AIMessage): BaseChatModel {
 function makeService(chatModel: BaseChatModel) {
   const cvAnalysisRepository: jest.Mocked<ICvAnalysisRepository> = {
     findByCvId: jest.fn().mockResolvedValue(null),
+    findByCvIdForJob: jest.fn(),
     save: jest.fn().mockImplementation(async (a) => a),
     findPendingCvIds: jest.fn(),
     searchCandidatePool: jest.fn(),

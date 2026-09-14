@@ -50,6 +50,14 @@ export class CvAnalysisInfraRepository implements ICvAnalysisRepository {
     return CvAnalysisMapper.toDomain(raw);
   }
 
+  async findByCvIdForJob(
+    cvId: string,
+    jobId: string,
+  ): Promise<CvAnalysis | null> {
+    const raw = await this.cvAnalysisPrisma.findByCvIdForJob(cvId, jobId);
+    return CvAnalysisMapper.toDomain(raw);
+  }
+
   async save(analysis: CvAnalysis): Promise<CvAnalysis> {
     const data = CvAnalysisMapper.toPersistence(analysis);
     const raw = await this.cvAnalysisPrisma.upsert(data);
@@ -71,8 +79,12 @@ export class CvAnalysisInfraRepository implements ICvAnalysisRepository {
 
   async findCandidateByUserId(
     userId: string,
+    jobId: string,
   ): Promise<CandidateSearchResult | null> {
-    const row = await this.cvAnalysisPrisma.findCandidateByUserId(userId);
+    const row = await this.cvAnalysisPrisma.findCandidateByUserId(
+      userId,
+      jobId,
+    );
     if (!row) return null;
     return toCandidateSearchResult(row);
   }

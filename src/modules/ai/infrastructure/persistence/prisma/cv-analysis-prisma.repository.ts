@@ -21,6 +21,19 @@ export class CvAnalysisPrismaRepository {
   }
 
   /**
+   * Same lookup as findByCvId, additionally scoped to `jobId` — the CV's
+   * owner must have an application for that job, or this returns null even
+   * if the CV/analysis exists. Backs get_cv_analysis: AI tools must never
+   * be able to pull up an arbitrary candidate's analysis outside the
+   * recruiter's own applicant pool for the job in scope.
+   */
+  async findByCvIdForJob(cvId: string, jobId: string) {
+    return this.prisma.cvAnalysis.findFirst({
+      where: { cvId, cv: { user: { applications: { some: { jobId } } } } },
+    });
+  }
+
+  /**
    * Narrow, direct read of the `cv` table (fileKey/mimeType/fileType only)
    * rather than a full ICvRepository cross-module dependency — same
    * "avoid a needless module import for 3 scalar fields" reasoning as
@@ -67,7 +80,10 @@ export class CvAnalysisPrismaRepository {
    * Deterministic filtering step. Only ever matches CVs with a COMPLETED
    * analysis — a CV becomes searchable a short while after upload (once the
    * `cv.uploaded` listener or the analyze-pending-cvs cron catches up), not
-   * synchronously with the request.
+   * synchronously with the request. `filters.jobId` scopes the pool to
+   * candidates who have applied to that job — AI candidate discovery is the
+   * recruiter's own applicant pool per job, not a platform-wide search (see
+   * CandidateSearchFilters.jobId doc comment).
    */
   async searchCandidatePool(filters: CandidateSearchFilters) {
     const analysisFilter: Prisma.CvAnalysisWhereInput = {
@@ -84,6 +100,7 @@ export class CvAnalysisPrismaRepository {
       where: {
         roleRef: { name: 'CANDIDATE' },
         status: 'ACTIVE',
+        applications: { some: { jobId: filters.jobId } },
         cvs: {
           some: {
             deletedAt: null,
@@ -111,9 +128,19 @@ export class CvAnalysisPrismaRepository {
     return users;
   }
 
-  async findCandidateByUserId(userId: string) {
+  /**
+   * `jobId`-scoped the same way as searchCandidatePool — returns null for a
+   * real candidate who simply never applied to this job, not just for a
+   * nonexistent one, so get_candidate can't be used to look up an arbitrary
+   * candidate outside the recruiter's own applicant pool.
+   */
+  async findCandidateByUserId(userId: string, jobId: string) {
     return this.prisma.user.findFirst({
-      where: { id: userId, roleRef: { name: 'CANDIDATE' } },
+      where: {
+        id: userId,
+        roleRef: { name: 'CANDIDATE' },
+        applications: { some: { jobId } },
+      },
       include: {
         profile: true,
         cvs: {
