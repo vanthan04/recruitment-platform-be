@@ -142,18 +142,19 @@ dưới, thiếu 1 trong 2 thì `deploy` job bị skip vô hại hoặc bị dou
    thế được đường cũ nếu nó còn bật.
 2. Tạo Railway token và set 4 GitHub Actions secrets ở repo Settings →
    Secrets and variables → Actions:
-   - `RAILWAY_TOKEN` — **Account Token** (Railway dashboard → Account
+   - `RAILWAY_API_TOKEN` — **Account Token** (Railway dashboard → Account
      Settings → Tokens). Free/hobby plan không có Project Token (cần
-     plan trả phí), nên dùng Account Token ở đây — bản thân biến này
-     tên là `RAILWAY_TOKEN` cho nhất quán với tên secret, nhưng
-     `ci.yml` gán nó vào env var `RAILWAY_API_TOKEN` khi gọi CLI (Railway
-     CLI phân biệt 2 biến: `RAILWAY_TOKEN` cho Project Token — tự biết
-     project/environment/service, không cần targeting gì thêm — vs
-     `RAILWAY_API_TOKEN` cho Account Token — scope cả account, cần
-     `--project`/`--environment` tường minh vì không có gì để tự suy ra
-     project nào). Nếu sau này nâng plan và đổi sang Project Token thật,
-     đổi lại `ci.yml` dùng `RAILWAY_TOKEN` như CLI mong đợi và có thể bỏ
-     `RAILWAY_PROJECT_ID`/`RAILWAY_ENVIRONMENT` bên dưới.
+     plan trả phí), nên dùng Account Token ở đây — tên secret đặt là
+     `RAILWAY_API_TOKEN` để khớp với env var mà Railway CLI thực sự đọc
+     cho loại token này (Railway CLI phân biệt 2 biến: `RAILWAY_TOKEN`
+     cho Project Token — tự biết project/environment/service, không cần
+     targeting gì thêm — vs `RAILWAY_API_TOKEN` cho Account Token — scope
+     cả account, cần `--project`/`--environment` tường minh vì không có
+     gì để tự suy ra project nào). Nếu sau này nâng plan và đổi sang
+     Project Token thật, đổi tên secret thành `RAILWAY_TOKEN` và sửa
+     `ci.yml` dùng `secrets.RAILWAY_TOKEN`/env var `RAILWAY_TOKEN` như
+     CLI mong đợi, có thể bỏ `RAILWAY_PROJECT_ID`/`RAILWAY_ENVIRONMENT`
+     bên dưới.
    - `RAILWAY_SERVICE` — tên (hoặc id) của service này trong Railway
      project (xem trong Railway dashboard, hoặc `railway status` sau
      khi `railway link`).
@@ -164,12 +165,12 @@ dưới, thiếu 1 trong 2 thì `deploy` job bị skip vô hại hoặc bị dou
      `production`; xem trong Railway dashboard, góc trên bên trái khi
      mở project).
 
-Thiếu `RAILWAY_TOKEN` thì `deploy` job tự skip (không fail) — `ci.yml`
-vẫn chạy `build-and-test`/`e2e` bình thường, chỉ riêng bước deploy
-không chạy cho tới khi setup xong 2 bước trên. (`RAILWAY_PROJECT_ID`/
+Thiếu `RAILWAY_API_TOKEN` thì `deploy` job tự skip (không fail) —
+`ci.yml` vẫn chạy `build-and-test`/`e2e` bình thường, chỉ riêng bước
+deploy không chạy cho tới khi setup xong 2 bước trên. (`RAILWAY_PROJECT_ID`/
 `RAILWAY_ENVIRONMENT`/`RAILWAY_SERVICE` thiếu thì bước deploy vẫn chạy
 nhưng `railway up` sẽ fail vì CLI không biết target nào — set đủ cả 4
-secret trước khi bật `RAILWAY_TOKEN`.)
+secret trước khi bật `RAILWAY_API_TOKEN`.)
 
 `railway.json` khai báo:
 
