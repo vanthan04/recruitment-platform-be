@@ -132,18 +132,29 @@ jobs:
   # service's Settings → Source for this to actually gate anything, since
   # both triggers firing would just double-deploy without blocking either.
   #
-  # `if: ... && secrets.RAILWAY_TOKEN != ''` makes this a no-op (skipped,
-  # not failed) until RAILWAY_TOKEN/RAILWAY_SERVICE are configured as repo
-  # secrets — see DEPLOY.md §3 for how to set them up.
+  # Each step below has its own `if: secrets.RAILWAY_TOKEN != ''` (repeated,
+  # not hoisted to the job level) — GitHub Actions doesn't expose the
+  # `secrets` context to a job-level `if:` at all ("Unrecognized named-value:
+  # 'secrets'" — a hard parse error that fails the *entire workflow file*,
+  # not just this job, discovered the hard way: every push from the commit
+  # that first added this job onward silently never ran build-and-test/e2e
+  # either, since a job-level `if:` referencing `secrets` makes GitHub
+  # reject the whole YAML file before scheduling anything). Steps, unlike
+  # jobs, do have access to `secrets` in `if:` — this makes every step here
+  # a no-op (job shows "skipped", not failed) until RAILWAY_TOKEN/
+  # RAILWAY_SERVICE are configured as repo secrets — see DEPLOY.md §3.
   deploy:
     name: Deploy to Railway
     needs: [build-and-test, e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.RAILWAY_TOKEN != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
       - run: npm install -g @railway/cli
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
       - run: railway up --service "$RAILWAY_SERVICE" --detach
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
