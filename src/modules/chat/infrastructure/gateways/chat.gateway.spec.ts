@@ -1,6 +1,7 @@
 import { ChatGateway } from './chat.gateway';
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat-presence.service';
+import { ChatRateLimiterService } from '@/modules/chat/infrastructure/services/chat-rate-limiter.service';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 import { UserSessionRevokedEvent } from '@/modules/user/infrastructure/events/user-session-revoked.event';
@@ -36,6 +37,12 @@ describe('ChatGateway', () => {
   let conversationRepository: jest.Mocked<
     Pick<IConversationRepository, 'findById' | 'findManyForUser'>
   >;
+  let rateLimiter: jest.Mocked<
+    Pick<
+      ChatRateLimiterService,
+      'consumeSendQuota' | 'consumeReadQuota' | 'clearInMemoryQuota'
+    >
+  >;
   let server: {
     in: jest.Mock;
     to: jest.Mock;
@@ -49,6 +56,14 @@ describe('ChatGateway', () => {
       findById: jest.fn(),
       findManyForUser: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     };
+    // Rate-limiting's own sliding-window/Redis-vs-in-memory correctness is
+    // covered by chat-rate-limiter.service.spec.ts — here it's just a
+    // dependency the gateway delegates to and reacts on the result of.
+    rateLimiter = {
+      consumeSendQuota: jest.fn().mockResolvedValue(true),
+      consumeReadQuota: jest.fn().mockResolvedValue(true),
+      clearInMemoryQuota: jest.fn(),
+    };
     server = {
       in: jest.fn().mockReturnThis(),
       to: jest.fn().mockReturnThis(),
@@ -61,6 +76,7 @@ describe('ChatGateway', () => {
       commandBus as any,
       conversationRepository as any,
       new ChatPresenceService(),
+      rateLimiter as any,
     );
     gateway.server = server as any;
   });
@@ -184,25 +200,17 @@ describe('ChatGateway', () => {
       });
     });
 
-    it('rejects sends once the per-user rate limit is exceeded', async () => {
-      commandBus.execute.mockResolvedValue({ id: 'msg-1' });
+    it('rejects the send and does not dispatch the command when the rate limiter denies it', async () => {
+      rateLimiter.consumeSendQuota.mockResolvedValue(false);
       const client = makeSocket();
-      const send = (clientMessageId: string) =>
-        gateway.onMessageSend(client, {
-          conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-          clientMessageId,
-          content: 'hello',
-        });
 
-      for (let i = 0; i < 20; i++) {
-        await send(
-          `b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a${i.toString().padStart(2, '0')}`,
-        );
-      }
-      client.emit.mockClear();
-      await send('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+      await gateway.onMessageSend(client, {
+        conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        clientMessageId: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        content: 'hello',
+      });
 
-      expect(commandBus.execute).toHaveBeenCalledTimes(20);
+      expect(commandBus.execute).not.toHaveBeenCalled();
       expect(client.emit).toHaveBeenCalledWith(
         'message:error',
         expect.objectContaining({
@@ -211,75 +219,51 @@ describe('ChatGateway', () => {
       );
     });
 
-    it('a second socket for the same user shares the same rate-limit budget (reconnect cannot bypass it)', async () => {
+    it('checks the rate limiter under the sending user, not the socket', async () => {
       commandBus.execute.mockResolvedValue({ id: 'msg-1' });
-      const clientA = makeSocket({ id: 'socket-a' });
-      const clientB = makeSocket({ id: 'socket-b' });
+      const client = makeSocket({ data: { userId: 'candidate-42' } });
 
-      for (let i = 0; i < 20; i++) {
-        await gateway.onMessageSend(clientA, {
-          conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-          clientMessageId: `b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a${i.toString().padStart(2, '0')}`,
-          content: 'hello',
-        });
-      }
-      await gateway.onMessageSend(clientB, {
+      await gateway.onMessageSend(client, {
         conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         clientMessageId: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         content: 'hello',
       });
 
-      expect(clientB.emit).toHaveBeenCalledWith(
-        'message:error',
-        expect.objectContaining({
-          message: expect.stringContaining('Too many'),
-        }),
-      );
+      expect(rateLimiter.consumeSendQuota).toHaveBeenCalledWith('candidate-42');
     });
   });
 
   describe('handleDisconnect', () => {
-    it("evicts the user's rate-limit entries once their last socket disconnects", async () => {
-      commandBus.execute.mockResolvedValue({ id: 'msg-1' });
+    it("clears the user's rate-limit budget once their last socket disconnects", async () => {
       const client = makeSocket({ id: 'socket-a' });
 
-      // Seed presence + rate-limit state as if this socket had been active
-      // (handleConnection itself does a real JWT/cookie auth check that's
-      // out of scope here).
+      // Seed presence as if this socket had been active (handleConnection
+      // itself does a real JWT/cookie auth check that's out of scope here).
       (gateway as any).presenceService.addSocket('candidate-1', 'socket-a');
-      await gateway.onMessageSend(client, {
-        conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        clientMessageId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        content: 'hello',
-      });
-      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(true);
 
       await gateway.handleDisconnect(client);
 
-      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(false);
-      expect((gateway as any).readTimestamps.has('candidate-1')).toBe(false);
+      expect(rateLimiter.clearInMemoryQuota).toHaveBeenCalledWith(
+        'candidate-1',
+      );
     });
 
-    it('does not evict entries while the user still has another connected socket', async () => {
-      commandBus.execute.mockResolvedValue({ id: 'msg-1' });
+    it('does not clear the budget while the user still has another connected socket', async () => {
       const clientA = makeSocket({ id: 'socket-a' });
       const clientB = makeSocket({ id: 'socket-b' });
 
       (gateway as any).presenceService.addSocket('candidate-1', 'socket-a');
       (gateway as any).presenceService.addSocket('candidate-1', 'socket-b');
-      await gateway.onMessageSend(clientA, {
-        conversationId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        clientMessageId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        content: 'hello',
-      });
 
       await gateway.handleDisconnect(clientA);
 
-      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(true);
+      expect(rateLimiter.clearInMemoryQuota).not.toHaveBeenCalled();
 
       await gateway.handleDisconnect(clientB);
 
-      expect((gateway as any).sendTimestamps.has('candidate-1')).toBe(false);
+      expect(rateLimiter.clearInMemoryQuota).toHaveBeenCalledWith(
+        'candidate-1',
+      );
     });
   });
 

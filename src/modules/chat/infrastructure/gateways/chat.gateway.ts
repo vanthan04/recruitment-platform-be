@@ -15,6 +15,7 @@ import type { Server, Socket } from 'socket.io';
 
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat-presence.service';
+import { ChatRateLimiterService } from '@/modules/chat/infrastructure/services/chat-rate-limiter.service';
 import { authenticateSocket } from '@/modules/chat/infrastructure/gateways/ws-auth.util';
 import {
   validateWsPayload,
@@ -45,28 +46,18 @@ const userRoom = (userId: string) => `user:${userId}`;
 const conversationRoom = (conversationId: string) =>
   `conversation:${conversationId}`;
 
-const SEND_RATE_LIMIT = 20;
-const SEND_RATE_WINDOW_MS = 10_000;
-const READ_RATE_LIMIT = 30;
-const READ_RATE_WINDOW_MS = 10_000;
-
 @WebSocketGateway({ namespace: '/ws' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
-  // Sliding-window limiters keyed by userId, not socket id — a socket id
-  // resets on every reconnect, which would otherwise let a client bypass
-  // the limit just by reconnecting. @nestjs/throttler isn't wired to
-  // gateways, so this is additive coverage.
-  private readonly sendTimestamps = new Map<string, number[]>();
-  private readonly readTimestamps = new Map<string, number[]>();
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly commandBus: CommandBus,
     private readonly conversationRepository: IConversationRepository,
     private readonly presenceService: ChatPresenceService,
+    private readonly rateLimiter: ChatRateLimiterService,
   ) {}
 
   async handleConnection(client: ChatSocket): Promise<void> {
@@ -92,16 +83,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleDisconnect(client: ChatSocket): Promise<void> {
-    // The rate-limit maps are keyed by userId (not this socket's id) so a
-    // reconnect while still "online" (another socket, or a fast
+    // rateLimiter.clearInMemoryQuota is keyed by userId (not this socket's
+    // id) so a reconnect while still "online" (another socket, or a fast
     // reconnect racing this disconnect) can't reset a user's quota — that's
-    // still true here since we only evict below once every socket for this
+    // still true here since we only clear below once every socket for this
     // user is gone. Once genuinely offline, keeping the entry serves no
     // purpose: nothing this process does after this point can be rate
     // limited on the user's behalf, so leaving it around is pure memory
-    // growth bounded only by the count of distinct users ever connected in
-    // this process's lifetime. Evicting it here bounds both maps to
-    // "currently connected users" instead.
+    // growth (in the in-memory fallback only — see ChatRateLimiterService)
+    // bounded only by the count of distinct users ever connected in this
+    // process's lifetime. Clearing it here bounds it to "currently
+    // connected users" instead.
     const userId = client.data?.userId;
     if (!userId) return;
 
@@ -110,8 +102,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.id,
     );
     if (justWentOffline) {
-      this.sendTimestamps.delete(userId);
-      this.readTimestamps.delete(userId);
+      this.rateLimiter.clearInMemoryQuota(userId);
       await this.broadcastPresence(userId, 'user:offline');
     }
   }
@@ -133,14 +124,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() rawData: unknown,
   ) {
     const userId = client.data.userId;
-    if (
-      !this.consumeQuota(
-        this.readTimestamps,
-        userId,
-        READ_RATE_LIMIT,
-        READ_RATE_WINDOW_MS,
-      )
-    ) {
+    if (!(await this.rateLimiter.consumeReadQuota(userId))) {
       client.emit('error', { message: 'Too many requests — slow down' });
       return;
     }
@@ -180,14 +164,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = client.data.userId;
 
-    if (
-      !this.consumeQuota(
-        this.sendTimestamps,
-        userId,
-        SEND_RATE_LIMIT,
-        SEND_RATE_WINDOW_MS,
-      )
-    ) {
+    if (!(await this.rateLimiter.consumeSendQuota(userId))) {
       const clientMessageId =
         rawData && typeof rawData === 'object'
           ? (rawData as Record<string, unknown>).clientMessageId
@@ -253,14 +230,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() rawData: unknown,
   ) {
     const userId = client.data.userId;
-    if (
-      !this.consumeQuota(
-        this.readTimestamps,
-        userId,
-        READ_RATE_LIMIT,
-        READ_RATE_WINDOW_MS,
-      )
-    ) {
+    if (!(await this.rateLimiter.consumeReadQuota(userId))) {
       client.emit('error', { message: 'Too many requests — slow down' });
       return;
     }
@@ -320,20 +290,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch {
       // no-op — see comment above
     }
-  }
-
-  /** Sliding-window limiter. Returns false (and does not consume) once the caller is over budget. */
-  private consumeQuota(
-    store: Map<string, number[]>,
-    key: string,
-    limit: number,
-    windowMs: number,
-  ): boolean {
-    const now = Date.now();
-    const timestamps = (store.get(key) ?? []).filter((t) => now - t < windowMs);
-    timestamps.push(now);
-    store.set(key, timestamps);
-    return timestamps.length <= limit;
   }
 
   private async broadcastPresence(
