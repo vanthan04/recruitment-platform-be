@@ -351,6 +351,15 @@ model CvAnalysis {
   model           String?
   analyzedAt      DateTime?
   failureReason   String?
+  // Claim marker for AnalyzePendingCvsCron — set when a PENDING/FAILED row
+  // is picked up for (re-)analysis, cleared when analyzeCv finishes (success
+  // or failure). Without this, a slow LLM call still in flight when the
+  // cron's next 10-minute tick fires gets re-picked-up (the row is still
+  // PENDING the whole time), doubling AI provider cost and racing the final
+  // write. Null (not just "old") means "not currently being processed" —
+  // the cron only re-claims a PENDING/FAILED row once this is either null or
+  // older than its staleness threshold (see claimPendingCvIds).
+  processingStartedAt DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -489,7 +498,16 @@ model JobApplication {
   updatedAt   DateTime          @updatedAt
 
   // Relations
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Restrict (not Cascade): userId is the application's actual identity —
+  // unlike InterviewSchedule.createdById (a nullable attribution field),
+  // there's no meaningful way to SetNull it. Cascade here would transitively
+  // wipe ApplicationStatusHistory, InterviewSchedule, Conversation, and
+  // every Message in it on candidate-user deletion — the exact blast radius
+  // Company.owner/Job.postedBy were hardened against (see
+  // 20260911121500_user_cascade_hardening_and_cv_index), just on the
+  // candidate side instead of the recruiter side. There is no hard-delete-
+  // user feature today; this only matters if one is ever added.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
   userId String
   job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
   jobId  String

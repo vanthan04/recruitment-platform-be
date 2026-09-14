@@ -25,6 +25,8 @@ export class CvAnalysis extends BaseEntity {
   model: string | null;
   analyzedAt: Date | null;
   failureReason: string | null;
+  /** Set only by claimPendingCvIds; see its doc comment. Not a general-purpose "last analyzed at" field. */
+  processingStartedAt: Date | null;
 
   constructor(partial: Partial<CvAnalysis>) {
     super();
@@ -38,6 +40,7 @@ export class CvAnalysis extends BaseEntity {
     this.model = partial.model ?? null;
     this.analyzedAt = partial.analyzedAt ?? null;
     this.failureReason = partial.failureReason ?? null;
+    this.processingStartedAt = partial.processingStartedAt ?? null;
   }
 
   markCompleted(result: {
@@ -57,12 +60,14 @@ export class CvAnalysis extends BaseEntity {
     this.model = result.model;
     this.analyzedAt = new Date();
     this.failureReason = null;
+    this.processingStartedAt = null;
   }
 
   markFailed(reason: string): void {
     this.status = CvAnalysisStatus.FAILED;
     this.failureReason = reason;
     this.analyzedAt = new Date();
+    this.processingStartedAt = null;
   }
 
   get isSearchable(): boolean {

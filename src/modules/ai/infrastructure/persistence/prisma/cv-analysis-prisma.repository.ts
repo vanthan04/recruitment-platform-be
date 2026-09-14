@@ -60,20 +60,64 @@ export class CvAnalysisPrismaRepository {
     });
   }
 
-  async findPendingCvIds(limit: number): Promise<string[]> {
-    const cvs = await this.prisma.cv.findMany({
+  /**
+   * See ICvAnalysisRepository.claimPendingCvIds's doc comment for why this
+   * both selects AND marks `processingStartedAt` in the same call, not just
+   * a read. Two disjoint groups get claimed differently: a CV with no
+   * CvAnalysis row yet needs one created (status defaults to PENDING); a
+   * CV with a stale/unclaimed PENDING or FAILED row just needs its claim
+   * timestamp bumped. Both happen inside one transaction so a claim is
+   * all-or-nothing for the whole batch.
+   */
+  async claimPendingCvIds(
+    limit: number,
+    staleAfterMs: number,
+  ): Promise<string[]> {
+    const staleThreshold = new Date(Date.now() - staleAfterMs);
+
+    const candidates = await this.prisma.cv.findMany({
       where: {
         deletedAt: null,
         OR: [
           { cvAnalysis: null },
-          { cvAnalysis: { status: { in: ['PENDING', 'FAILED'] } } },
+          {
+            cvAnalysis: {
+              status: { in: ['PENDING', 'FAILED'] },
+              OR: [
+                { processingStartedAt: null },
+                { processingStartedAt: { lt: staleThreshold } },
+              ],
+            },
+          },
         ],
       },
-      select: { id: true },
+      select: { id: true, cvAnalysis: { select: { cvId: true } } },
       take: limit,
       orderBy: { createdAt: 'asc' },
     });
-    return cvs.map((cv) => cv.id);
+    if (candidates.length === 0) return [];
+
+    const now = new Date();
+    const toCreate = candidates.filter((c) => !c.cvAnalysis).map((c) => c.id);
+    const toClaim = candidates.filter((c) => c.cvAnalysis).map((c) => c.id);
+
+    await this.prisma.$transaction([
+      ...toCreate.map((cvId) =>
+        this.prisma.cvAnalysis.create({
+          data: { cvId, status: 'PENDING', processingStartedAt: now },
+        }),
+      ),
+      ...(toClaim.length > 0
+        ? [
+            this.prisma.cvAnalysis.updateMany({
+              where: { cvId: { in: toClaim } },
+              data: { processingStartedAt: now },
+            }),
+          ]
+        : []),
+    ]);
+
+    return candidates.map((c) => c.id);
   }
 
   /**

@@ -10,7 +10,7 @@ function makeCtx(overrides: Partial<ToolContext> = {}): {
     findByCvId: jest.fn(),
     findByCvIdForJob: jest.fn(),
     save: jest.fn(),
-    findPendingCvIds: jest.fn(),
+    claimPendingCvIds: jest.fn(),
     searchCandidatePool: jest.fn().mockResolvedValue([]),
     findCandidateByUserId: jest.fn(),
     findCvFileInfo: jest.fn(),

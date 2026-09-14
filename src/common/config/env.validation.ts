@@ -200,4 +200,11 @@ export const envValidationSchema = Joi.object({
   AI_MAX_CANDIDATES: Joi.number().default(30),
   // Safety-net cron batch size — see AnalyzePendingCvsCron.
   AI_ANALYSIS_BATCH_SIZE: Joi.number().default(20),
+  // How long a claimed-but-not-yet-finished CvAnalysis row is left alone
+  // before the cron will re-claim it — see claimPendingCvIds. Well above
+  // AI_REQUEST_TIMEOUT_MS (a single analyzeCv call, LLM call included,
+  // should never legitimately take anywhere near this long) so this only
+  // ever fires for a claim whose process actually died mid-analysis, not
+  // one that's merely slow.
+  AI_ANALYSIS_CLAIM_STALE_MINUTES: Joi.number().default(5),
 });

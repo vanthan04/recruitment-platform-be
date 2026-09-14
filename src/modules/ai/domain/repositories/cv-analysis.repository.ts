@@ -52,10 +52,20 @@ export abstract class ICvAnalysisRepository {
   /** Upsert by cvId — one CvAnalysis row per Cv. */
   abstract save(analysis: CvAnalysis): Promise<CvAnalysis>;
   /**
-   * CV ids with no analysis yet, or left PENDING/FAILED by a previous
-   * attempt — consumed by the analyze-pending-cvs safety-net cron.
+   * Atomically claims up to `limit` CVs with no analysis yet, or left
+   * PENDING/FAILED by a previous attempt — consumed by the
+   * analyze-pending-cvs safety-net cron. "Claims" means: for each returned
+   * cvId, this call itself sets/creates a CvAnalysis row with
+   * `processingStartedAt = now()` before returning, so a CV already claimed
+   * by an in-flight call is excluded from the *next* cron tick unless that
+   * claim is older than `staleAfterMs` (meaning the process that claimed it
+   * likely died without ever calling save()). See CvAnalysis.
+   * processingStartedAt's doc comment for the failure mode this prevents.
    */
-  abstract findPendingCvIds(limit: number): Promise<string[]>;
+  abstract claimPendingCvIds(
+    limit: number,
+    staleAfterMs: number,
+  ): Promise<string[]>;
   /**
    * The deterministic filtering step: only ever searches CVs whose analysis
    * is COMPLETED (filtering can't depend on the AI step it's meant to gate —

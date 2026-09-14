@@ -26,7 +26,7 @@ function makeService(chatModel: BaseChatModel) {
     findByCvId: jest.fn().mockResolvedValue(null),
     findByCvIdForJob: jest.fn(),
     save: jest.fn().mockImplementation(async (a) => a),
-    findPendingCvIds: jest.fn(),
+    claimPendingCvIds: jest.fn(),
     searchCandidatePool: jest.fn(),
     findCandidateByUserId: jest.fn(),
     findCvFileInfo: jest.fn().mockResolvedValue(FILE_INFO),

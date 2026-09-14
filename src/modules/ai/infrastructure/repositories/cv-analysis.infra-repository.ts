@@ -64,8 +64,11 @@ export class CvAnalysisInfraRepository implements ICvAnalysisRepository {
     return CvAnalysisMapper.toDomain(raw)!;
   }
 
-  async findPendingCvIds(limit: number): Promise<string[]> {
-    return this.cvAnalysisPrisma.findPendingCvIds(limit);
+  async claimPendingCvIds(
+    limit: number,
+    staleAfterMs: number,
+  ): Promise<string[]> {
+    return this.cvAnalysisPrisma.claimPendingCvIds(limit, staleAfterMs);
   }
 
   async searchCandidatePool(

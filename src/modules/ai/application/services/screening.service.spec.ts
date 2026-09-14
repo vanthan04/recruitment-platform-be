@@ -15,7 +15,7 @@ function makeService(overrides: { postedById?: string } = {}) {
     findByCvId: jest.fn(),
     findByCvIdForJob: jest.fn(),
     save: jest.fn(),
-    findPendingCvIds: jest.fn(),
+    claimPendingCvIds: jest.fn(),
     searchCandidatePool: jest.fn(),
     findCandidateByUserId: jest.fn(),
     findCvFileInfo: jest.fn(),

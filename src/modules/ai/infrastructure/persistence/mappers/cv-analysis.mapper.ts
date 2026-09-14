@@ -22,6 +22,7 @@ export class CvAnalysisMapper {
       model: raw.model,
       analyzedAt: raw.analyzedAt,
       failureReason: raw.failureReason,
+      processingStartedAt: raw.processingStartedAt,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -42,6 +43,7 @@ export class CvAnalysisMapper {
       model: analysis.model,
       analyzedAt: analysis.analyzedAt,
       failureReason: analysis.failureReason,
+      processingStartedAt: analysis.processingStartedAt,
     };
   }
 }
