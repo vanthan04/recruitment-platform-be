@@ -4,7 +4,10 @@ import {
   CreateCompanyHandler,
 } from '@/modules/company/application/commands/create-company.command';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
-import { CompanyAlreadyExistsException } from '@/modules/company/domain/exceptions/company.exceptions';
+import {
+  CompanyAlreadyExistsException,
+  CompanySlugTakenException,
+} from '@/modules/company/domain/exceptions/company.exceptions';
 import { Company } from '@/modules/company/domain/entities/company.entity';
 
 describe('CreateCompanyHandler', () => {
@@ -93,6 +96,31 @@ describe('CreateCompanyHandler', () => {
         new CreateCompanyCommand('owner-1', { name: 'Acme Inc' }),
       ),
     ).rejects.toThrow(CompanyAlreadyExistsException);
+  });
+
+  it('translates a P2002 slug collision into CompanySlugTakenException, not CompanyAlreadyExistsException', async () => {
+    companyRepository.findByOwnerId.mockResolvedValue(null);
+    companyRepository.existsBySlug.mockResolvedValue(false);
+    companyRepository.saveWithOwnerLink.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+        // The real shape this app's P2002 errors have — see
+        // prisma-error.util.ts's doc comment (@prisma/adapter-pg, verified
+        // empirically, not the classic query-engine `target` array shape).
+        meta: {
+          driverAdapterError: {
+            cause: { constraint: { index: 'companies_slug_key' } },
+          },
+        },
+      }),
+    );
+
+    await expect(
+      handler.execute(
+        new CreateCompanyCommand('owner-1', { name: 'Acme Inc' }),
+      ),
+    ).rejects.toThrow(CompanySlugTakenException);
   });
 
   it('rethrows a non-P2002 error from saveWithOwnerLink untouched', async () => {

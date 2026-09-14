@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
-import { Prisma } from '@prisma/client';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { Company } from '@/modules/company/domain/entities/company.entity';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
-import { CompanyAlreadyExistsException } from '@/modules/company/domain/exceptions/company.exceptions';
+import {
+  CompanyAlreadyExistsException,
+  CompanySlugTakenException,
+} from '@/modules/company/domain/exceptions/company.exceptions';
+import {
+  isUniqueConstraintViolation,
+  uniqueConstraintName,
+} from '@/common/utils/prisma-error.util';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
 
@@ -65,18 +71,19 @@ export class CreateCompanyHandler implements ICommandHandler<
 
     // findByOwnerId above (and existsBySlug in generateUniqueSlug) are
     // check-then-insert, not atomic — two near-simultaneous requests can both
-    // pass and race to insert. The DB's unique constraints on `slug` and on
-    // `ownerId` (active companies only) stop the duplicate row; without this
-    // catch that surfaces as a generic DUPLICATE_ENTITY instead of this
-    // module's own domain error.
+    // pass and race to insert. The DB has two separate unique constraints
+    // here (`slug`, and `ownerId` for active companies only), so which one
+    // fired must be checked explicitly — conflating them previously told a
+    // recruiter racing another recruiter on a similar company *name* that
+    // they already own a company, which is false.
     let saved: Company;
     try {
       saved = await this.companyRepository.saveWithOwnerLink(company);
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueConstraintViolation(err)) {
+        if (uniqueConstraintName(err) === 'companies_slug_key') {
+          throw new CompanySlugTakenException();
+        }
         throw new CompanyAlreadyExistsException();
       }
       throw err;

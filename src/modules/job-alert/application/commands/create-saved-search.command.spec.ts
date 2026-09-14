@@ -17,7 +17,6 @@ describe('CreateSavedSearchHandler', () => {
   beforeEach(() => {
     savedSearchRepository = {
       findById: jest.fn(),
-      findAll: jest.fn(),
       findAllByUserId: jest.fn(),
       countByUserId: jest.fn().mockResolvedValue(0),
       findBatch: jest.fn(),

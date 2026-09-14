@@ -15,7 +15,6 @@ describe('SendJobAlertDigestsHandler', () => {
   beforeEach(() => {
     savedSearchRepository = {
       findById: jest.fn(),
-      findAll: jest.fn(),
       findAllByUserId: jest.fn(),
       countByUserId: jest.fn(),
       findBatch: jest.fn().mockResolvedValue([]),

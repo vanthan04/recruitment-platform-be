@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma } from '@prisma/client';
+import { isUniqueConstraintViolation } from '@/common/utils/prisma-error.util';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { IJobLookupPort } from '@/modules/application/application/ports/job-lookup.port';
 import { ICvLookupPort } from '@/modules/application/application/ports/cv-lookup.port';
@@ -110,10 +110,7 @@ export class ApplyJobHandler implements ICommandHandler<
     try {
       saved = await this.applicationRepository.save(application);
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueConstraintViolation(err)) {
         throw new AlreadyAppliedException();
       }
       throw err;

@@ -27,6 +27,18 @@ export class CompanyAlreadyExistsException extends DuplicateEntityException {
   }
 }
 
+/**
+ * Distinct from CompanyAlreadyExistsException — this is a slug collision
+ * (two recruiters racing on a similar company name), not "you already own
+ * a company". See create-company.command.ts's P2002 handling.
+ */
+export class CompanySlugTakenException extends DuplicateEntityException {
+  constructor() {
+    super('Company', 'name', 'COMPANY_SLUG_TAKEN');
+    this.name = 'CompanySlugTakenException';
+  }
+}
+
 export class CompanyOwnershipException extends UnauthorizedDomainException {
   constructor() {
     super('You are not the owner of this company', 'COMPANY_NOT_OWNER');

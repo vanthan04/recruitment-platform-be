@@ -31,11 +31,6 @@ export class SavedSearchInfraRepository implements ISavedSearchRepository {
     return this.savedSearchPrisma.countByUserId(userId);
   }
 
-  async findAll(): Promise<SavedSearch[]> {
-    const raws = await this.savedSearchPrisma.findAll();
-    return raws.map((r) => SavedSearchMapper.toDomain(r)!);
-  }
-
   async findBatch(params: {
     cursor?: string;
     take: number;

@@ -7,7 +7,6 @@ export abstract class ISavedSearchRepository {
     params: { skip: number; take: number },
   ): Promise<{ savedSearches: SavedSearch[]; total: number }>;
   abstract countByUserId(userId: string): Promise<number>;
-  abstract findAll(): Promise<SavedSearch[]>;
   /** Keyset-paginated batch, ordered by id — for the digest cron, which can't afford to load the whole table into memory at once. */
   abstract findBatch(params: {
     cursor?: string;

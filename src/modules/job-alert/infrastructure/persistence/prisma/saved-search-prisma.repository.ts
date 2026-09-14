@@ -30,10 +30,6 @@ export class SavedSearchPrismaRepository {
     return this.prisma.savedSearch.count({ where: { userId } });
   }
 
-  async findAll() {
-    return this.prisma.savedSearch.findMany();
-  }
-
   async findBatch(params: { cursor?: string; take: number }) {
     return this.prisma.savedSearch.findMany({
       take: params.take,
