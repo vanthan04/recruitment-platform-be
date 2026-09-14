@@ -6,6 +6,7 @@ import {
 } from '@nestjs/swagger';
 import { ApiResponse } from '@/common/dtos/api-response';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('app')
 @Controller('healthcheck')
@@ -13,6 +14,7 @@ export class AppController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
+  @Public()
   @ApiOperation({
     summary:
       'Readiness check — confirms the API can actually reach its database',

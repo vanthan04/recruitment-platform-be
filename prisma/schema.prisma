@@ -220,6 +220,13 @@ model User {
   // Company.recruiters already exists, and it's the one FK on this model
   // without any index.
   @@index([companyId])
+  // Backs CvAnalysisPrismaRepository.searchCandidatePool's `roleRef: {
+  // name: 'CANDIDATE' }, status: 'ACTIVE'` filter (the AI "Find Matching
+  // Candidates" query) — roleRef.name resolves to a single Role.id (that
+  // column is @unique) before hitting this table, so the filter is
+  // effectively `roleId = ? AND status = ?` against the full users table.
+  // Without this, every matching-candidates call sequential-scans users.
+  @@index([roleId, status])
   @@map("users")
 }
 
@@ -348,6 +355,14 @@ model CvAnalysis {
   updatedAt       DateTime         @updatedAt
 
   @@index([status])
+  // Backs the `hasSome` (array-overlap) skills filter in
+  // CvAnalysisPrismaRepository.searchCandidatePool — a GIN index is the
+  // only index type Postgres can use to accelerate `&&`. Default array GIN
+  // ops (no custom operator class needed, unlike the trgm indexes) are
+  // expressible directly in Prisma's DSL, so — unlike
+  // 20260911123000_job_company_search_trgm_index — this one IS visible to
+  // `prisma migrate dev`'s schema diff.
+  @@index([skills], type: Gin)
   @@map("cv_analyses")
 }
 

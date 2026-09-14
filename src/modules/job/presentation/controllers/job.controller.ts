@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionGuard } from '@/common/guards/permission.guard';
 import { RequirePermissions } from '@/common/decorators/require-permissions.decorator';
 import { GetMe } from '@/common/decorators/get-me.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import { Permission } from '@/common/enums/permission.enum';
 import { ApiResponse } from '@/common/dtos/api-response';
 
@@ -55,6 +56,7 @@ export class JobController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'List and search jobs' })
   async list(@Query() query: SearchJobDto) {
     const result = await this.queryBus.execute(
@@ -107,6 +109,7 @@ export class JobController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get job by ID' })
   async getById(@Param('id') id: string) {
     const result = await this.queryBus.execute(new GetJobQuery(id));

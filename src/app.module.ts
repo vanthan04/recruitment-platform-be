@@ -9,6 +9,7 @@ import { LoggerModule } from 'nestjs-pino';
 import type Redis from 'ioredis';
 import { AppController } from '@/app.controller';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { buildLoggerOptions } from '@/common/config/logger.config';
 import { RedisModule } from '@/common/redis/redis.module';
 import { REDIS_CLIENT } from '@/common/redis/redis.constants';
@@ -104,6 +105,14 @@ const PRISMA_LOG_LEVELS = isProduction
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    // Every route requires a valid JWT by default now — mark a route
+    // @Public() (see common/decorators/public.decorator.ts) to opt out.
+    // Runs after ThrottlerGuard (order = array order), so an unauthenticated
+    // flood still gets rate-limited rather than only ever hitting this guard.
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
     GlobalExceptionFilter,
   ],

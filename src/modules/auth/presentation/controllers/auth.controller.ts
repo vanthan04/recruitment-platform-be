@@ -22,6 +22,7 @@ import { ResetPasswordDto } from '@/modules/auth/presentation/dtos/reset-passwor
 import { ChangePasswordDto } from '@/modules/auth/presentation/dtos/change-password.dto';
 import { SocialExchangeDto } from '@/modules/auth/presentation/dtos/social-exchange.dto';
 import { ApiResponse } from '@/common/dtos/api-response';
+import { Public } from '@/common/decorators/public.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { GoogleAuthGuard } from '@/common/guards/google-auth.guard';
 import { FacebookAuthGuard } from '@/common/guards/facebook-auth.guard';
@@ -106,6 +107,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Public()
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() dto: RegisterRequestDto) {
@@ -117,6 +119,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Login user' })
@@ -130,6 +133,7 @@ export class AuthController {
   }
 
   @Post('verify')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Verify email using code' })
@@ -139,6 +143,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Request password reset' })
@@ -148,6 +153,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Reset password using code' })
@@ -200,6 +206,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh JWT tokens' })
   async refresh(
@@ -212,6 +219,7 @@ export class AuthController {
   }
 
   @Get('google')
+  @Public()
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Start Google login (redirects to Google)' })
   googleAuth() {
@@ -220,6 +228,7 @@ export class AuthController {
   }
 
   @Get('google/callback')
+  @Public()
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback (redirects to frontend)' })
   async googleCallback(
@@ -230,6 +239,7 @@ export class AuthController {
   }
 
   @Get('facebook')
+  @Public()
   @UseGuards(FacebookAuthGuard)
   @ApiOperation({ summary: 'Start Facebook login (redirects to Facebook)' })
   facebookAuth() {
@@ -238,6 +248,7 @@ export class AuthController {
   }
 
   @Get('facebook/callback')
+  @Public()
   @UseGuards(FacebookAuthGuard)
   @ApiOperation({ summary: 'Facebook OAuth callback (redirects to frontend)' })
   async facebookCallback(
@@ -248,6 +259,7 @@ export class AuthController {
   }
 
   @Post('social/exchange')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Exchange a social-login code for JWT tokens' })
