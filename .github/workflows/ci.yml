@@ -148,6 +148,19 @@ jobs:
   # step-level `if:`). Net effect matches the original intent: every step
   # no-ops (job shows "skipped", not failed) until RAILWAY_TOKEN/
   # RAILWAY_SERVICE are configured as repo secrets — see DEPLOY.md §3.
+  #
+  # The GitHub secret named RAILWAY_TOKEN actually holds an Account API
+  # Token, not a Project Token (Railway's free/hobby plan doesn't offer
+  # Project Tokens — those need a paid plan). The two aren't interchangeable
+  # at the CLI level: `railway` reads a Project Token from the RAILWAY_TOKEN
+  # env var, where it's already scoped to one project/environment/service
+  # and needs no further targeting. An Account Token instead goes in
+  # RAILWAY_API_TOKEN, and is scoped to the whole account — confirmed
+  # locally that with RAILWAY_API_TOKEN set (even to a bogus value) the CLI
+  # gets past the token check and fails on "No linked project found"
+  # instead, i.e. it needs an explicit --project/--environment (there's no
+  # `railway link` state to persist across a stateless CI job), which
+  # `railway up` accepts directly as flags.
   deploy:
     name: Deploy to Railway
     needs: [build-and-test, e2e]
@@ -160,8 +173,10 @@ jobs:
         if: ${{ env.RAILWAY_TOKEN_SET == 'true' }}
       - run: npm install -g @railway/cli
         if: ${{ env.RAILWAY_TOKEN_SET == 'true' }}
-      - run: railway up --service "$RAILWAY_SERVICE" --detach
+      - run: railway up --service "$RAILWAY_SERVICE" --project "$RAILWAY_PROJECT_ID" --environment "$RAILWAY_ENVIRONMENT" --detach
         if: ${{ env.RAILWAY_TOKEN_SET == 'true' }}
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT }}
