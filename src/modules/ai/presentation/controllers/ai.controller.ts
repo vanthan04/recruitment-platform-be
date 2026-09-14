@@ -1,4 +1,5 @@
 import { Body, Controller, Post, Param, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -24,8 +25,19 @@ import { SuggestedSkillsResponseDto } from '@/modules/ai/presentation/dtos/sugge
 import { DraftJobDto } from '@/modules/ai/presentation/dtos/draft-job.dto';
 import { JobDraftResponseDto } from '@/modules/ai/presentation/dtos/job-draft-response.dto';
 
+// `@Throttle()` is evaluated at class-definition time (module load, before
+// Nest's DI container exists), so it can't read this from an injected
+// ConfigService — same constraint, same fix, as AUTH_THROTTLE_LIMIT in
+// auth.controller.ts. Every route here invokes a paid LLM provider call
+// (directly, or via search_candidates/get_applications precheck queries
+// feeding into one), so this is a cost-abuse guard, not a brute-force one —
+// tighter than GLOBAL_THROTTLE_LIMIT (60/60s) but generous enough for a
+// recruiter genuinely working through several candidates/jobs in a minute.
+const AI_THROTTLE_LIMIT = Number(process.env.AI_THROTTLE_LIMIT) || 10;
+
 @ApiTags('ai')
 @Controller('jobs')
+@Throttle({ default: { limit: AI_THROTTLE_LIMIT, ttl: 60000 } })
 export class AiController {
   constructor(
     private readonly aiMatchingService: AiMatchingService,

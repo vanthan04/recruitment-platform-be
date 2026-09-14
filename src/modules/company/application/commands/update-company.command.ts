@@ -3,9 +3,13 @@ import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanySize } from '@/modules/company/domain/value-objects/company-size.vo';
 import { CompanyType } from '@/modules/company/domain/value-objects/company-type.vo';
-import { CompanyNotFoundException } from '@/modules/company/domain/exceptions/company.exceptions';
+import {
+  CompanyNotFoundException,
+  InvalidLogoUrlException,
+} from '@/modules/company/domain/exceptions/company.exceptions';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
+import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 
 export interface UpdateCompanyInput {
   name?: string;
@@ -35,7 +39,10 @@ export class UpdateCompanyHandler implements ICommandHandler<
   UpdateCompanyCommand,
   CompanyResponseDto
 > {
-  constructor(private readonly companyRepository: ICompanyRepository) {}
+  constructor(
+    private readonly companyRepository: ICompanyRepository,
+    private readonly fileStorage: IFileStorageProvider,
+  ) {}
 
   async execute({
     ownerId,
@@ -48,6 +55,11 @@ export class UpdateCompanyHandler implements ICommandHandler<
     }
 
     company.ensureOwner(ownerId);
+
+    if (input.logoUrl && !this.fileStorage.isOwnedUrl(input.logoUrl)) {
+      throw new InvalidLogoUrlException();
+    }
+
     company.updateDetails(input);
 
     const updated = await this.companyRepository.update(company);

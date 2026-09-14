@@ -36,3 +36,19 @@ export class CannotRemoveLastAdminException extends BusinessRuleViolationExcepti
     this.name = 'CannotRemoveLastAdminException';
   }
 }
+
+/**
+ * avatarUrl must be a URL this app's own storage provider issued (via
+ * POST /files/upload), not an arbitrary external URL — an unrestricted
+ * @IsUrl() would let a profile embed a tracking pixel or hotlink an
+ * external image under the guise of an avatar. See update-profile.command.ts.
+ */
+export class InvalidAvatarUrlException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'avatarUrl must point to a file uploaded through this app',
+      'USER_INVALID_AVATAR_URL',
+    );
+    this.name = 'InvalidAvatarUrlException';
+  }
+}

@@ -88,6 +88,7 @@ jobs:
       # tuned to the exact current count so the suite has headroom to grow.
       GLOBAL_THROTTLE_LIMIT: "1000"
       AUTH_THROTTLE_LIMIT: "1000"
+      AI_THROTTLE_LIMIT: "1000"
       JWT_SECRET: ci-test-secret
       JWT_EXPIRATION: "900000"
       JWT_REFRESH_SECRET: ci-test-refresh-secret

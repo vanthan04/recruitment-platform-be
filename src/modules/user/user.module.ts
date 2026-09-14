@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
 import { UserController } from '@/modules/user/presentation/controllers/user.controller';
 import { UserAdminController } from '@/modules/user/presentation/controllers/user-admin.controller';
 import { IUserRepository } from '@/modules/user/domain/repositories/user.repository';
@@ -13,7 +14,7 @@ import { AdminListUsersHandler } from './application/queries/admin-list-users.qu
 import { AdminUpdateUserStatusHandler } from './application/commands/admin-update-user-status.command';
 
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, FileUploadModule],
   controllers: [UserController, UserAdminController],
   providers: [
     UserPrismaRepository,

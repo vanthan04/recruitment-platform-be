@@ -6,12 +6,15 @@ import { ICompanyRepository } from '@/modules/company/domain/repositories/compan
 import {
   CompanyNotFoundException,
   CompanyOwnershipException,
+  InvalidLogoUrlException,
 } from '@/modules/company/domain/exceptions/company.exceptions';
 import { Company } from '@/modules/company/domain/entities/company.entity';
+import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 
 describe('UpdateCompanyHandler', () => {
   let handler: UpdateCompanyHandler;
   let companyRepository: jest.Mocked<ICompanyRepository>;
+  let fileStorage: jest.Mocked<IFileStorageProvider>;
 
   beforeEach(() => {
     companyRepository = {
@@ -26,8 +29,17 @@ describe('UpdateCompanyHandler', () => {
       update: jest.fn(),
       delete: jest.fn(),
     };
+    fileStorage = {
+      upload: jest.fn(),
+      delete: jest.fn(),
+      uploadBuffer: jest.fn(),
+      deleteByKey: jest.fn(),
+      getSignedUrl: jest.fn(),
+      downloadBuffer: jest.fn(),
+      isOwnedUrl: jest.fn().mockReturnValue(true),
+    };
 
-    handler = new UpdateCompanyHandler(companyRepository);
+    handler = new UpdateCompanyHandler(companyRepository, fileStorage);
   });
 
   it('throws CompanyNotFoundException when the company does not exist', async () => {
@@ -79,5 +91,26 @@ describe('UpdateCompanyHandler', () => {
     expect(companyRepository.update).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Acme Renamed' }),
     );
+  });
+
+  it('rejects a logoUrl that is not one of our own upload URLs', async () => {
+    companyRepository.findById.mockResolvedValue(
+      new Company({
+        id: 'company-1',
+        name: 'Acme',
+        slug: 'acme',
+        ownerId: 'owner-1',
+      }),
+    );
+    fileStorage.isOwnedUrl.mockReturnValue(false);
+
+    await expect(
+      handler.execute(
+        new UpdateCompanyCommand('owner-1', 'company-1', {
+          logoUrl: 'https://attacker.example/track.png',
+        }),
+      ),
+    ).rejects.toThrow(InvalidLogoUrlException);
+    expect(companyRepository.update).not.toHaveBeenCalled();
   });
 });

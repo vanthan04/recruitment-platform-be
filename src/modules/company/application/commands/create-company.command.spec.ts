@@ -7,12 +7,15 @@ import { ICompanyRepository } from '@/modules/company/domain/repositories/compan
 import {
   CompanyAlreadyExistsException,
   CompanySlugTakenException,
+  InvalidLogoUrlException,
 } from '@/modules/company/domain/exceptions/company.exceptions';
 import { Company } from '@/modules/company/domain/entities/company.entity';
+import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 
 describe('CreateCompanyHandler', () => {
   let handler: CreateCompanyHandler;
   let companyRepository: jest.Mocked<ICompanyRepository>;
+  let fileStorage: jest.Mocked<IFileStorageProvider>;
 
   beforeEach(() => {
     companyRepository = {
@@ -27,8 +30,17 @@ describe('CreateCompanyHandler', () => {
       update: jest.fn(),
       delete: jest.fn(),
     };
+    fileStorage = {
+      upload: jest.fn(),
+      delete: jest.fn(),
+      uploadBuffer: jest.fn(),
+      deleteByKey: jest.fn(),
+      getSignedUrl: jest.fn(),
+      downloadBuffer: jest.fn(),
+      isOwnedUrl: jest.fn().mockReturnValue(true),
+    };
 
-    handler = new CreateCompanyHandler(companyRepository);
+    handler = new CreateCompanyHandler(companyRepository, fileStorage);
   });
 
   it('throws CompanyAlreadyExistsException when the owner already has a company', async () => {
@@ -135,5 +147,20 @@ describe('CreateCompanyHandler', () => {
         new CreateCompanyCommand('owner-1', { name: 'Acme Inc' }),
       ),
     ).rejects.toThrow('DB is down');
+  });
+
+  it('rejects a logoUrl that is not one of our own upload URLs', async () => {
+    companyRepository.findByOwnerId.mockResolvedValue(null);
+    fileStorage.isOwnedUrl.mockReturnValue(false);
+
+    await expect(
+      handler.execute(
+        new CreateCompanyCommand('owner-1', {
+          name: 'Acme Inc',
+          logoUrl: 'https://attacker.example/track.png',
+        }),
+      ),
+    ).rejects.toThrow(InvalidLogoUrlException);
+    expect(companyRepository.saveWithOwnerLink).not.toHaveBeenCalled();
   });
 });

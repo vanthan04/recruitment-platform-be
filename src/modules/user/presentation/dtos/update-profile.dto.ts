@@ -30,7 +30,11 @@ export class UpdateProfileDto {
   @IsOptional()
   birthDate?: string;
 
-  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
+  @ApiPropertyOptional({
+    example: 'https://bucket.s3.amazonaws.com/avatars/xxx.jpg',
+    description:
+      'URL returned by POST /files/upload?folder=avatars — arbitrary external URLs are rejected (see update-profile.command.ts).',
+  })
   @IsUrl()
   @IsOptional()
   avatarUrl?: string;

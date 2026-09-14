@@ -52,3 +52,21 @@ export class CompanyAlreadyDeletedException extends BusinessRuleViolationExcepti
     this.name = 'CompanyAlreadyDeletedException';
   }
 }
+
+/**
+ * logoUrl must be a URL this app's own storage provider issued (via
+ * POST /files/upload), not an arbitrary external URL — an unrestricted
+ * @IsUrl() would let a company profile embed a tracking pixel or hotlink
+ * an external image under the guise of a logo. See create-company.command.ts
+ * / update-company.command.ts. `website`, by contrast, is deliberately left
+ * unrestricted — it's meant to be an arbitrary external URL.
+ */
+export class InvalidLogoUrlException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'logoUrl must point to a file uploaded through this app',
+      'COMPANY_INVALID_LOGO_URL',
+    );
+    this.name = 'InvalidLogoUrlException';
+  }
+}

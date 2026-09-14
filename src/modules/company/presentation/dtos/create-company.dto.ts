@@ -17,7 +17,11 @@ export class CreateCompanyDto {
   @MaxLength(200)
   name: string;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/logo.png' })
+  @ApiPropertyOptional({
+    example: 'https://bucket.s3.amazonaws.com/company-logos/xxx.png',
+    description:
+      'URL returned by POST /files/upload?folder=company-logos — arbitrary external URLs are rejected (see create-company.command.ts).',
+  })
   @IsUrl()
   @IsOptional()
   logoUrl?: string;

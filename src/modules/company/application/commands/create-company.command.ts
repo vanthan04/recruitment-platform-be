@@ -7,6 +7,7 @@ import { CompanyType } from '@/modules/company/domain/value-objects/company-type
 import {
   CompanyAlreadyExistsException,
   CompanySlugTakenException,
+  InvalidLogoUrlException,
 } from '@/modules/company/domain/exceptions/company.exceptions';
 import {
   isUniqueConstraintViolation,
@@ -14,6 +15,7 @@ import {
 } from '@/common/utils/prisma-error.util';
 import { CompanyResponseMapper } from '@/modules/company/application/mappers/company-response.mapper';
 import { CompanyResponseDto } from '@/modules/company/application/dto/company-response.dto';
+import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 
 export interface CreateCompanyInput {
   name: string;
@@ -42,7 +44,10 @@ export class CreateCompanyHandler implements ICommandHandler<
   CreateCompanyCommand,
   CompanyResponseDto
 > {
-  constructor(private readonly companyRepository: ICompanyRepository) {}
+  constructor(
+    private readonly companyRepository: ICompanyRepository,
+    private readonly fileStorage: IFileStorageProvider,
+  ) {}
 
   async execute({
     ownerId,
@@ -51,6 +56,10 @@ export class CreateCompanyHandler implements ICommandHandler<
     const existing = await this.companyRepository.findByOwnerId(ownerId);
     if (existing) {
       throw new CompanyAlreadyExistsException();
+    }
+
+    if (input.logoUrl && !this.fileStorage.isOwnedUrl(input.logoUrl)) {
+      throw new InvalidLogoUrlException();
     }
 
     const slug = await this.generateUniqueSlug(input.name);

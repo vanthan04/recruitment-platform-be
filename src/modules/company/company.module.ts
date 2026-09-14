@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { FileUploadModule } from '@/modules/file-upload/file-upload.module';
 import { CompanyController } from '@/modules/company/presentation/controllers/company.controller';
 import { ICompanyRepository } from '@/modules/company/domain/repositories/company.repository';
 import { CompanyInfraRepository } from '@/modules/company/infrastructure/repositories/company.infra-repository';
@@ -12,7 +13,7 @@ import { GetCompanyHandler } from '@/modules/company/application/queries/get-com
 import { ListCompaniesHandler } from '@/modules/company/application/queries/list-companies.query';
 
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, FileUploadModule],
   controllers: [CompanyController],
   providers: [
     CompanyPrismaRepository,
