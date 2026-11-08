@@ -3,6 +3,11 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { CvModule } from '@/modules/cv/cv.module';
 import { AiController } from '@/modules/ai/presentation/controllers/ai.controller';
+import { JobRecommendationController } from '@/modules/ai/presentation/controllers/job-recommendation.controller';
+import { IJobRecommendationRepository } from '@/modules/ai/domain/repositories/job-recommendation.repository';
+import { JobRecommendationInfraRepository } from '@/modules/ai/infrastructure/repositories/job-recommendation.infra-repository';
+import { JobRecommendationPrismaRepository } from '@/modules/ai/infrastructure/persistence/prisma/job-recommendation-prisma.repository';
+import { GetJobRecommendationsHandler } from '@/modules/ai/application/queries/get-job-recommendations.query';
 import { ICvAnalysisRepository } from '@/modules/ai/domain/repositories/cv-analysis.repository';
 import { CvAnalysisInfraRepository } from '@/modules/ai/infrastructure/repositories/cv-analysis.infra-repository';
 import { CvAnalysisPrismaRepository } from '@/modules/ai/infrastructure/persistence/prisma/cv-analysis-prisma.repository';
@@ -57,13 +62,19 @@ import { ScreeningAgent } from '@/modules/ai/agents/screening.agent';
  */
 @Module({
   imports: [CqrsModule, CvModule],
-  controllers: [AiController],
+  controllers: [AiController, JobRecommendationController],
   providers: [
     CvAnalysisPrismaRepository,
     {
       provide: ICvAnalysisRepository,
       useClass: CvAnalysisInfraRepository,
     },
+    JobRecommendationPrismaRepository,
+    {
+      provide: IJobRecommendationRepository,
+      useClass: JobRecommendationInfraRepository,
+    },
+    GetJobRecommendationsHandler,
     CvTextExtractor,
     {
       provide: MATCHING_CHAT_MODEL,
