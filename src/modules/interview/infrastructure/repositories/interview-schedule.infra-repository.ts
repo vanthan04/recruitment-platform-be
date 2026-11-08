@@ -29,6 +29,29 @@ export class InterviewScheduleInfraRepository implements IInterviewScheduleRepos
     return InterviewScheduleMapper.toDomain(raw)!;
   }
 
+  async findUnremindedStartingBetween(
+    from: Date,
+    to: Date,
+    limit: number,
+  ): Promise<InterviewSchedule[]> {
+    const raws = await this.interviewPrisma.findUnremindedStartingBetween(
+      from,
+      to,
+      limit,
+    );
+    return raws.map((r) => InterviewScheduleMapper.toDomain(r)!);
+  }
+
+  async claimReminder(
+    id: string,
+    scheduledAt: Date,
+    at: Date,
+  ): Promise<boolean> {
+    return (
+      (await this.interviewPrisma.claimReminder(id, scheduledAt, at)) === 1
+    );
+  }
+
   async update(interview: InterviewSchedule): Promise<InterviewSchedule> {
     const data = InterviewScheduleMapper.toPersistence(interview);
     const raw = await this.interviewPrisma.update(interview.id, data);

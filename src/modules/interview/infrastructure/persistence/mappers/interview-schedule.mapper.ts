@@ -21,6 +21,7 @@ export class InterviewScheduleMapper {
       status: raw.status as InterviewStatus,
       jobApplicationId: raw.jobApplicationId,
       createdById: raw.createdById,
+      reminderSentAt: raw.reminderSentAt,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -38,6 +39,7 @@ export class InterviewScheduleMapper {
       status: interview.status,
       jobApplicationId: interview.jobApplicationId,
       createdById: interview.createdById,
+      reminderSentAt: interview.reminderSentAt,
     };
   }
 }

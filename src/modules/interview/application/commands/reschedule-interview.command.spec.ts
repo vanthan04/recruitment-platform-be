@@ -34,6 +34,8 @@ describe('RescheduleInterviewHandler', () => {
       findByApplicationId: jest.fn(),
       save: jest.fn((i) => Promise.resolve(i)),
       update: jest.fn((i) => Promise.resolve(i)),
+      findUnremindedStartingBetween: jest.fn(),
+      claimReminder: jest.fn(),
     };
     applicationLookupPort = { findById: jest.fn() };
     jobLookupPort = { findById: jest.fn() };

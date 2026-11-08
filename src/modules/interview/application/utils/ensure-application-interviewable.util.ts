@@ -6,8 +6,13 @@ import { InterviewApplicationNotInterviewableException } from '@/modules/intervi
 // stays consistent with that boundary.
 const TERMINAL_APPLICATION_STATUSES = ['HIRED', 'REJECTED', 'WITHDRAWN'];
 
+/** Whether an application in this status can still have an interview scheduled — and so still be reminded about one. */
+export function isApplicationInterviewable(status: string): boolean {
+  return !TERMINAL_APPLICATION_STATUSES.includes(status);
+}
+
 export function ensureApplicationInterviewable(status: string): void {
-  if (TERMINAL_APPLICATION_STATUSES.includes(status)) {
+  if (!isApplicationInterviewable(status)) {
     throw new InterviewApplicationNotInterviewableException();
   }
 }

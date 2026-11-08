@@ -176,3 +176,126 @@ describe('InterviewSchedule entity', () => {
     });
   });
 });
+
+describe('InterviewSchedule reminders', () => {
+  const HOUR = 60 * 60 * 1000;
+  const START = new Date('2026-06-10T09:00:00.000Z');
+  const hoursBeforeStart = (h: number) => new Date(START.getTime() - h * HOUR);
+
+  /** An interview that starts at START and was set up `noticeHours` earlier. */
+  const withNotice = (
+    noticeHours: number,
+    overrides: Partial<InterviewSchedule> = {},
+  ) =>
+    makeInterview({
+      scheduledAt: START,
+      updatedAt: hoursBeforeStart(noticeHours),
+      ...overrides,
+    });
+
+  it('starts with no reminder sent', () => {
+    expect(makeInterview().reminderSentAt).toBeNull();
+  });
+
+  describe('isReminderDue — plenty of notice (more than 24h)', () => {
+    const interview = () => withNotice(72);
+
+    it('is not due earlier than 24h before the start', () => {
+      expect(interview().isReminderDue(hoursBeforeStart(25))).toBe(false);
+    });
+
+    it('is due from 24h before the start, up to the start', () => {
+      expect(interview().isReminderDue(hoursBeforeStart(24))).toBe(true);
+      expect(interview().isReminderDue(hoursBeforeStart(10))).toBe(true);
+      expect(interview().isReminderDue(hoursBeforeStart(0.1))).toBe(true);
+    });
+
+    it('is never due once the interview has started', () => {
+      expect(interview().isReminderDue(START)).toBe(false);
+      expect(interview().isReminderDue(hoursBeforeStart(-1))).toBe(false);
+    });
+  });
+
+  describe('isReminderDue — short notice (between 2h and 24h)', () => {
+    // Set up 10h ahead: the 24h mark had already passed, so it falls back to 2h.
+    const interview = () => withNotice(10);
+
+    it('waits until 2h before the start', () => {
+      expect(interview().isReminderDue(hoursBeforeStart(9))).toBe(false);
+      expect(interview().isReminderDue(hoursBeforeStart(3))).toBe(false);
+    });
+
+    it('is due from 2h before the start', () => {
+      expect(interview().isReminderDue(hoursBeforeStart(2))).toBe(true);
+      expect(interview().isReminderDue(hoursBeforeStart(1))).toBe(true);
+    });
+
+    it('treats exactly 24h of notice as short notice (24h before is the moment it was booked)', () => {
+      expect(withNotice(24).isReminderDue(hoursBeforeStart(10))).toBe(false);
+      expect(withNotice(24).isReminderDue(hoursBeforeStart(2))).toBe(true);
+    });
+  });
+
+  describe('isReminderDue — booked moments ago (2h of notice or less)', () => {
+    it('never reminds: the booking email just went out', () => {
+      const interview = withNotice(2);
+      expect(interview.isReminderDue(hoursBeforeStart(2))).toBe(false);
+      expect(interview.isReminderDue(hoursBeforeStart(1))).toBe(false);
+      expect(withNotice(0.5).isReminderDue(hoursBeforeStart(0.25))).toBe(false);
+    });
+
+    it('does remind with just over 2h of notice', () => {
+      expect(withNotice(2.5).isReminderDue(hoursBeforeStart(2))).toBe(true);
+    });
+  });
+
+  describe('isReminderDue — other guards', () => {
+    it('is not due once the reminder has been sent', () => {
+      const interview = withNotice(72, {
+        reminderSentAt: hoursBeforeStart(24),
+      });
+      expect(interview.isReminderDue(hoursBeforeStart(10))).toBe(false);
+    });
+
+    it.each([
+      InterviewStatus.CANCELLED,
+      InterviewStatus.COMPLETED,
+      InterviewStatus.NO_SHOW,
+    ])('is not due for a %s interview', (status) => {
+      expect(
+        withNotice(72, { status }).isReminderDue(hoursBeforeStart(10)),
+      ).toBe(false);
+    });
+
+    it('is due for a RESCHEDULED interview', () => {
+      const interview = withNotice(72, { status: InterviewStatus.RESCHEDULED });
+      expect(interview.isReminderDue(hoursBeforeStart(10))).toBe(true);
+    });
+  });
+
+  describe('reschedule', () => {
+    it('clears the sent marker so the new time gets its own reminder', () => {
+      const interview = makeInterview({
+        reminderSentAt: new Date(),
+        scheduledAt: new Date(Date.now() + 48 * HOUR),
+      });
+
+      interview.reschedule(new Date(Date.now() + 72 * HOUR));
+
+      expect(interview.reminderSentAt).toBeNull();
+    });
+
+    it('does not touch the marker when the reschedule is refused', () => {
+      const sentAt = new Date();
+      const interview = makeInterview({
+        status: InterviewStatus.CANCELLED,
+        reminderSentAt: sentAt,
+      });
+
+      expect(() =>
+        interview.reschedule(new Date(Date.now() + 72 * HOUR)),
+      ).toThrow();
+      expect(interview.reminderSentAt).toBe(sentAt);
+    });
+  });
+});

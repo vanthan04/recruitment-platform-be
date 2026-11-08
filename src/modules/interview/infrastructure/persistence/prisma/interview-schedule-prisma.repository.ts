@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, InterviewStatus } from '@prisma/client';
+
+// The "still pending" statuses — mirrors InterviewSchedule.isActive().
+const ACTIVE_STATUSES: InterviewStatus[] = ['SCHEDULED', 'RESCHEDULED'];
 
 @Injectable()
 export class InterviewSchedulePrismaRepository {
@@ -28,5 +31,31 @@ export class InterviewSchedulePrismaRepository {
       where: { id },
       data,
     });
+  }
+
+  async findUnremindedStartingBetween(from: Date, to: Date, limit: number) {
+    return this.prisma.interviewSchedule.findMany({
+      where: {
+        status: { in: ACTIVE_STATUSES },
+        reminderSentAt: null,
+        scheduledAt: { gt: from, lte: to },
+      },
+      orderBy: { scheduledAt: 'asc' },
+      take: limit,
+    });
+  }
+
+  /** Returns how many rows changed: 1 if this caller claimed it, 0 if it lost the race (or the row changed). */
+  async claimReminder(id: string, scheduledAt: Date, at: Date) {
+    const { count } = await this.prisma.interviewSchedule.updateMany({
+      where: {
+        id,
+        scheduledAt,
+        reminderSentAt: null,
+        status: { in: ACTIVE_STATUSES },
+      },
+      data: { reminderSentAt: at },
+    });
+    return count;
   }
 }

@@ -365,6 +365,13 @@ Recruiter đặt/dời/huỷ lịch phỏng vấn cho 1 `JobApplication`. Bắt 
 
 ⚠️ **`InterviewStatus` mở rộng thêm `COMPLETED`/`NO_SHOW`**: `SCHEDULED`/`RESCHEDULED` (2 trạng thái "còn hiệu lực", có thể cancel/complete/no-show/reschedule tiếp) → `RESCHEDULED` / `CANCELLED` / `COMPLETED` / `NO_SHOW` (4 trạng thái cuối). Gọi cancel/complete/no-show/reschedule khi đã ở 1 trong 4 trạng thái cuối sẽ trả lỗi. Response `Interview` có thêm field `durationMinutes: number | null` (phút, tuỳ chọn khi đặt lịch). Không có in-app notification (`NotificationType`) cho interview, không đính kèm file `.ics` — chỉ gửi email.
 
+**Email nhắc lịch (tự động, không có endpoint):** một cron chạy mỗi 15 phút gửi 1 email nhắc cho **cả candidate lẫn recruiter** (chủ job). Email của recruiter có thêm tên ứng viên; giờ luôn hiển thị theo giờ Việt Nam. Thời điểm nhắc tuỳ thời gian báo trước lúc đặt/dời lịch (`updatedAt`):
+- báo trước **> 24 giờ** → nhắc **trước 24 giờ**;
+- báo trước **2–24 giờ** → không còn mốc 24 giờ, nhắc **trước 2 giờ**;
+- báo trước **≤ 2 giờ** → **không nhắc** (email đặt lịch vừa gửi xong).
+
+Mỗi mốc giờ chỉ nhắc **1 lần** (`reminderSentAt`, được xoá khi dời lịch để giờ mới có nhắc riêng). Không nhắc nếu interview đã huỷ/hoàn thành/không đến, hoặc đơn đã `HIRED`/`REJECTED`/`WITHDRAWN`. Gửi theo kiểu *claim trước, gửi sau* (nguyên tử trong DB) để 2 instance chạy chồng nhau lúc deploy không gửi trùng; đổi lại là **tối đa 1 lần** — mail lỗi chỉ được log, không gửi lại.
+
 ### 4.13. RBAC Admin (`/admin/roles`, `/admin/permissions`)
 
 Quản lý role → permission mapping (database-driven, đổi quyền không cần deploy lại code). Toàn bộ endpoint yêu cầu permission `role:permission:manage` (mặc định chỉ role `ADMIN` có).

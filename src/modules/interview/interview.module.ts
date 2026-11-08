@@ -24,6 +24,8 @@ import { CancelInterviewHandler } from '@/modules/interview/application/commands
 import { CompleteInterviewHandler } from '@/modules/interview/application/commands/complete-interview.command';
 import { MarkInterviewNoShowHandler } from '@/modules/interview/application/commands/mark-interview-no-show.command';
 import { ListInterviewsByApplicationHandler } from '@/modules/interview/application/queries/list-interviews-by-application.query';
+import { SendInterviewRemindersHandler } from '@/modules/interview/application/commands/send-interview-reminders.command';
+import { SendInterviewRemindersCron } from '@/modules/interview/application/jobs/send-interview-reminders.cron';
 
 @Module({
   imports: [
@@ -62,6 +64,8 @@ import { ListInterviewsByApplicationHandler } from '@/modules/interview/applicat
     CompleteInterviewHandler,
     MarkInterviewNoShowHandler,
     ListInterviewsByApplicationHandler,
+    SendInterviewRemindersHandler,
+    SendInterviewRemindersCron,
   ],
 })
 export class InterviewModule {}
