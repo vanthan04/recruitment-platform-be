@@ -208,6 +208,7 @@ model User {
   refreshTokens    RefreshToken[]
   scheduledInterviews InterviewSchedule[]
   applicationStatusChanges ApplicationStatusHistory[]
+  applicationNotes         ApplicationNote[]
   oauthLoginCodes     OauthLoginCode[]
   verificationTokens  VerificationToken[]
   conversationsAsCandidate  Conversation[]       @relation("ConversationCandidate")
@@ -520,6 +521,11 @@ model JobApplication {
   conversation Conversation?
   interviewSchedules InterviewSchedule[]
   statusHistory ApplicationStatusHistory[]
+  // Recruiter-private review data — never part of what the candidate is shown.
+  // Written only through ApplicationAnnotationRepository (its own column-level
+  // update), so a star toggle can never overwrite a concurrent status change.
+  starredAt   DateTime?
+  notes       ApplicationNote[]
 
   @@unique([userId, jobId]) // One application per user per job
   @@index([jobId])
@@ -549,6 +555,24 @@ model ApplicationStatusHistory {
 
   @@index([applicationId, createdAt])
   @@map("application_status_histories")
+}
+
+// Internal notes the job's recruiter keeps on an applicant (after each round,
+// say). Never shown to the candidate. Add/delete only — no editing.
+model ApplicationNote {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  applicationId String
+  // Attribution only (same as ApplicationStatusHistory.changedById): kept but
+  // nulled if the author's account is ever deleted, not cascaded away.
+  author        User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId      String?
+
+  @@index([applicationId, createdAt])
+  @@map("application_notes")
 }
 
 // ─────────────────────────────────────────────

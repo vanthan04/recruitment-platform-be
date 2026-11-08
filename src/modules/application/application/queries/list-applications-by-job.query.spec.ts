@@ -25,6 +25,7 @@ describe('ListApplicationsByJobHandler', () => {
   let applicationRepository: jest.Mocked<IJobApplicationRepository>;
   let jobLookupPort: jest.Mocked<IJobLookupPort>;
   let userLookupPort: jest.Mocked<IApplicationUserLookupPort>;
+  let annotationRepository: { findStarredApplicationIds: jest.Mock };
   let handler: ListApplicationsByJobHandler;
 
   beforeEach(() => {
@@ -54,11 +55,54 @@ describe('ListApplicationsByJobHandler', () => {
       findById: jest.fn(),
       findManyByIds: jest.fn().mockResolvedValue(new Map()),
     };
+    annotationRepository = {
+      findStarredApplicationIds: jest.fn().mockResolvedValue(new Set()),
+    };
     handler = new ListApplicationsByJobHandler(
       applicationRepository,
       jobLookupPort,
       userLookupPort,
+      annotationRepository as any,
     );
+  });
+
+  it('marks which applications the recruiter has starred, in one batched lookup', async () => {
+    applicationRepository.findAllByJobId.mockResolvedValue({
+      applications: [
+        makeApplication({ id: 'app-1' }),
+        makeApplication({ id: 'app-2', userId: 'candidate-2' }),
+        makeApplication({ id: 'app-3', userId: 'candidate-3' }),
+      ],
+      total: 3,
+    });
+    annotationRepository.findStarredApplicationIds.mockResolvedValue(
+      new Set(['app-2']),
+    );
+
+    const { applications } = await handler.execute(
+      new ListApplicationsByJobQuery('recruiter-1', 'job-1'),
+    );
+
+    expect(
+      annotationRepository.findStarredApplicationIds,
+    ).toHaveBeenCalledTimes(1);
+    expect(annotationRepository.findStarredApplicationIds).toHaveBeenCalledWith(
+      ['app-1', 'app-2', 'app-3'],
+    );
+    expect(applications.map((a) => [a.id, a.isStarred])).toEqual([
+      ['app-1', false],
+      ['app-2', true],
+      ['app-3', false],
+    ]);
+  });
+
+  it('does not look up stars for someone who does not own the job', async () => {
+    await expect(
+      handler.execute(new ListApplicationsByJobQuery('someone-else', 'job-1')),
+    ).rejects.toThrow(UnauthorizedDomainException);
+    expect(
+      annotationRepository.findStarredApplicationIds,
+    ).not.toHaveBeenCalled();
   });
 
   it('throws ReferencedJobNotFoundException when the job does not exist', async () => {

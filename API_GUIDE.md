@@ -269,6 +269,12 @@ Không có `GET /skills/:id`. `slug` tự sinh từ `name` giống `Category`. T
 | `GET /job-applications/:id/history` | 🔒 | Chủ đơn (candidate) hoặc recruiter sở hữu job — timeline `{ fromStatus, toStatus, note, changedById, createdAt }[]`, mới nhất trước |
 | `PATCH /job-applications/:id/withdraw` | `CANDIDATE` | Chỉ chủ đơn, chỉ khi chưa ở trạng thái cuối (`HIRED`/`REJECTED`/`WITHDRAWN`) |
 | `PATCH /job-applications/:id/status` | `RECRUITER` | `{ status, note? }` — chỉ recruiter sở hữu job, phải đi đúng chiều pipeline (xem bên dưới) |
+| `GET /job-applications/:id/notes` | `RECRUITER` | Ghi chú nội bộ của đơn, mới nhất trước — `data`: `[{ id, content, authorId, createdAt }]`. Chỉ recruiter sở hữu job |
+| `POST /job-applications/:id/notes` | `RECRUITER` | `{ content }` (không rỗng sau khi trim, tối đa 2000 ký tự) — trả về ghi chú vừa tạo. Chỉ recruiter sở hữu job |
+| `DELETE /job-applications/:id/notes/:noteId` | `RECRUITER` | Xoá 1 ghi chú; ghi chú phải thuộc đúng đơn trong URL (nếu không: `404 APPLICATION_NOTE_NOT_FOUND`). Chỉ recruiter sở hữu job |
+| `PATCH /job-applications/:id/star` | `RECRUITER` | `{ starred: boolean }` → `data`: `{ isStarred }`. Idempotent. Chỉ recruiter sở hữu job |
+
+**Ghi chú nội bộ và đánh dấu sao** là dữ liệu riêng của recruiter sở hữu job: **ứng viên không bao giờ đọc được**, kể cả chủ đơn (`403`). Ghi chú chỉ thêm/xoá, không sửa, được phép ở mọi trạng thái đơn. `GET /job-applications/job/:jobId` có thêm `isStarred` trên mỗi đơn — chỉ ở response này; các response phía ứng viên không có trường đó. Sao được ghi riêng từng cột, nên bật/tắt sao không thể ghi đè một lần đổi trạng thái xảy ra cùng lúc.
 
 ⚠️ **Pipeline tuyển dụng đã mở rộng từ 4 trạng thái (`PENDING/ACCEPTED/REJECTED/WITHDRAWN`) thành 8 trạng thái theo từng bước phễu tuyển dụng.** `ApplicationStatus`: `APPLIED → SCREENING → SHORTLISTED → INTERVIEW → OFFER → HIRED`, mỗi bước (trừ `HIRED`) đều có thể rẽ sang `REJECTED`. `WITHDRAWN` là nhánh riêng, candidate tự rút đơn ở bất kỳ bước nào chưa tới trạng thái cuối. `HIRED`/`REJECTED`/`WITHDRAWN` đều là trạng thái cuối — không đổi tiếp được (đổi sai chiều trả `400 BUSINESS_RULE_VIOLATION`).
 

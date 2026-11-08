@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -24,6 +25,14 @@ import { ListMyApplicationsQuery } from '@/modules/application/application/queri
 import { ListApplicationsByJobQuery } from '@/modules/application/application/queries/list-applications-by-job.query';
 import { GetJobStatsQuery } from '@/modules/application/application/queries/get-job-stats.query';
 import { GetApplicationStatusHistoryQuery } from '@/modules/application/application/queries/get-application-status-history.query';
+import { ListApplicationNotesQuery } from '@/modules/application/application/queries/list-application-notes.query';
+import { AddApplicationNoteCommand } from '@/modules/application/application/commands/add-application-note.command';
+import { DeleteApplicationNoteCommand } from '@/modules/application/application/commands/delete-application-note.command';
+import { SetApplicationStarredCommand } from '@/modules/application/application/commands/set-application-starred.command';
+import {
+  AddApplicationNoteDto,
+  SetApplicationStarredDto,
+} from '@/modules/application/presentation/dtos/application-annotation.dto';
 
 import { ApplyJobDto } from '@/modules/application/presentation/dtos/apply-job.dto';
 import { UpdateApplicationStatusDto } from '@/modules/application/presentation/dtos/update-application-status.dto';
@@ -155,5 +164,71 @@ export class JobApplicationController {
       new UpdateApplicationStatusCommand(recruiterId, id, dto.status, dto.note),
     );
     return ApiResponse.ok(result, 'Application status updated successfully');
+  }
+
+  // ── Recruiter-private review data: internal notes and a star ──────────────
+  // APPLICATION_READ / APPLICATION_UPDATE are recruiter-only permissions; the
+  // handlers additionally require the caller to be this job's poster. The
+  // candidate can never read any of this.
+
+  @Get(':id/notes')
+  @RequirePermissions(Permission.APPLICATION_READ)
+  @ApiOperation({
+    summary:
+      'List the internal notes on an application, newest first (Recruiter owner only)',
+  })
+  async listNotes(@GetMe('id') recruiterId: string, @Param('id') id: string) {
+    const result = await this.queryBus.execute(
+      new ListApplicationNotesQuery(recruiterId, id),
+    );
+    return ApiResponse.ok(result, 'Application notes retrieved successfully');
+  }
+
+  @Post(':id/notes')
+  @RequirePermissions(Permission.APPLICATION_UPDATE)
+  @ApiOperation({
+    summary: 'Add an internal note to an application (Recruiter owner only)',
+  })
+  async addNote(
+    @GetMe('id') recruiterId: string,
+    @Param('id') id: string,
+    @Body() dto: AddApplicationNoteDto,
+  ) {
+    const result = await this.commandBus.execute(
+      new AddApplicationNoteCommand(recruiterId, id, dto.content),
+    );
+    return ApiResponse.ok(result, 'Note added successfully');
+  }
+
+  @Delete(':id/notes/:noteId')
+  @RequirePermissions(Permission.APPLICATION_UPDATE)
+  @ApiOperation({
+    summary: 'Delete an internal note (Recruiter owner only)',
+  })
+  async deleteNote(
+    @GetMe('id') recruiterId: string,
+    @Param('id') id: string,
+    @Param('noteId') noteId: string,
+  ) {
+    await this.commandBus.execute(
+      new DeleteApplicationNoteCommand(recruiterId, id, noteId),
+    );
+    return ApiResponse.ok(null, 'Note deleted successfully');
+  }
+
+  @Patch(':id/star')
+  @RequirePermissions(Permission.APPLICATION_UPDATE)
+  @ApiOperation({
+    summary: 'Star or unstar an application (Recruiter owner only)',
+  })
+  async setStarred(
+    @GetMe('id') recruiterId: string,
+    @Param('id') id: string,
+    @Body() dto: SetApplicationStarredDto,
+  ) {
+    const result = await this.commandBus.execute(
+      new SetApplicationStarredCommand(recruiterId, id, dto.starred),
+    );
+    return ApiResponse.ok(result, 'Star updated successfully');
   }
 }

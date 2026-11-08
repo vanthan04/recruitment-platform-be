@@ -125,3 +125,17 @@ export class ApplicationHistoryViewNotAllowedException extends UnauthorizedDomai
     this.name = 'ApplicationHistoryViewNotAllowedException';
   }
 }
+
+export class ApplicationNoteNotFoundException extends EntityNotFoundException {
+  constructor(id?: string) {
+    super('Application note', id, 'APPLICATION_NOTE_NOT_FOUND');
+    this.name = 'ApplicationNoteNotFoundException';
+  }
+}
+
+export class ApplicationNoteInvalidException extends BusinessRuleViolationException {
+  constructor(reason: string) {
+    super(reason, 'APPLICATION_NOTE_INVALID');
+    this.name = 'ApplicationNoteInvalidException';
+  }
+}

@@ -6,11 +6,12 @@ import { IApplicationUserLookupPort } from '@/modules/application/application/po
 import { ReferencedJobNotFoundException } from '@/modules/application/domain/exceptions/application.exceptions';
 import { ensureOwner } from '@/common/utils/ownership.util';
 import { ApplicationResponseMapper } from '@/modules/application/application/mappers/application-response.mapper';
-import { ApplicationResponseDto } from '@/modules/application/application/dto/application-response.dto';
+import { RecruiterApplicationDto } from '@/modules/application/application/dto/recruiter-application.dto';
+import { IApplicationAnnotationRepository } from '@/modules/application/domain/repositories/application-annotation.repository';
 import { normalizePagination } from '@/common/utils/pagination.util';
 
 export interface ListApplicationsByJobResult {
-  applications: ApplicationResponseDto[];
+  applications: RecruiterApplicationDto[];
   total: number;
   page: number;
   limit: number;
@@ -37,6 +38,7 @@ export class ListApplicationsByJobHandler implements IQueryHandler<
     private readonly applicationRepository: IJobApplicationRepository,
     private readonly jobLookupPort: IJobLookupPort,
     private readonly userLookupPort: IApplicationUserLookupPort,
+    private readonly annotationRepository: IApplicationAnnotationRepository,
   ) {}
 
   async execute({
@@ -67,16 +69,21 @@ export class ListApplicationsByJobHandler implements IQueryHandler<
     // query per application — a popular posting can have thousands of
     // applicants (now bounded per-page anyway, but N+1 within a single page
     // of `limit` is still N round trips saved for N-1).
-    const candidates = await this.userLookupPort.findManyByIds(
-      dtos.map((dto) => dto.userId),
-    );
-    for (const dto of dtos) {
+    // Same for the recruiter-private star: one query for the whole page.
+    const [candidates, starredIds] = await Promise.all([
+      this.userLookupPort.findManyByIds(dtos.map((dto) => dto.userId)),
+      this.annotationRepository.findStarredApplicationIds(
+        dtos.map((dto) => dto.id),
+      ),
+    ]);
+    const applications: RecruiterApplicationDto[] = dtos.map((dto) => {
       const candidate = candidates.get(dto.userId);
       if (candidate) dto.candidate = candidate;
-    }
+      return Object.assign(dto, { isStarred: starredIds.has(dto.id) });
+    });
 
     return {
-      applications: dtos,
+      applications,
       total,
       page: normalized.page,
       limit: normalized.limit,

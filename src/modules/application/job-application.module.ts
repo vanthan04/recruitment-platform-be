@@ -24,6 +24,13 @@ import { ListMyApplicationsHandler } from '@/modules/application/application/que
 import { ListApplicationsByJobHandler } from '@/modules/application/application/queries/list-applications-by-job.query';
 import { GetJobStatsHandler } from '@/modules/application/application/queries/get-job-stats.query';
 import { GetApplicationStatusHistoryHandler } from '@/modules/application/application/queries/get-application-status-history.query';
+import { ListApplicationNotesHandler } from '@/modules/application/application/queries/list-application-notes.query';
+import { AddApplicationNoteHandler } from '@/modules/application/application/commands/add-application-note.command';
+import { DeleteApplicationNoteHandler } from '@/modules/application/application/commands/delete-application-note.command';
+import { SetApplicationStarredHandler } from '@/modules/application/application/commands/set-application-starred.command';
+import { IApplicationAnnotationRepository } from '@/modules/application/domain/repositories/application-annotation.repository';
+import { ApplicationAnnotationInfraRepository } from '@/modules/application/infrastructure/repositories/application-annotation.infra-repository';
+import { ApplicationAnnotationPrismaRepository } from '@/modules/application/infrastructure/persistence/prisma/application-annotation-prisma.repository';
 
 @Module({
   imports: [CqrsModule, JobModule, CvModule, UserModule],
@@ -38,6 +45,11 @@ import { GetApplicationStatusHistoryHandler } from '@/modules/application/applic
     {
       provide: IApplicationStatusHistoryRepository,
       useClass: ApplicationStatusHistoryInfraRepository,
+    },
+    ApplicationAnnotationPrismaRepository,
+    {
+      provide: IApplicationAnnotationRepository,
+      useClass: ApplicationAnnotationInfraRepository,
     },
     {
       provide: IJobLookupPort,
@@ -58,6 +70,10 @@ import { GetApplicationStatusHistoryHandler } from '@/modules/application/applic
     ListApplicationsByJobHandler,
     GetJobStatsHandler,
     GetApplicationStatusHistoryHandler,
+    ListApplicationNotesHandler,
+    AddApplicationNoteHandler,
+    DeleteApplicationNoteHandler,
+    SetApplicationStarredHandler,
   ],
   exports: [IJobApplicationRepository],
 })
