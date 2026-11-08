@@ -3,6 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { CommandBus } from '@nestjs/cqrs';
 import { CreateNotificationCommand } from '@/modules/notification/application/commands/create-notification.command';
 import { NotificationType } from '@/modules/notification/domain/value-objects/notification-type.vo';
+import { applicationStatusLabelVi } from '@/common/constants/application-status-label.constant';
 import {
   JOB_APPLIED_EVENT,
   JobAppliedEvent,
@@ -31,8 +32,8 @@ export class ApplicationEventsListener {
         new CreateNotificationCommand(
           event.recruiterId,
           NotificationType.NEW_APPLICATION,
-          'New job application',
-          `You have a new application for "${event.jobTitle}"`,
+          'Có đơn ứng tuyển mới',
+          `Bạn có đơn ứng tuyển mới cho vị trí "${event.jobTitle}"`,
           { applicationId: event.applicationId, jobId: event.jobId },
         ),
       );
@@ -53,8 +54,10 @@ export class ApplicationEventsListener {
         new CreateNotificationCommand(
           event.candidateId,
           NotificationType.APPLICATION_STATUS_CHANGED,
-          'Application status updated',
-          `Your application for "${event.jobTitle}" is now ${event.status}`,
+          'Đơn ứng tuyển được cập nhật',
+          // The label, not the raw enum name ("is now HIRED") — same wording
+          // as the status badge and the status line posted in the chat.
+          `Đơn ứng tuyển của bạn cho vị trí "${event.jobTitle}" đã chuyển sang trạng thái "${applicationStatusLabelVi(event.status)}"`,
           {
             applicationId: event.applicationId,
             jobId: event.jobId,

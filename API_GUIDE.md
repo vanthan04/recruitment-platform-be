@@ -295,6 +295,8 @@ Không cần role cụ thể, chỉ cần đăng nhập.
 
 `type`: `NEW_APPLICATION` (gửi cho recruiter khi có ứng viên apply) | `APPLICATION_STATUS_CHANGED` (gửi cho candidate khi đơn chuyển trạng thái) | `NEW_MESSAGE`. `metadata` (field riêng trong từng notification, khác `metadata` phân trang) chứa `{ applicationId, jobId, status? }`.
 
+`title`/`message` của cả 3 loại giờ đều bằng **tiếng Việt**; với `APPLICATION_STATUS_CHANGED`, `message` dùng nhãn trạng thái (vd `... đã chuyển sang trạng thái "Đã tuyển"`) chứ không phải mã thô `HIRED` — mã vẫn nằm trong `metadata.status` để client dùng. Nhãn lấy từ `src/common/constants/application-status-label.constant.ts`, dùng chung với dòng trạng thái trong chat. ⚠️ Thông báo **đã lưu từ trước** vẫn là tiếng Anh (không migrate dữ liệu cũ).
+
 ⚠️ **Field đánh dấu đã đọc đổi từ `isRead: boolean` sang `readAt: Date | null`** — `readAt === null` nghĩa là chưa đọc, có giá trị nghĩa là đã đọc tại thời điểm đó. FE tự suy ra "đã đọc hay chưa" bằng `readAt != null` thay vì đọc field `isRead` (không còn tồn tại trong response).
 
 ### 4.9. Job Alert / Saved Search (`/saved-searches`)
