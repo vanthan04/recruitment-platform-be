@@ -70,10 +70,15 @@ export class GetJobRecommendationsHandler implements IQueryHandler<
       };
     }
 
-    const jobs = await this.recommendationRepository.findOpenJobsNotAppliedBy(
-      userId,
-      RECOMMENDATION_CANDIDATE_POOL,
-    );
+    const [jobs, displayNames] = await Promise.all([
+      this.recommendationRepository.findOpenJobsNotAppliedBy(
+        userId,
+        RECOMMENDATION_CANDIDATE_POOL,
+      ),
+      // CV analysis stores skills normalized ("mysql") for matching; show
+      // them the way the catalogue (and every job card) spells them.
+      this.recommendationRepository.findSkillDisplayNames(profile.skills),
+    ]);
     const ranked = rankJobsBySkillMatch(
       jobs,
       profile.skills,
@@ -82,7 +87,9 @@ export class GetJobRecommendationsHandler implements IQueryHandler<
 
     return {
       hasAnalyzedCv: profile.hasAnalyzedCv,
-      candidateSkills: profile.skills,
+      candidateSkills: profile.skills.map(
+        (skill) => displayNames.get(skill) ?? skill,
+      ),
       items: ranked.map(({ job, matchedSkills, missingSkills, score }) => ({
         job: toSummary(job),
         matchedSkills,

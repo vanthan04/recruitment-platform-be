@@ -4,6 +4,7 @@ describe('JobRecommendationInfraRepository', () => {
   let prisma: {
     findAnalyzedCvSkills: jest.Mock;
     findOpenJobsNotAppliedBy: jest.Mock;
+    findSkillsByNameInsensitive: jest.Mock;
   };
   let repository: JobRecommendationInfraRepository;
 
@@ -11,6 +12,7 @@ describe('JobRecommendationInfraRepository', () => {
     prisma = {
       findAnalyzedCvSkills: jest.fn(),
       findOpenJobsNotAppliedBy: jest.fn(),
+      findSkillsByNameInsensitive: jest.fn(),
     };
     repository = new JobRecommendationInfraRepository(prisma as any);
   });
@@ -77,6 +79,32 @@ describe('JobRecommendationInfraRepository', () => {
         id: 'j1',
         title: 'Backend',
         company: { name: 'Acme' },
+      });
+    });
+  });
+
+  describe('findSkillDisplayNames', () => {
+    it('maps each normalized skill to the catalogue spelling, first entry winning on case-only duplicates', async () => {
+      prisma.findSkillsByNameInsensitive.mockResolvedValue([
+        { name: 'MySQL' },
+        { name: ' .NET / C# ' },
+        { name: 'mysql' },
+      ]);
+
+      const names = await repository.findSkillDisplayNames([
+        'mysql',
+        '.net / c#',
+        'automation testing',
+      ]);
+
+      expect(prisma.findSkillsByNameInsensitive).toHaveBeenCalledWith([
+        'mysql',
+        '.net / c#',
+        'automation testing',
+      ]);
+      expect(Object.fromEntries(names)).toEqual({
+        mysql: 'MySQL',
+        '.net / c#': '.NET / C#',
       });
     });
   });

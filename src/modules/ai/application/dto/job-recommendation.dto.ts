@@ -30,7 +30,11 @@ export class JobRecommendationsDto {
    * than showing an empty list as "nothing matches".
    */
   hasAnalyzedCv: boolean;
-  /** The skills recommendations were based on (normalized). */
+  /**
+   * The skills recommendations were based on, in the skill catalogue's
+   * spelling ("MySQL"); a skill the catalogue doesn't know keeps the CV
+   * analysis' normalized form.
+   */
   candidateSkills: string[];
   items: RecommendedJobDto[];
 }

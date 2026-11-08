@@ -47,4 +47,19 @@ export class JobRecommendationPrismaRepository {
       },
     });
   }
+
+  /** Catalogue skills whose name equals one of `names`, ignoring case. */
+  async findSkillsByNameInsensitive(names: string[]) {
+    if (names.length === 0) return [];
+    return this.prisma.skill.findMany({
+      where: {
+        OR: names.map((name) => ({
+          name: { equals: name, mode: 'insensitive' as const },
+        })),
+      },
+      // Stable pick when two catalogue entries differ only in case.
+      orderBy: { createdAt: 'asc' },
+      select: { name: true },
+    });
+  }
 }

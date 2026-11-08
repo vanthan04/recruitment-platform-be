@@ -48,4 +48,13 @@ export abstract class IJobRecommendationRepository {
     userId: string,
     limit: number,
   ): Promise<RecommendableJobRecord[]>;
+
+  /**
+   * The skill catalogue's own spelling ("MySQL", ".NET / C#") of the given
+   * normalized skills, keyed by the normalized form. Skills the catalogue
+   * doesn't know are simply absent from the map.
+   */
+  abstract findSkillDisplayNames(
+    normalizedSkills: string[],
+  ): Promise<Map<string, string>>;
 }

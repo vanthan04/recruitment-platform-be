@@ -37,4 +37,19 @@ export class JobRecommendationInfraRepository implements IJobRecommendationRepos
       skillNames: skills.map((s) => s.skill.name),
     }));
   }
+
+  async findSkillDisplayNames(
+    normalizedSkills: string[],
+  ): Promise<Map<string, string>> {
+    const skills =
+      await this.recommendationPrisma.findSkillsByNameInsensitive(
+        normalizedSkills,
+      );
+    const names = new Map<string, string>();
+    for (const { name } of skills) {
+      const key = name.trim().toLowerCase();
+      if (!names.has(key)) names.set(key, name.trim());
+    }
+    return names;
+  }
 }

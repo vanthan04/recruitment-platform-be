@@ -33,6 +33,7 @@ describe('GetJobRecommendationsHandler', () => {
   let repository: {
     findCandidateSkillProfile: jest.Mock;
     findOpenJobsNotAppliedBy: jest.Mock;
+    findSkillDisplayNames: jest.Mock;
   };
   let handler: GetJobRecommendationsHandler;
 
@@ -43,6 +44,7 @@ describe('GetJobRecommendationsHandler', () => {
         skills: ['nestjs', 'postgresql', 'docker'],
       }),
       findOpenJobsNotAppliedBy: jest.fn().mockResolvedValue([]),
+      findSkillDisplayNames: jest.fn().mockResolvedValue(new Map()),
     };
     handler = new GetJobRecommendationsHandler(repository);
   });
@@ -61,6 +63,7 @@ describe('GetJobRecommendationsHandler', () => {
       items: [],
     });
     expect(repository.findOpenJobsNotAppliedBy).not.toHaveBeenCalled();
+    expect(repository.findSkillDisplayNames).not.toHaveBeenCalled();
   });
 
   it('returns nothing (but reports the analyzed CV) when the analysis found no skills', async () => {
@@ -106,6 +109,37 @@ describe('GetJobRecommendationsHandler', () => {
       matchScore: 0.33,
     });
     expect(result.items[0].matchScore).toBe(1);
+  });
+
+  it("shows the candidate's skills in the catalogue's spelling, keeping unknown ones as stored", async () => {
+    repository.findCandidateSkillProfile.mockResolvedValue({
+      hasAnalyzedCv: true,
+      skills: ['mysql', '.net / c#', 'automation testing'],
+    });
+    repository.findSkillDisplayNames.mockResolvedValue(
+      new Map([
+        ['mysql', 'MySQL'],
+        ['.net / c#', '.NET / C#'],
+      ]),
+    );
+    repository.findOpenJobsNotAppliedBy.mockResolvedValue([
+      job('a', ['MySQL', 'Go']),
+    ]);
+
+    const result = await handler.execute(new GetJobRecommendationsQuery('u1'));
+
+    expect(repository.findSkillDisplayNames).toHaveBeenCalledWith([
+      'mysql',
+      '.net / c#',
+      'automation testing',
+    ]);
+    expect(result.candidateSkills).toEqual([
+      'MySQL',
+      '.NET / C#',
+      'automation testing',
+    ]);
+    // Matching still runs on the normalized skills.
+    expect(result.items[0].matchedSkills).toEqual(['MySQL']);
   });
 
   it("sends only the card's fields of a job — not its internal skill list", async () => {
