@@ -32,6 +32,8 @@ import { ChatGateway } from '@/modules/chat/infrastructure/gateways/chat.gateway
 import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat-presence.service';
 import { ChatRateLimiterService } from '@/modules/chat/infrastructure/services/chat-rate-limiter.service';
 import { ChatEventsListener } from '@/modules/chat/infrastructure/listeners/chat-events.listener';
+import { ApplicationStatusSystemMessageListener } from '@/modules/chat/infrastructure/listeners/application-status-system-message.listener';
+import { CreateSystemMessageHandler } from '@/modules/chat/application/commands/create-system-message.command';
 import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 
 import { CreateConversationHandler } from '@/modules/chat/application/commands/create-conversation.command';
@@ -42,6 +44,7 @@ import { MarkConversationReadHandler } from '@/modules/chat/application/commands
 import { ListMyConversationsHandler } from '@/modules/chat/application/queries/list-my-conversations.query';
 import { GetConversationHandler } from '@/modules/chat/application/queries/get-conversation.query';
 import { ListMessagesHandler } from '@/modules/chat/application/queries/list-messages.query';
+import { GetUnreadMessageCountHandler } from '@/modules/chat/application/queries/get-unread-message-count.query';
 
 @Module({
   imports: [
@@ -80,16 +83,19 @@ import { ListMessagesHandler } from '@/modules/chat/application/queries/list-mes
     ChatPresenceService,
     ChatRateLimiterService,
     ChatEventsListener,
+    ApplicationStatusSystemMessageListener,
     MessageAttachmentUrlResolver,
 
     CreateConversationHandler,
     CreateMessageHandler,
+    CreateSystemMessageHandler,
     EditMessageHandler,
     DeleteMessageHandler,
     MarkConversationReadHandler,
     ListMyConversationsHandler,
     GetConversationHandler,
     ListMessagesHandler,
+    GetUnreadMessageCountHandler,
   ],
 })
 export class ChatModule {}

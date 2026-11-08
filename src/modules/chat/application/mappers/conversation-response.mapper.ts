@@ -4,6 +4,7 @@ import {
   ConversationResponseDto,
   ConversationParticipantDto,
 } from '@/modules/chat/application/dto/conversation-response.dto';
+import { isChatClosedApplicationStatus } from '@/modules/chat/domain/value-objects/chat-eligible-application-status.vo';
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { ChatUserLookupResult } from '@/modules/chat/application/ports/user-lookup.port';
 
@@ -13,6 +14,7 @@ export interface ConversationDtoContext {
   otherParticipant: ChatUserLookupResult;
   lastMessage: Message | null;
   unreadCount: number;
+  otherLastReadAt: Date | null;
 }
 
 export class ConversationResponseMapper {
@@ -27,6 +29,7 @@ export class ConversationResponseMapper {
     dto.jobTitle = ctx.jobTitle;
     dto.applicationId = conversation.applicationId;
     dto.applicationStatus = ctx.applicationStatus;
+    dto.isReadOnly = isChatClosedApplicationStatus(ctx.applicationStatus);
     dto.candidateId = conversation.candidateId;
     dto.recruiterId = conversation.recruiterId;
 
@@ -41,6 +44,7 @@ export class ConversationResponseMapper {
       ? MessageResponseMapper.toDto(ctx.lastMessage)
       : null;
     dto.unreadCount = ctx.unreadCount;
+    dto.otherLastReadAt = ctx.otherLastReadAt;
     dto.lastMessageAt = conversation.lastMessageAt;
     dto.createdAt = conversation.createdAt;
     return dto;

@@ -3,6 +3,7 @@ import { CreateMessageHandler } from '@/modules/chat/application/commands/create
 import { IConversationRepository } from '@/modules/chat/domain/repositories/conversation.repository';
 import { IMessageRepository } from '@/modules/chat/domain/repositories/message.repository';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
+import { IChatApplicationLookupPort } from '@/modules/chat/application/ports/application-lookup.port';
 import { IFileStorageProvider } from '@/modules/file-upload/domain/providers/file-storage.provider.interface';
 import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
@@ -10,7 +11,11 @@ import { Message } from '@/modules/chat/domain/entities/message.entity';
 import { MessageAttachment } from '@/modules/chat/domain/entities/message-attachment.entity';
 import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
 import { MESSAGE_SENT_EVENT } from '@/modules/chat/infrastructure/events/message-sent.event';
-import { InvalidAttachmentUrlException } from '@/modules/chat/domain/exceptions/chat.exceptions';
+import {
+  InvalidAttachmentUrlException,
+  ConversationClosedException,
+  ChatApplicationNotFoundException,
+} from '@/modules/chat/domain/exceptions/chat.exceptions';
 import {
   EntityNotFoundException,
   UnauthorizedDomainException,
@@ -33,6 +38,7 @@ describe('CreateMessageHandler', () => {
   let conversationRepository: jest.Mocked<IConversationRepository>;
   let messageRepository: jest.Mocked<IMessageRepository>;
   let jobLookupPort: jest.Mocked<IChatJobLookupPort>;
+  let applicationLookupPort: jest.Mocked<IChatApplicationLookupPort>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
   let fileStorage: jest.Mocked<Pick<IFileStorageProvider, 'getSignedUrl'>>;
   let attachmentUrlResolver: MessageAttachmentUrlResolver;
@@ -56,6 +62,7 @@ describe('CreateMessageHandler', () => {
       countUnread: jest.fn(),
       findLastMessages: jest.fn(),
       countUnreadForConversations: jest.fn(),
+      countUnreadForUser: jest.fn(),
     };
     jobLookupPort = {
       findById: jest.fn().mockResolvedValue({
@@ -74,13 +81,110 @@ describe('CreateMessageHandler', () => {
       fileStorage as any,
     );
 
+    applicationLookupPort = {
+      findById: jest.fn().mockResolvedValue({
+        id: 'app-1',
+        status: 'INTERVIEW',
+        userId: 'candidate-1',
+        jobId: 'job-1',
+      }),
+      findManyByIds: jest.fn(),
+    };
+
     handler = new CreateMessageHandler(
       conversationRepository,
       messageRepository,
       jobLookupPort,
       eventEmitter,
       attachmentUrlResolver,
+      applicationLookupPort,
     );
+  });
+
+  describe('once the application has ended', () => {
+    const send = () =>
+      handler.execute({
+        senderId: 'candidate-1',
+        conversationId: 'conv-1',
+        clientMessageId: 'c-1',
+        content: 'hi',
+        messageType: MessageType.TEXT,
+        attachments: [],
+      } as any);
+
+    it.each(['REJECTED', 'WITHDRAWN'])(
+      'refuses to send when the application is %s — and persists/emits nothing',
+      async (status) => {
+        conversationRepository.findById.mockResolvedValue(makeConversation());
+        messageRepository.findByClientMessageId.mockResolvedValue(null);
+        applicationLookupPort.findById.mockResolvedValue({
+          id: 'app-1',
+          status,
+          userId: 'candidate-1',
+          jobId: 'job-1',
+        });
+
+        await expect(send()).rejects.toThrow(ConversationClosedException);
+        expect(
+          messageRepository.createAndTouchConversation,
+        ).not.toHaveBeenCalled();
+        expect(eventEmitter.emit).not.toHaveBeenCalled();
+      },
+    );
+
+    it('still allows sending when the application was HIRED', async () => {
+      conversationRepository.findById.mockResolvedValue(makeConversation());
+      messageRepository.findByClientMessageId.mockResolvedValue(null);
+      applicationLookupPort.findById.mockResolvedValue({
+        id: 'app-1',
+        status: 'HIRED',
+        userId: 'candidate-1',
+        jobId: 'job-1',
+      });
+      messageRepository.createAndTouchConversation.mockResolvedValue(
+        new Message({
+          id: 'msg-1',
+          conversationId: 'conv-1',
+          senderId: 'candidate-1',
+          content: 'hi',
+          clientMessageId: 'c-1',
+        }),
+      );
+
+      await expect(send()).resolves.toMatchObject({ id: 'msg-1' });
+    });
+
+    it('does not let a write through if the application cannot be found', async () => {
+      conversationRepository.findById.mockResolvedValue(makeConversation());
+      messageRepository.findByClientMessageId.mockResolvedValue(null);
+      applicationLookupPort.findById.mockResolvedValue(null);
+
+      await expect(send()).rejects.toThrow(ChatApplicationNotFoundException);
+      expect(
+        messageRepository.createAndTouchConversation,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('replays an already-sent message (same clientMessageId) even after the application ended', async () => {
+      conversationRepository.findById.mockResolvedValue(makeConversation());
+      messageRepository.findByClientMessageId.mockResolvedValue(
+        new Message({
+          id: 'msg-1',
+          conversationId: 'conv-1',
+          senderId: 'candidate-1',
+          content: 'hi',
+          clientMessageId: 'c-1',
+        }),
+      );
+      applicationLookupPort.findById.mockResolvedValue({
+        id: 'app-1',
+        status: 'REJECTED',
+        userId: 'candidate-1',
+        jobId: 'job-1',
+      });
+
+      await expect(send()).resolves.toMatchObject({ id: 'msg-1' });
+    });
   });
 
   it('throws EntityNotFoundException when the conversation does not exist', async () => {

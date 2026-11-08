@@ -84,6 +84,7 @@ describe('CreateConversationHandler', () => {
       countUnread: jest.fn(),
       findLastMessages: jest.fn(),
       countUnreadForConversations: jest.fn(),
+      countUnreadForUser: jest.fn(),
     };
     applicationLookupPort = { findById: jest.fn(), findManyByIds: jest.fn() };
     jobLookupPort = { findById: jest.fn(), findManyByIds: jest.fn() };
@@ -110,18 +111,53 @@ describe('CreateConversationHandler', () => {
     ).rejects.toThrow(EntityNotFoundException);
   });
 
-  it('throws BusinessRuleViolationException when the application is not HIRED', async () => {
-    applicationLookupPort.findById.mockResolvedValue(
-      makeApplication({ status: 'APPLIED' }),
-    );
+  it.each(['APPLIED', 'SCREENING', 'REJECTED', 'WITHDRAWN'])(
+    'throws BusinessRuleViolationException when the application is %s (not yet shortlisted, or already over)',
+    async (status) => {
+      applicationLookupPort.findById.mockResolvedValue(
+        makeApplication({ status }),
+      );
 
-    await expect(
-      handler.execute({
+      await expect(
+        handler.execute({
+          recruiterId: 'recruiter-1',
+          applicationId: 'app-1',
+        } as any),
+      ).rejects.toThrow(BusinessRuleViolationException);
+      expect(
+        conversationRepository.findOrCreateForApplication,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['SHORTLISTED', 'INTERVIEW', 'OFFER', 'HIRED'])(
+    'opens a conversation when the application is %s',
+    async (status) => {
+      applicationLookupPort.findById.mockResolvedValue(
+        makeApplication({ status }),
+      );
+      jobLookupPort.findById.mockResolvedValue(makeJob());
+      userLookupPort.findById.mockResolvedValue(makeUser());
+      conversationRepository.findOrCreateForApplication.mockResolvedValue({
+        conversation: new Conversation({
+          id: 'conv-1',
+          jobId: 'job-1',
+          applicationId: 'app-1',
+          candidateId: 'candidate-1',
+          recruiterId: 'recruiter-1',
+        }),
+        created: true,
+      });
+
+      const result = await handler.execute({
         recruiterId: 'recruiter-1',
         applicationId: 'app-1',
-      } as any),
-    ).rejects.toThrow(BusinessRuleViolationException);
-  });
+      } as any);
+
+      expect(result.id).toBe('conv-1');
+      expect(result.applicationStatus).toBe(status);
+    },
+  );
 
   it('throws UnauthorizedDomainException when the requester is not the job owner', async () => {
     applicationLookupPort.findById.mockResolvedValue(makeApplication());

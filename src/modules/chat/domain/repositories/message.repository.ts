@@ -30,6 +30,8 @@ export abstract class IMessageRepository {
     userId: string,
     since: Date | null,
   ): Promise<number>;
+  /** Unread messages (from others, not deleted) across all of the user's conversations. */
+  abstract countUnreadForUser(userId: string): Promise<number>;
   /** Batch form of {@link findLastMessage} — one query for all conversation ids. */
   abstract findLastMessages(
     conversationIds: string[],

@@ -139,9 +139,11 @@ describe('Chat module (e2e)', () => {
       .expect(201);
     applicationId = applyRes.body.data.id;
 
-    // Conversations only open once an application reaches HIRED — the
-    // pipeline is a strict one-step-forward-at-a-time state machine, so walk
-    // through every intermediate stage rather than jumping straight there.
+    // Conversations open from SHORTLISTED onward (see
+    // CHAT_ELIGIBLE_APPLICATION_STATUSES); this suite takes the application
+    // all the way to HIRED. The pipeline is a strict one-step-forward-at-a-time
+    // state machine, so walk through every intermediate stage rather than
+    // jumping straight there.
     for (const status of [
       'SCREENING',
       'SHORTLISTED',

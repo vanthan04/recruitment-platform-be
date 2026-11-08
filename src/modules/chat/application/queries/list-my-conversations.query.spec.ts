@@ -35,7 +35,15 @@ describe('ListMyConversationsHandler', () => {
       role: ChatParticipantRole.CANDIDATE,
       lastReadAt: null,
     });
-    return { conversation, membership };
+    // Only the first conversation's recruiter has ever read it.
+    const otherMembership = new ConversationMember({
+      id: `other-member-${index}`,
+      conversationId: conversation.id,
+      userId: conversation.recruiterId,
+      role: ChatParticipantRole.RECRUITER,
+      lastReadAt: index === 1 ? new Date('2026-01-01T10:00:00Z') : null,
+    });
+    return { conversation, membership, otherMembership };
   }
 
   beforeEach(() => {
@@ -57,6 +65,7 @@ describe('ListMyConversationsHandler', () => {
       countUnread: jest.fn(),
       findLastMessages: jest.fn().mockResolvedValue(new Map()),
       countUnreadForConversations: jest.fn().mockResolvedValue(new Map()),
+      countUnreadForUser: jest.fn(),
     };
     jobLookupPort = { findById: jest.fn(), findManyByIds: jest.fn() };
     applicationLookupPort = { findById: jest.fn(), findManyByIds: jest.fn() };
@@ -144,7 +153,10 @@ describe('ListMyConversationsHandler', () => {
       },
       unreadCount: 0,
       lastMessage: null,
+      otherLastReadAt: new Date('2026-01-01T10:00:00Z'),
     });
+    // A participant who never read the conversation has no "seen" time.
+    expect(result.conversations[1].otherLastReadAt).toBeNull();
   });
 
   it('falls back to empty title/status and zero unread when a lookup misses', async () => {

@@ -15,11 +15,15 @@ export class ConversationResponseDto {
   jobTitle: string;
   applicationId: string;
   applicationStatus: string;
+  /** True once the application ended (REJECTED/WITHDRAWN): readable, but no new or edited messages. */
+  isReadOnly: boolean;
   candidateId: string;
   recruiterId: string;
   otherParticipant: ConversationParticipantDto;
   lastMessage: MessageResponseDto | null;
   unreadCount: number;
+  /** When the other participant last read this conversation — null if never. */
+  otherLastReadAt: Date | null;
   lastMessageAt: Date | null;
   createdAt: Date;
 }

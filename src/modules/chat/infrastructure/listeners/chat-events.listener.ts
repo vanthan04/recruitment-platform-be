@@ -5,6 +5,7 @@ import {
   MESSAGE_SENT_EVENT,
   MessageSentEvent,
 } from '@/modules/chat/infrastructure/events/message-sent.event';
+import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
 import { IChatNotificationPort } from '@/modules/chat/application/ports/chat-notification.port';
 
 /**
@@ -23,6 +24,10 @@ export class ChatEventsListener {
 
   @OnEvent(MESSAGE_SENT_EVENT)
   async handleMessageSent(event: MessageSentEvent): Promise<void> {
+    // A system line (e.g. the application changed status) already has its own
+    // notification from the application module — a second "new message"
+    // notification for the same thing would just be a duplicate.
+    if (event.message.messageType === MessageType.SYSTEM) return;
     if (this.presenceService.isOnline(event.recipientId)) return;
 
     // Best-effort notification for an offline recipient — the message
@@ -32,8 +37,8 @@ export class ChatEventsListener {
     try {
       await this.notificationPort.notifyNewMessage(
         event.recipientId,
-        'New message',
-        `New message about "${event.jobTitle}": ${event.preview}`,
+        'Tin nhắn mới',
+        `Tin nhắn mới về "${event.jobTitle}": ${event.preview}`,
         { conversationId: event.conversationId, messageId: event.messageId },
       );
     } catch (err) {

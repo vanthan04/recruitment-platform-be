@@ -44,10 +44,32 @@ export class ChatJobNotFoundException extends EntityNotFoundException {
 export class ApplicationNotAcceptedException extends BusinessRuleViolationException {
   constructor() {
     super(
-      'A conversation can only be started for an accepted application',
+      // Code kept as-is (clients may match on it) even though the rule is no
+      // longer "accepted" — see CHAT_ELIGIBLE_APPLICATION_STATUSES.
+      'A conversation can only be started once the application has been shortlisted (SHORTLISTED, INTERVIEW, OFFER or HIRED)',
       'CHAT_APPLICATION_NOT_ACCEPTED',
     );
     this.name = 'ApplicationNotAcceptedException';
+  }
+}
+
+export class SystemMessageNotDeletableException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'System messages cannot be deleted',
+      'CHAT_SYSTEM_MESSAGE_NOT_DELETABLE',
+    );
+    this.name = 'SystemMessageNotDeletableException';
+  }
+}
+
+export class ConversationClosedException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'This conversation is read-only because the application has ended',
+      'CHAT_CONVERSATION_CLOSED',
+    );
+    this.name = 'ConversationClosedException';
   }
 }
 

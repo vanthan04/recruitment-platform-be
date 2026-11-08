@@ -32,7 +32,9 @@ export class ConversationPrismaRepository {
     const [conversations, total] = await Promise.all([
       this.prisma.conversation.findMany({
         where,
-        include: { members: { where: { userId } } },
+        // Both members (always exactly two) — the caller's own drives unread
+        // counts, the other's `lastReadAt` drives the "seen" receipt.
+        include: { members: true },
         orderBy: [
           { lastMessageAt: { sort: 'desc', nulls: 'last' } },
           { createdAt: 'desc' },

@@ -2,6 +2,7 @@ import {
   WithdrawApplicationCommand,
   WithdrawApplicationHandler,
 } from '@/modules/application/application/commands/withdraw-application.command';
+import { APPLICATION_WITHDRAWN_EVENT } from '@/modules/application/infrastructure/events/application-withdrawn.event';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import { JobApplication } from '@/modules/application/domain/entities/job-application.entity';
 import { ApplicationStatus } from '@/modules/application/domain/value-objects/application-status.vo';
@@ -13,6 +14,7 @@ import {
 describe('WithdrawApplicationHandler', () => {
   let handler: WithdrawApplicationHandler;
   let applicationRepository: jest.Mocked<IJobApplicationRepository>;
+  let eventEmitter: { emit: jest.Mock };
 
   function makeApplication(overrides: Partial<JobApplication> = {}) {
     return new JobApplication({
@@ -39,7 +41,12 @@ describe('WithdrawApplicationHandler', () => {
       countByJobIdGroupedByStatus: jest.fn(),
     };
 
-    handler = new WithdrawApplicationHandler(applicationRepository);
+    eventEmitter = { emit: jest.fn() };
+
+    handler = new WithdrawApplicationHandler(
+      applicationRepository,
+      eventEmitter as any,
+    );
   });
 
   it('throws JobApplicationNotFoundException when the application does not exist', async () => {
@@ -94,5 +101,47 @@ describe('WithdrawApplicationHandler', () => {
       },
     );
     expect(result.status).toBe(ApplicationStatus.WITHDRAWN);
+  });
+
+  it('announces the withdrawal with APPLICATION_WITHDRAWN_EVENT after it commits', async () => {
+    applicationRepository.findById.mockResolvedValue(makeApplication());
+    applicationRepository.updateWithStatusHistory.mockResolvedValue(
+      makeApplication({ status: ApplicationStatus.WITHDRAWN }),
+    );
+
+    await handler.execute(
+      new WithdrawApplicationCommand('candidate-1', 'app-1'),
+    );
+
+    expect(eventEmitter.emit).toHaveBeenCalledTimes(1);
+    const [name, event] = eventEmitter.emit.mock.calls[0];
+    expect(name).toBe(APPLICATION_WITHDRAWN_EVENT);
+    expect(event).toMatchObject({
+      applicationId: 'app-1',
+      candidateId: 'candidate-1',
+      jobId: 'job-1',
+    });
+  });
+
+  it('emits nothing when the application is missing, not owned, or cannot be withdrawn', async () => {
+    applicationRepository.findById.mockResolvedValue(null);
+    await expect(
+      handler.execute(new WithdrawApplicationCommand('candidate-1', 'app-1')),
+    ).rejects.toThrow();
+
+    applicationRepository.findById.mockResolvedValue(makeApplication());
+    await expect(
+      handler.execute(new WithdrawApplicationCommand('someone-else', 'app-1')),
+    ).rejects.toThrow();
+
+    // Already in a terminal status: withdraw() itself refuses.
+    applicationRepository.findById.mockResolvedValue(
+      makeApplication({ status: ApplicationStatus.HIRED }),
+    );
+    await expect(
+      handler.execute(new WithdrawApplicationCommand('candidate-1', 'app-1')),
+    ).rejects.toThrow();
+
+    expect(eventEmitter.emit).not.toHaveBeenCalled();
   });
 });

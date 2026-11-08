@@ -25,6 +25,7 @@ import { MarkConversationReadCommand } from '@/modules/chat/application/commands
 import { ListMyConversationsQuery } from '@/modules/chat/application/queries/list-my-conversations.query';
 import { GetConversationQuery } from '@/modules/chat/application/queries/get-conversation.query';
 import { ListMessagesQuery } from '@/modules/chat/application/queries/list-messages.query';
+import { GetUnreadMessageCountQuery } from '@/modules/chat/application/queries/get-unread-message-count.query';
 
 import { CreateConversationDto } from '@/modules/chat/presentation/dtos/create-conversation.dto';
 import { CreateMessageDto } from '@/modules/chat/presentation/dtos/create-message.dto';
@@ -75,6 +76,18 @@ export class ConversationController {
         limit: result.limit,
       },
     );
+  }
+
+  // Must be declared before `:id` — otherwise "unread-count" is captured as an id.
+  @Get('unread-count')
+  @ApiOperation({
+    summary: 'Total unread messages across all my conversations',
+  })
+  async unreadCount(@GetMe('id') userId: string) {
+    const result = await this.queryBus.execute(
+      new GetUnreadMessageCountQuery(userId),
+    );
+    return ApiResponse.ok(result, 'Unread count retrieved successfully');
   }
 
   @Get(':id')

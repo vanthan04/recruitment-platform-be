@@ -5,6 +5,7 @@ import { IMessageRepository } from '@/modules/chat/domain/repositories/message.r
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import { ConversationMember } from '@/modules/chat/domain/entities/conversation-member.entity';
 import { ChatParticipantRole } from '@/modules/chat/domain/value-objects/chat-participant-role.vo';
+import { isChatEligibleApplicationStatus } from '@/modules/chat/domain/value-objects/chat-eligible-application-status.vo';
 import { IChatApplicationLookupPort } from '@/modules/chat/application/ports/application-lookup.port';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
 import { IChatUserLookupPort } from '@/modules/chat/application/ports/user-lookup.port';
@@ -17,9 +18,6 @@ import {
   ApplicationNotAcceptedException,
 } from '@/modules/chat/domain/exceptions/chat.exceptions';
 import { ensureOwner } from '@/common/utils/ownership.util';
-
-// HIRED is the pipeline's successful terminal status (formerly ACCEPTED).
-const ELIGIBLE_APPLICATION_STATUS = 'HIRED';
 
 export class CreateConversationCommand extends Command<ConversationResponseDto> {
   constructor(
@@ -53,7 +51,7 @@ export class CreateConversationHandler implements ICommandHandler<
       await this.applicationLookupPort.findById(applicationId);
     if (!application) throw new ChatApplicationNotFoundException(applicationId);
 
-    if (application.status !== ELIGIBLE_APPLICATION_STATUS) {
+    if (!isChatEligibleApplicationStatus(application.status)) {
       throw new ApplicationNotAcceptedException();
     }
 
@@ -93,7 +91,12 @@ export class CreateConversationHandler implements ICommandHandler<
         members,
       );
 
-    const candidate = await this.userLookupPort.findById(saved.candidateId);
+    // `saved` may be a conversation that already existed (resumed) — the
+    // candidate may have read it before, so don't assume "never".
+    const [candidate, candidateMembership] = await Promise.all([
+      this.userLookupPort.findById(saved.candidateId),
+      this.conversationRepository.findMembership(saved.id, saved.candidateId),
+    ]);
 
     const dto = ConversationResponseMapper.toDto(saved, {
       jobTitle: job.title,
@@ -101,6 +104,7 @@ export class CreateConversationHandler implements ICommandHandler<
       otherParticipant: candidate!,
       lastMessage: await this.messageRepository.findLastMessage(saved.id),
       unreadCount: 0,
+      otherLastReadAt: candidateMembership?.lastReadAt ?? null,
     });
     dto.lastMessage = await this.attachmentUrlResolver.resolveNullable(
       dto.lastMessage,

@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, Command } from '@nestjs/cqrs';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  APPLICATION_WITHDRAWN_EVENT,
+  ApplicationWithdrawnEvent,
+} from '@/modules/application/infrastructure/events/application-withdrawn.event';
 import { IJobApplicationRepository } from '@/modules/application/domain/repositories/job-application.repository';
 import {
   JobApplicationNotFoundException,
@@ -25,6 +30,7 @@ export class WithdrawApplicationHandler implements ICommandHandler<
 > {
   constructor(
     private readonly applicationRepository: IJobApplicationRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute({
@@ -53,6 +59,12 @@ export class WithdrawApplicationHandler implements ICommandHandler<
         changedById: userId,
         note: null,
       },
+    );
+
+    // After the atomic update — never announce a withdrawal that didn't commit.
+    this.eventEmitter.emit(
+      APPLICATION_WITHDRAWN_EVENT,
+      new ApplicationWithdrawnEvent(updated.id, updated.userId, updated.jobId),
     );
 
     return ApplicationResponseMapper.toDto(updated);

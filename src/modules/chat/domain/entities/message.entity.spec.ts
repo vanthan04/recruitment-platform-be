@@ -1,5 +1,6 @@
 import { Message } from '@/modules/chat/domain/entities/message.entity';
 import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo';
+import { SystemMessageNotDeletableException } from '@/modules/chat/domain/exceptions/chat.exceptions';
 import {
   BusinessRuleViolationException,
   UnauthorizedDomainException,
@@ -72,6 +73,14 @@ describe('Message entity', () => {
       expect(() => message.softDelete()).toThrow(
         BusinessRuleViolationException,
       );
+    });
+
+    it('refuses to delete a system message, leaving it intact', () => {
+      const message = makeMessage({ messageType: MessageType.SYSTEM });
+      expect(() => message.softDelete()).toThrow(
+        SystemMessageNotDeletableException,
+      );
+      expect(message.isDeleted).toBe(false);
     });
   });
 

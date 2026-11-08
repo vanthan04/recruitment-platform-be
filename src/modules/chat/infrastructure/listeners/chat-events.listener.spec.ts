@@ -31,6 +31,22 @@ describe('ChatEventsListener', () => {
     expect(notificationPort.notifyNewMessage).not.toHaveBeenCalled();
   });
 
+  it('does not send a "new message" notification for a system line, even to an offline recipient', async () => {
+    presenceService.isOnline.mockReturnValue(false);
+    const systemEvent = new MessageSentEvent(
+      { id: 'msg-2', messageType: 'SYSTEM' } as any,
+      'conversation-1',
+      'sender-1',
+      'recipient-1',
+      'Senior Backend Engineer',
+      'Đơn ứng tuyển đã chuyển sang trạng thái "Phỏng vấn".',
+    );
+
+    await listener.handleMessageSent(systemEvent);
+
+    expect(notificationPort.notifyNewMessage).not.toHaveBeenCalled();
+  });
+
   it('notifies an offline recipient', async () => {
     presenceService.isOnline.mockReturnValue(false);
     notificationPort.notifyNewMessage.mockResolvedValue(undefined);
@@ -39,7 +55,7 @@ describe('ChatEventsListener', () => {
 
     expect(notificationPort.notifyNewMessage).toHaveBeenCalledWith(
       'recipient-1',
-      'New message',
+      'Tin nhắn mới',
       expect.stringContaining('Senior Backend Engineer'),
       { conversationId: 'conversation-1', messageId: 'msg-1' },
     );

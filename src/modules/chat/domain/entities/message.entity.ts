@@ -7,6 +7,7 @@ import {
   OnlyTextMessagesEditableException,
   MessageContentEmptyException,
   MessageAlreadyDeletedException,
+  SystemMessageNotDeletableException,
 } from '@/modules/chat/domain/exceptions/chat.exceptions';
 
 const DELETED_MESSAGE_PLACEHOLDER = 'Tin nhắn này đã bị xoá';
@@ -64,6 +65,11 @@ export class Message extends BaseEntity {
   softDelete(): void {
     if (this.isDeleted) {
       throw new MessageAlreadyDeletedException();
+    }
+    // A system line is the record of what happened to the application — the
+    // user it is attributed to didn't write it and mustn't be able to erase it.
+    if (this.messageType === MessageType.SYSTEM) {
+      throw new SystemMessageNotDeletableException();
     }
     this.deletedAt = new Date();
   }

@@ -9,6 +9,8 @@ import { MessageType } from '@/modules/chat/domain/value-objects/message-type.vo
 import { MessageResponseMapper } from '@/modules/chat/application/mappers/message-response.mapper';
 import { MessageResponseDto } from '@/modules/chat/application/dto/message-response.dto';
 import { IChatJobLookupPort } from '@/modules/chat/application/ports/job-lookup.port';
+import { IChatApplicationLookupPort } from '@/modules/chat/application/ports/application-lookup.port';
+import { ensureConversationOpen } from '@/modules/chat/application/utils/ensure-conversation-open.util';
 import { MessageAttachmentUrlResolver } from '@/modules/chat/application/services/message-attachment-url-resolver.service';
 import {
   UploadFolder,
@@ -61,6 +63,7 @@ export class CreateMessageHandler implements ICommandHandler<
     private readonly jobLookupPort: IChatJobLookupPort,
     private readonly eventEmitter: EventEmitter2,
     private readonly attachmentUrlResolver: MessageAttachmentUrlResolver,
+    private readonly applicationLookupPort: IChatApplicationLookupPort,
   ) {}
 
   async execute(command: CreateMessageCommand): Promise<MessageResponseDto> {
@@ -89,6 +92,13 @@ export class CreateMessageHandler implements ICommandHandler<
         MessageResponseMapper.toDto(existing),
       );
     }
+
+    // After the idempotency lookup on purpose: replaying a send that
+    // succeeded before the application ended should still return that message.
+    await ensureConversationOpen(
+      this.applicationLookupPort,
+      conversation.applicationId,
+    );
 
     if (messageType === MessageType.SYSTEM) {
       throw new SystemMessageNotAllowedException();
@@ -148,7 +158,7 @@ export class CreateMessageHandler implements ICommandHandler<
         conversationId,
         senderId,
         recipientId,
-        job?.title ?? 'a job',
+        job?.title ?? 'một vị trí',
         saved.displayContent().slice(0, 120),
       ),
     );

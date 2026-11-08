@@ -91,7 +91,12 @@ export class ConversationInfraRepository implements IConversationRepository {
 
     const items: ConversationListRow[] = conversations.map((raw) => ({
       conversation: ConversationMapper.toDomain(raw)!,
-      membership: ConversationMemberMapper.toDomain(raw.members[0])!,
+      membership: ConversationMemberMapper.toDomain(
+        raw.members.find((m) => m.userId === userId) ?? null,
+      )!,
+      otherMembership: ConversationMemberMapper.toDomain(
+        raw.members.find((m) => m.userId !== userId) ?? null,
+      ),
     }));
 
     return { items, total };

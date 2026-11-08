@@ -32,6 +32,14 @@ import {
   MessageSentEvent,
 } from '@/modules/chat/infrastructure/events/message-sent.event';
 import {
+  MESSAGE_UPDATED_EVENT,
+  MessageUpdatedEvent,
+} from '@/modules/chat/infrastructure/events/message-updated.event';
+import {
+  MESSAGE_DELETED_EVENT,
+  MessageDeletedEvent,
+} from '@/modules/chat/infrastructure/events/message-deleted.event';
+import {
   USER_SESSION_REVOKED_EVENT,
   UserSessionRevokedEvent,
 } from '@/modules/user/infrastructure/events/user-session-revoked.event';
@@ -222,6 +230,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .to(userRoom(event.senderId))
       .to(userRoom(event.recipientId))
       .emit('message:new', event.message);
+  }
+
+  /**
+   * Edits and deletes reach the same audience as a new message (conversation
+   * room + both personal rooms) for the same reasons — see handleMessageSent.
+   * Socket.IO delivers once per socket even if it is in several of these rooms.
+   */
+  @OnEvent(MESSAGE_UPDATED_EVENT)
+  handleMessageUpdated(event: MessageUpdatedEvent): void {
+    this.server
+      .to(conversationRoom(event.conversationId))
+      .to(userRoom(event.senderId))
+      .to(userRoom(event.recipientId))
+      .emit('message:updated', event.message);
+  }
+
+  @OnEvent(MESSAGE_DELETED_EVENT)
+  handleMessageDeleted(event: MessageDeletedEvent): void {
+    this.server
+      .to(conversationRoom(event.conversationId))
+      .to(userRoom(event.senderId))
+      .to(userRoom(event.recipientId))
+      .emit('message:deleted', event.message);
   }
 
   @SubscribeMessage('message:read')

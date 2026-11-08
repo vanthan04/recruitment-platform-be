@@ -106,6 +106,10 @@ export class MessageInfraRepository implements IMessageRepository {
     return this.messagePrisma.countUnread(conversationId, userId, since);
   }
 
+  async countUnreadForUser(userId: string): Promise<number> {
+    return this.messagePrisma.countUnreadForUser(userId);
+  }
+
   async findLastMessages(
     conversationIds: string[],
   ): Promise<Map<string, Message>> {

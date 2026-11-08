@@ -3,7 +3,10 @@ import { ConversationMember } from '@/modules/chat/domain/entities/conversation-
 
 export interface ConversationListRow {
   conversation: Conversation;
+  /** The requesting user's own membership. */
   membership: ConversationMember;
+  /** The other participant's membership — source of their `lastReadAt` ("seen" receipt). */
+  otherMembership: ConversationMember | null;
 }
 
 export abstract class IConversationRepository {

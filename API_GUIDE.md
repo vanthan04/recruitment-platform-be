@@ -274,7 +274,7 @@ Không có `GET /skills/:id`. `slug` tự sinh từ `name` giống `Category`. T
 
 Mỗi lần đổi status (kể cả withdraw), backend ghi 1 dòng lịch sử vào bảng `ApplicationStatusHistory` (`fromStatus, toStatus, note, changedById, createdAt`) — đọc lại qua `GET /job-applications/:id/history` ở trên.
 
-Trả về job apply → phát event thông báo cho recruiter; đổi status → phát event thông báo cho candidate (xem mục Notification). Conversation chat chỉ mở được khi đơn đã `HIRED` (trước đây là `ACCEPTED`).
+Trả về job apply → phát event thông báo cho recruiter; đổi status → phát event thông báo cho candidate (xem mục Notification). Conversation chat mở được từ khi đơn ở `SHORTLISTED`, `INTERVIEW`, `OFFER` hoặc `HIRED` (xem mục 4.11).
 
 ### 4.7. Bookmark (`/bookmarks`)
 
@@ -317,24 +317,36 @@ Dùng endpoint này để lấy `avatarUrl` trước khi gọi `PATCH /users/pro
 
 ### 4.11. Chat (`/conversations`, `/messages`) + WebSocket
 
-Conversation luôn gắn với 1 `JobApplication` đã `HIRED` (trước đây là `ACCEPTED` — đổi theo pipeline mới ở mục 4.6) — recruiter là người khởi tạo.
+Conversation luôn gắn với 1 `JobApplication` — recruiter là người khởi tạo, và chỉ khi đơn đang ở `SHORTLISTED`, `INTERVIEW`, `OFFER` hoặc `HIRED` (định nghĩa ở `CHAT_ELIGIBLE_APPLICATION_STATUSES`, `chat-eligible-application-status.vo.ts`). `APPLIED`/`SCREENING` (chưa chọn ứng viên) và `REJECTED`/`WITHDRAWN` (đã kết thúc) bị từ chối với `400 CHAT_APPLICATION_NOT_ACCEPTED` (giữ mã lỗi cũ dù quy tắc đã đổi). 
+
+**Chỉ-đọc sau khi đơn kết thúc:** hội thoại đã mở sẽ chuyển sang chỉ-đọc khi đơn thành `REJECTED`/`WITHDRAWN` (`isReadOnly: true` trong DTO). Lịch sử vẫn đọc được, vẫn đánh dấu đã đọc được và người gửi vẫn **xoá** được tin của mình, nhưng **gửi** (`POST .../messages`, `message:send`) và **sửa** (`PATCH /messages/:id`) đều trả `400 CHAT_CONVERSATION_CLOSED`. `HIRED` không bị khoá. Trạng thái được đọc từ đơn ở mỗi lần ghi (không lưu bản sao trên conversation), nên không thể lệch với đơn; gửi lại một `clientMessageId` đã gửi thành công từ trước vẫn trả về tin đó như thường.
 
 | Method & Path | Auth | Ghi chú |
 |---|---|---|
-| `POST /conversations` | `RECRUITER` | `{ applicationId }` — application phải `HIRED`, recruiter phải là chủ job. Idempotent (gọi lại nhiều lần trả về cùng 1 conversation) |
-| `GET /conversations?page&limit` | 🔒 | Hội thoại của chính mình, sắp theo `lastMessageAt` desc. Mỗi item kèm `otherParticipant`, `lastMessage`, `unreadCount`, `jobTitle`, `applicationStatus` |
-| `GET /conversations/:id` | 🔒 | Chỉ thành viên (403 nếu không phải) |
+| `POST /conversations` | `RECRUITER` | `{ applicationId }` — application phải ở trạng thái cho phép (xem trên), recruiter phải là chủ job. Idempotent (gọi lại nhiều lần trả về cùng 1 conversation) |
+| `GET /conversations?page&limit` | 🔒 | Hội thoại của chính mình, sắp theo `lastMessageAt` desc. Mỗi item kèm `otherParticipant`, `lastMessage`, `unreadCount`, `otherLastReadAt` (lần cuối **người kia** đọc, `null` nếu chưa — dùng cho "Đã xem"), `jobTitle`, `applicationStatus`, `isReadOnly` |
+| `GET /conversations/unread-count` | 🔒 | `data`: `{ count }` — tổng tin chưa đọc (của người khác, chưa bị xoá) trên mọi hội thoại của mình; dùng cho badge menu. Khai báo trước `:id` |
+| `GET /conversations/:id` | 🔒 | Chỉ thành viên (403 nếu không phải). Có cả `unreadCount` và `otherLastReadAt` |
 | `GET /conversations/:id/messages?cursor&limit` | 🔒 | **Cursor-based** (khác mọi list khác trong hệ thống) — không truyền `cursor` để lấy trang mới nhất, `metadata.nextCursor` dùng cho lần gọi tiếp theo (tin cũ hơn) |
 | `POST /conversations/:id/messages` | 🔒 | `{ content, messageType?, clientMessageId, attachments? }` — `clientMessageId` (UUID, do client tự sinh) là khoá idempotency, gửi lại cùng giá trị sẽ không tạo tin nhắn trùng |
-| `PATCH /messages/:id` | 🔒 | `{ content }` — chỉ người gửi, chỉ tin `TEXT` chưa xoá |
-| `DELETE /messages/:id` | 🔒 | Soft-delete, chỉ người gửi |
+| `PATCH /messages/:id` | 🔒 | `{ content }` — chỉ người gửi, chỉ tin `TEXT` chưa xoá. Phát `message:updated` tới người kia và các tab của người gửi |
+| `DELETE /messages/:id` | 🔒 | Soft-delete, chỉ người gửi. Phát `message:deleted` (nội dung đã bị che, không còn đính kèm) |
 | `POST /conversations/:id/read` | 🔒 | Đánh dấu đã đọc đến thời điểm hiện tại |
 
 File đính kèm: upload qua `POST /files/upload` (folder `chat-attachments`) trước, rồi gửi `{fileName, fileUrl, mimeType, fileSize}` trong mảng `attachments` của `POST .../messages` — tối đa 5 tệp/tin nhắn.
 
-**WebSocket** (namespace `/ws`, cùng origin backend): xác thực bằng cookie `access_token` (không phải Bearer header) — client cần mở socket với `withCredentials: true` **trực tiếp tới origin backend**, không qua Next.js server. Event chính: `conversation:subscribe`/`unsubscribe`, `message:send` → `message:ack`/`message:new`/`message:error`, `message:read`, `typing:start`/`typing:stop`, `user:online`/`user:offline`. Gửi tin nhắn nên ưu tiên qua socket (`message:send`); REST `POST .../messages` chỉ là fallback khi socket mất kết nối — cả 2 đường đều phát `message:new` tới người nhận (kể cả khi họ gửi qua đường REST) nên không lo bỏ lỡ tin nhắn.
+**WebSocket** (namespace `/ws`, cùng origin backend): xác thực bằng cookie `access_token` (không phải Bearer header) — client cần mở socket với `withCredentials: true` **trực tiếp tới origin backend**, không qua Next.js server. Event chính: `conversation:subscribe`/`unsubscribe`, `message:send` → `message:ack`/`message:new`/`message:error`, `message:updated`/`message:deleted` (server → client, payload là message DTO; phát cho cả REST `PATCH`/`DELETE`), `message:read` (payload `{ conversationId, userId, readAt }` — phát cho cả người đọc, client chỉ nên coi lượt đọc của **người kia** là "đã xem"), `typing:start`/`typing:stop`, `user:online`/`user:offline`. Gửi tin nhắn nên ưu tiên qua socket (`message:send`); REST `POST .../messages` chỉ là fallback khi socket mất kết nối — cả 2 đường đều phát `message:new` tới người nhận (kể cả khi họ gửi qua đường REST) nên không lo bỏ lỡ tin nhắn.
 
 `NotificationType.NEW_MESSAGE` được tạo khi người nhận **không** đang có kết nối WebSocket nào (offline) — đang online thì chỉ nhận qua socket, không tạo notification trùng.
+
+**Tin hệ thống (`messageType: "SYSTEM"`):** khi recruiter đổi trạng thái 1 đơn đã có hội thoại, backend tự chèn 1 dòng `Đơn ứng tuyển đã chuyển sang trạng thái "<nhãn>".` (nhãn tiếng Việt, cùng bộ nhãn với badge trạng thái ở FE) và phát `message:new` như tin thường. Không có endpoint nào tạo tin hệ thống — client gửi `SYSTEM` vẫn bị `400 CHAT_SYSTEM_MESSAGE_NOT_ALLOWED`. Quy ước:
+- Lưu dưới `senderId` của recruiter (cột không null), nên **tính là chưa đọc cho người kia** như tin thường.
+- Không sửa được (chỉ `TEXT` sửa được) và **không xoá được** (`400 CHAT_SYSTEM_MESSAGE_NOT_DELETABLE`).
+- Vẫn được chèn khi hội thoại đã chỉ-đọc — để dòng `Đã từ chối` hiện ra đúng lúc hội thoại bị khoá.
+- **Không** tạo thêm `NEW_MESSAGE` notification (đổi trạng thái đã có notification riêng `APPLICATION_STATUS_CHANGED`).
+- Idempotent theo `clientMessageId = system:application-status:<applicationId>:<status>`.
+- Candidate rút đơn (`PATCH /job-applications/:id/withdraw`) cũng sinh dòng `... "Đã rút đơn".`, nhưng gán cho **candidate** (nên "chưa đọc" rơi vào recruiter). Dùng event riêng `ApplicationWithdrawnEvent` — không dùng chung `ApplicationStatusChangedEvent` vì event đó gửi notification cho candidate, tức báo họ về chính thao tác của mình.
+- Không có dòng cho đơn chưa có hội thoại (hội thoại chỉ mở từ `SHORTLISTED`, nên chuyển sang `SHORTLISTED` không có dòng).
 
 ### 4.12. Interview (`/interviews`)
 

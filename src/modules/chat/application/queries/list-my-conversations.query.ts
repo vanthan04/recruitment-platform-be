@@ -77,7 +77,7 @@ export class ListMyConversationsHandler implements IQueryHandler<
       ]);
 
     const conversations = await Promise.all(
-      items.map(async ({ conversation }) => {
+      items.map(async ({ conversation, otherMembership }) => {
         const otherId = conversation.otherParticipantId(userId);
         const dto = ConversationResponseMapper.toDto(conversation, {
           jobTitle: jobs.get(conversation.jobId)?.title ?? '',
@@ -86,6 +86,7 @@ export class ListMyConversationsHandler implements IQueryHandler<
           otherParticipant: otherParticipants.get(otherId)!,
           lastMessage: lastMessages.get(conversation.id) ?? null,
           unreadCount: unreadCounts.get(conversation.id) ?? 0,
+          otherLastReadAt: otherMembership?.lastReadAt ?? null,
         });
         dto.lastMessage = await this.attachmentUrlResolver.resolveNullable(
           dto.lastMessage,

@@ -4,6 +4,8 @@ import { ChatPresenceService } from '@/modules/chat/infrastructure/services/chat
 import { ChatRateLimiterService } from '@/modules/chat/infrastructure/services/chat-rate-limiter.service';
 import { Conversation } from '@/modules/chat/domain/entities/conversation.entity';
 import { ConversationNotFoundException } from '@/modules/chat/domain/exceptions/chat.exceptions';
+import { MessageUpdatedEvent } from '@/modules/chat/infrastructure/events/message-updated.event';
+import { MessageDeletedEvent } from '@/modules/chat/infrastructure/events/message-deleted.event';
 import { UserSessionRevokedEvent } from '@/modules/user/infrastructure/events/user-session-revoked.event';
 
 function makeSocket(overrides: Record<string, unknown> = {}) {
@@ -264,6 +266,42 @@ describe('ChatGateway', () => {
       expect(rateLimiter.clearInMemoryQuota).toHaveBeenCalledWith(
         'candidate-1',
       );
+    });
+  });
+
+  describe('message:updated / message:deleted broadcast', () => {
+    const message = { id: 'msg-1', conversationId: 'conv-1' } as any;
+
+    it('broadcasts an edit to the conversation room and both personal rooms', () => {
+      gateway.handleMessageUpdated(
+        new MessageUpdatedEvent(
+          message,
+          'conv-1',
+          'candidate-1',
+          'recruiter-1',
+        ),
+      );
+
+      expect(server.to).toHaveBeenCalledWith('conversation:conv-1');
+      expect(server.to).toHaveBeenCalledWith('user:candidate-1');
+      expect(server.to).toHaveBeenCalledWith('user:recruiter-1');
+      expect(server.emit).toHaveBeenCalledWith('message:updated', message);
+    });
+
+    it('broadcasts a delete to the conversation room and both personal rooms', () => {
+      gateway.handleMessageDeleted(
+        new MessageDeletedEvent(
+          message,
+          'conv-1',
+          'candidate-1',
+          'recruiter-1',
+        ),
+      );
+
+      expect(server.to).toHaveBeenCalledWith('conversation:conv-1');
+      expect(server.to).toHaveBeenCalledWith('user:candidate-1');
+      expect(server.to).toHaveBeenCalledWith('user:recruiter-1');
+      expect(server.emit).toHaveBeenCalledWith('message:deleted', message);
     });
   });
 

@@ -44,14 +44,21 @@ export class GetConversationHandler implements IQueryHandler<
     conversation.ensureMember(userId);
 
     const otherId = conversation.otherParticipantId(userId);
-    const [membership, job, application, otherParticipant, lastMessage] =
-      await Promise.all([
-        this.conversationRepository.findMembership(conversationId, userId),
-        this.jobLookupPort.findById(conversation.jobId),
-        this.applicationLookupPort.findById(conversation.applicationId),
-        this.userLookupPort.findById(otherId),
-        this.messageRepository.findLastMessage(conversationId),
-      ]);
+    const [
+      membership,
+      otherMembership,
+      job,
+      application,
+      otherParticipant,
+      lastMessage,
+    ] = await Promise.all([
+      this.conversationRepository.findMembership(conversationId, userId),
+      this.conversationRepository.findMembership(conversationId, otherId),
+      this.jobLookupPort.findById(conversation.jobId),
+      this.applicationLookupPort.findById(conversation.applicationId),
+      this.userLookupPort.findById(otherId),
+      this.messageRepository.findLastMessage(conversationId),
+    ]);
 
     const unreadCount = await this.messageRepository.countUnread(
       conversationId,
@@ -65,6 +72,7 @@ export class GetConversationHandler implements IQueryHandler<
       otherParticipant: otherParticipant!,
       lastMessage,
       unreadCount,
+      otherLastReadAt: otherMembership?.lastReadAt ?? null,
     });
     dto.lastMessage = await this.attachmentUrlResolver.resolveNullable(
       dto.lastMessage,

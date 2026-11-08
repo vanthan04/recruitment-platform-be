@@ -101,7 +101,33 @@ export class MessagePrismaRepository {
       where: {
         conversationId,
         senderId: { not: userId },
+        // A message its sender took back is no longer something to read.
+        deletedAt: null,
         ...(since ? { createdAt: { gt: since } } : {}),
+      },
+    });
+  }
+
+  /**
+   * Total unread across every conversation the user is a member of, in two
+   * queries: their memberships (each with its own `lastReadAt`), then one
+   * count over all of them.
+   */
+  async countUnreadForUser(userId: string) {
+    const memberships = await this.prisma.conversationMember.findMany({
+      where: { userId },
+      select: { conversationId: true, lastReadAt: true },
+    });
+    if (memberships.length === 0) return 0;
+
+    return this.prisma.message.count({
+      where: {
+        senderId: { not: userId },
+        deletedAt: null,
+        OR: memberships.map(({ conversationId, lastReadAt }) => ({
+          conversationId,
+          ...(lastReadAt ? { createdAt: { gt: lastReadAt } } : {}),
+        })),
       },
     });
   }
@@ -127,6 +153,7 @@ export class MessagePrismaRepository {
       by: ['conversationId'],
       where: {
         senderId: { not: userId },
+        deletedAt: null,
         OR: items.map(({ conversationId, since }) => ({
           conversationId,
           ...(since ? { createdAt: { gt: since } } : {}),
