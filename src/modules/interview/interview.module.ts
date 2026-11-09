@@ -4,6 +4,17 @@ import { InterviewController } from '@/modules/interview/presentation/controller
 import { IInterviewScheduleRepository } from '@/modules/interview/domain/repositories/interview-schedule.repository';
 import { InterviewScheduleInfraRepository } from '@/modules/interview/infrastructure/repositories/interview-schedule.infra-repository';
 import { InterviewSchedulePrismaRepository } from '@/modules/interview/infrastructure/persistence/prisma/interview-schedule-prisma.repository';
+import { IInterviewSessionRepository } from '@/modules/interview/domain/repositories/interview-session.repository';
+import { InterviewSessionInfraRepository } from '@/modules/interview/infrastructure/repositories/interview-session.infra-repository';
+import { InterviewSessionPrismaRepository } from '@/modules/interview/infrastructure/persistence/prisma/interview-session-prisma.repository';
+import { IInterviewReadRepository } from '@/modules/interview/domain/repositories/interview-read.repository';
+import { InterviewReadInfraRepository } from '@/modules/interview/infrastructure/repositories/interview-read.infra-repository';
+import { InterviewReadPrismaRepository } from '@/modules/interview/infrastructure/persistence/prisma/interview-read-prisma.repository';
+import { StartInterviewSessionHandler } from '@/modules/interview/application/commands/start-interview-session.command';
+import { EndInterviewSessionHandler } from '@/modules/interview/application/commands/end-interview-session.command';
+import { GetInterviewHandler } from '@/modules/interview/application/queries/get-interview.query';
+import { ListMyInterviewsHandler } from '@/modules/interview/application/queries/list-my-interviews.query';
+import { ListInterviewSessionsHandler } from '@/modules/interview/application/queries/list-interview-sessions.query';
 import { JobModule } from '@/modules/job/job.module';
 import { JobApplicationModule } from '@/modules/application/job-application.module';
 import { UserModule } from '@/modules/user/user.module';
@@ -58,6 +69,21 @@ import { SendInterviewRemindersCron } from '@/modules/interview/application/jobs
       provide: IInterviewMailPort,
       useClass: InterviewMailAdapter,
     },
+    InterviewSessionPrismaRepository,
+    {
+      provide: IInterviewSessionRepository,
+      useClass: InterviewSessionInfraRepository,
+    },
+    InterviewReadPrismaRepository,
+    {
+      provide: IInterviewReadRepository,
+      useClass: InterviewReadInfraRepository,
+    },
+    StartInterviewSessionHandler,
+    EndInterviewSessionHandler,
+    GetInterviewHandler,
+    ListMyInterviewsHandler,
+    ListInterviewSessionsHandler,
     ScheduleInterviewHandler,
     RescheduleInterviewHandler,
     CancelInterviewHandler,

@@ -207,6 +207,7 @@ model User {
   savedSearches    SavedSearch[]
   refreshTokens    RefreshToken[]
   scheduledInterviews InterviewSchedule[]
+  startedInterviewSessions InterviewSession[] @relation("InterviewSessionStartedBy")
   applicationStatusChanges ApplicationStatusHistory[]
   applicationNotes         ApplicationNote[]
   oauthLoginCodes     OauthLoginCode[]
@@ -611,6 +612,33 @@ model InterviewSchedule {
   // The reminder cron's scan: active interviews starting within the next 24h.
   @@index([status, scheduledAt])
   @@map("interview_schedules")
+
+  sessions InterviewSession[]
+}
+
+// One run of an interview — started by the candidate or the job-owning
+// recruiter, ended by either (or automatically when the interview leaves the
+// SCHEDULED/RESCHEDULED states, see InterviewSchedulePrismaRepository.update).
+// "Open" = endedAt IS NULL. At most one open session per interview is enforced
+// by the partial unique index `interview_sessions_open_unique` (raw SQL — the
+// Prisma DSL cannot express it; see 20261109090000_interview_session).
+// IMPORTANT: `prisma migrate dev` doesn't know that index; create future
+// migrations touching this table with `--create-only` and confirm they don't
+// drop it.
+model InterviewSession {
+  id        String    @id @default(uuid())
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  interview   InterviewSchedule @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  interviewId String
+  // Attribution only — kept but nulled if the user is ever deleted.
+  startedBy   User?             @relation("InterviewSessionStartedBy", fields: [startedById], references: [id], onDelete: SetNull)
+  startedById String?
+
+  @@index([interviewId, startedAt])
+  @@map("interview_sessions")
 }
 
 // ─────────────────────────────────────────────

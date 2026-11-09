@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -22,6 +23,13 @@ import { CancelInterviewCommand } from '@/modules/interview/application/commands
 import { CompleteInterviewCommand } from '@/modules/interview/application/commands/complete-interview.command';
 import { MarkInterviewNoShowCommand } from '@/modules/interview/application/commands/mark-interview-no-show.command';
 import { ListInterviewsByApplicationQuery } from '@/modules/interview/application/queries/list-interviews-by-application.query';
+
+import { StartInterviewSessionCommand } from '@/modules/interview/application/commands/start-interview-session.command';
+import { EndInterviewSessionCommand } from '@/modules/interview/application/commands/end-interview-session.command';
+import { GetInterviewQuery } from '@/modules/interview/application/queries/get-interview.query';
+import { ListMyInterviewsQuery } from '@/modules/interview/application/queries/list-my-interviews.query';
+import { ListInterviewSessionsQuery } from '@/modules/interview/application/queries/list-interview-sessions.query';
+import { ListInterviewsDto } from '@/modules/interview/presentation/dtos/list-interviews.dto';
 
 import { ScheduleInterviewDto } from '@/modules/interview/presentation/dtos/schedule-interview.dto';
 import { RescheduleInterviewDto } from '@/modules/interview/presentation/dtos/reschedule-interview.dto';
@@ -98,6 +106,88 @@ export class InterviewController {
       new MarkInterviewNoShowCommand(recruiterId, id),
     );
     return ApiResponse.ok(result, 'Interview marked as no-show');
+  }
+
+  // The routes below are open to any holder of INTERVIEW_READ (candidates and
+  // recruiters). Real access control is the participant check in each handler
+  // (candidate = application.userId, recruiter = job.postedById, both read from
+  // the DB). Starting/ending a session reuses INTERVIEW_READ on purpose: the
+  // seed only wires a *new* permission into a role's defaults on first run, so
+  // a dedicated permission would silently be missing on every existing database.
+
+  @Get()
+  @RequirePermissions(Permission.INTERVIEW_READ)
+  @ApiOperation({
+    summary:
+      'List interviews I take part in, as candidate or job-owning recruiter (paginated)',
+  })
+  async list(@GetMe('id') userId: string, @Query() query: ListInterviewsDto) {
+    const result = await this.queryBus.execute(
+      new ListMyInterviewsQuery(
+        userId,
+        query.page ?? 1,
+        query.limit ?? 10,
+        query.status,
+        query.upcoming,
+      ),
+    );
+    return ApiResponse.ok(
+      result.interviews,
+      'Interviews retrieved successfully',
+      {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      },
+    );
+  }
+
+  @Get(':id')
+  @RequirePermissions(Permission.INTERVIEW_READ)
+  @ApiOperation({ summary: 'Get one interview (participants only)' })
+  async getOne(@GetMe('id') userId: string, @Param('id') id: string) {
+    const result = await this.queryBus.execute(
+      new GetInterviewQuery(userId, id),
+    );
+    return ApiResponse.ok(result, 'Interview retrieved successfully');
+  }
+
+  @Get(':id/sessions')
+  @RequirePermissions(Permission.INTERVIEW_READ)
+  @ApiOperation({
+    summary: 'List sessions of an interview (participants only)',
+  })
+  async listSessions(@GetMe('id') userId: string, @Param('id') id: string) {
+    const result = await this.queryBus.execute(
+      new ListInterviewSessionsQuery(userId, id),
+    );
+    return ApiResponse.ok(result, 'Interview sessions retrieved successfully');
+  }
+
+  @Post(':id/sessions')
+  @RequirePermissions(Permission.INTERVIEW_READ)
+  @ApiOperation({
+    summary: 'Start a session of a pending interview (participants only)',
+  })
+  async startSession(@GetMe('id') userId: string, @Param('id') id: string) {
+    const result = await this.commandBus.execute(
+      new StartInterviewSessionCommand(userId, id),
+    );
+    return ApiResponse.ok(result, 'Interview session started');
+  }
+
+  @Patch(':id/sessions/:sessionId/end')
+  @RequirePermissions(Permission.INTERVIEW_READ)
+  @ApiOperation({ summary: 'End a session (participants only)' })
+  async endSession(
+    @GetMe('id') userId: string,
+    @Param('id') id: string,
+    @Param('sessionId') sessionId: string,
+  ) {
+    const result = await this.commandBus.execute(
+      new EndInterviewSessionCommand(userId, id, sessionId),
+    );
+    return ApiResponse.ok(result, 'Interview session ended');
   }
 
   @Get('application/:applicationId')

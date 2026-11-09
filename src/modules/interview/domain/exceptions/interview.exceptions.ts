@@ -107,3 +107,41 @@ export class InterviewApplicationNotInterviewableException extends BusinessRuleV
     this.name = 'InterviewApplicationNotInterviewableException';
   }
 }
+
+/** The requester is neither the candidate nor the job-owning recruiter. */
+export class InterviewAccessNotAllowedException extends UnauthorizedDomainException {
+  constructor() {
+    super(
+      'You are not a participant of this interview',
+      'INTERVIEW_ACCESS_NOT_ALLOWED',
+    );
+    this.name = 'InterviewAccessNotAllowedException';
+  }
+}
+
+export class InterviewSessionNotFoundException extends EntityNotFoundException {
+  constructor(id?: string) {
+    super('InterviewSession', id, 'INTERVIEW_SESSION_NOT_FOUND');
+    this.name = 'InterviewSessionNotFoundException';
+  }
+}
+
+export class InterviewSessionAlreadyOpenException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'This interview already has a session in progress — end it before starting another',
+      'INTERVIEW_SESSION_ALREADY_OPEN',
+    );
+    this.name = 'InterviewSessionAlreadyOpenException';
+  }
+}
+
+export class InterviewSessionAlreadyEndedException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'This interview session has already ended',
+      'INTERVIEW_SESSION_ALREADY_ENDED',
+    );
+    this.name = 'InterviewSessionAlreadyEndedException';
+  }
+}

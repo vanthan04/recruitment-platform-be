@@ -27,6 +27,20 @@ export class InterviewSchedulePrismaRepository {
   }
 
   async update(id: string, data: Prisma.InterviewScheduleUncheckedUpdateInput) {
+    const status = data.status as InterviewStatus | undefined;
+    if (status && !ACTIVE_STATUSES.includes(status)) {
+      // Completed / cancelled / no-show: an interview that is over cannot
+      // have a session still in progress. Done in the same transaction so
+      // the two can never be observed out of step.
+      const [updated] = await this.prisma.$transaction([
+        this.prisma.interviewSchedule.update({ where: { id }, data }),
+        this.prisma.interviewSession.updateMany({
+          where: { interviewId: id, endedAt: null },
+          data: { endedAt: new Date() },
+        }),
+      ]);
+      return updated;
+    }
     return this.prisma.interviewSchedule.update({
       where: { id },
       data,
