@@ -3,6 +3,8 @@ import { CommandBus } from '@nestjs/cqrs';
 import { JwtService } from '@nestjs/jwt';
 import { MonitoringGateway, monitorRoom } from './monitoring.gateway';
 import { IDetectionServicePort } from '@/modules/monitoring/application/ports/detection-service.port';
+import { MonitoringEventTracker } from '@/modules/monitoring/application/services/monitoring-event-tracker.service';
+import { CURRENT_MONITORING_NOTICE_VERSION } from '@/modules/monitoring/domain/monitoring-notice';
 import { isJpeg } from '@/modules/monitoring/infrastructure/frame.util';
 import { RecordMonitoringConsentCommand } from '@/modules/interview/application/commands/record-monitoring-consent.command';
 import { InterviewMonitoringNotAllowedException } from '@/modules/interview/domain/exceptions/interview.exceptions';
@@ -40,6 +42,11 @@ function makeClient(userId = 'candidate-1') {
 describe('MonitoringGateway', () => {
   let commandBus: { execute: jest.Mock };
   let detection: jest.Mocked<IDetectionServicePort>;
+  let tracker: {
+    observe: jest.Mock;
+    stop: jest.Mock;
+    stopInterview: jest.Mock;
+  };
   let gateway: MonitoringGateway;
   let serverEmit: jest.Mock;
   let socketsLeave: jest.Mock;
@@ -59,6 +66,11 @@ describe('MonitoringGateway', () => {
       isConfigured: jest.fn().mockReturnValue(true),
       detectFrame: jest.fn().mockResolvedValue({ status: 'ok', result }),
     };
+    tracker = {
+      observe: jest.fn().mockResolvedValue(undefined),
+      stop: jest.fn().mockResolvedValue(undefined),
+      stopInterview: jest.fn().mockResolvedValue(undefined),
+    };
     const config = {
       get: jest.fn((key: string, fallback: unknown) =>
         key === 'MONITORING_MAX_FRAME_BYTES' ? 1000 : fallback,
@@ -68,6 +80,7 @@ describe('MonitoringGateway', () => {
       { verifyAsync: jest.fn() } as unknown as JwtService,
       commandBus as unknown as CommandBus,
       detection,
+      tracker as unknown as MonitoringEventTracker,
       config,
     );
     serverEmit = jest.fn();
@@ -84,7 +97,10 @@ describe('MonitoringGateway', () => {
   afterEach(() => jest.restoreAllMocks());
 
   const start = (client: any) =>
-    gateway.onStart(client, { interviewId: INTERVIEW_ID, noticeVersion: 'v1' });
+    gateway.onStart(client, {
+      interviewId: INTERVIEW_ID,
+      noticeVersion: CURRENT_MONITORING_NOTICE_VERSION,
+    });
 
   describe('handleConnection', () => {
     it('disconnects a handshake without the auth cookie', async () => {
@@ -102,7 +118,11 @@ describe('MonitoringGateway', () => {
       const ack = await start(client);
 
       expect(commandBus.execute).toHaveBeenCalledWith(
-        new RecordMonitoringConsentCommand('candidate-1', INTERVIEW_ID, 'v1'),
+        new RecordMonitoringConsentCommand(
+          'candidate-1',
+          INTERVIEW_ID,
+          CURRENT_MONITORING_NOTICE_VERSION,
+        ),
       );
       expect(ack).toEqual({
         ok: true,
@@ -154,6 +174,101 @@ describe('MonitoringGateway', () => {
         code: 'START_REFUSED',
         message: 'Something went wrong, please try again',
       });
+    });
+  });
+
+  describe('notice version', () => {
+    it('refuses a client still showing an older notice, without recording consent', async () => {
+      const ack = await gateway.onStart(makeClient(), {
+        interviewId: INTERVIEW_ID,
+        noticeVersion: '2026-11-09.v1',
+      });
+
+      expect(ack).toMatchObject({ ok: false, code: 'NOTICE_OUTDATED' });
+      expect(commandBus.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('event tracking', () => {
+    it('feeds every analysed frame to the tracker for the consented session', async () => {
+      const client = makeClient();
+      await start(client);
+      detection.detectFrame.mockResolvedValue({
+        status: 'ok',
+        result: {
+          ...result,
+          detections: [
+            {
+              classId: 67,
+              className: 'cell phone',
+              confidence: 0.9,
+              boundingBox: { x: 1, y: 1, width: 2, height: 2 },
+            },
+          ],
+        },
+      });
+
+      await gateway.onFrame(client, JPEG);
+
+      expect(tracker.observe).toHaveBeenCalledWith(
+        'session-1',
+        INTERVIEW_ID,
+        [expect.objectContaining({ className: 'cell phone' })],
+        new Date(now),
+      );
+    });
+
+    it('does not feed dropped frames to the tracker', async () => {
+      const client = makeClient();
+      await start(client);
+      detection.detectFrame.mockResolvedValue({ status: 'busy' });
+
+      await gateway.onFrame(client, JPEG);
+
+      expect(tracker.observe).not.toHaveBeenCalled();
+    });
+
+    it('a frame ack never waits for, or fails because of, event persistence', async () => {
+      const client = makeClient();
+      await start(client);
+      tracker.observe.mockReturnValue(new Promise(() => {})); // never settles
+      await expect(gateway.onFrame(client, JPEG)).resolves.toMatchObject({
+        ok: true,
+      });
+
+      tracker.observe.mockRejectedValue(new Error('db down'));
+      now += 1000;
+      await expect(gateway.onFrame(client, JPEG)).resolves.toMatchObject({
+        ok: true,
+      });
+    });
+
+    it('monitor:stop ends the session tracking', async () => {
+      const client = makeClient();
+      await start(client);
+
+      gateway.onStop(client);
+
+      expect(tracker.stop).toHaveBeenCalledWith(
+        'session-1',
+        'monitoring-stopped',
+      );
+    });
+
+    it('re-starting the same session keeps its open events', async () => {
+      const client = makeClient();
+      await start(client);
+      await start(client);
+
+      expect(tracker.stop).not.toHaveBeenCalled();
+    });
+
+    it('the end of the interview session ends tracking for the interview', () => {
+      gateway.handleRoomClosed(new InterviewRoomClosedEvent(INTERVIEW_ID));
+      expect(tracker.stopInterview).toHaveBeenCalledWith(
+        INTERVIEW_ID,
+        'session-ended',
+      );
     });
   });
 

@@ -78,8 +78,24 @@ export const envValidationSchema = Joi.object({
   AI_SERVICE_URL: Joi.string().uri().allow('').optional(),
   AI_SERVICE_TOKEN: Joi.string().allow('').optional(),
   AI_SERVICE_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
-  MONITORING_MAX_FRAME_BYTES: Joi.number().integer().min(10240).max(1000000).default(524288),
-  MONITORING_MIN_FRAME_INTERVAL_MS: Joi.number().integer().min(100).default(500),
+  MONITORING_MAX_FRAME_BYTES: Joi.number()
+    .integer()
+    .min(10240)
+    .max(1000000)
+    .default(524288),
+  MONITORING_MIN_FRAME_INTERVAL_MS: Joi.number()
+    .integer()
+    .min(100)
+    .default(500),
+
+  // Monitoring events (Phase 4): how per-frame detections become stored
+  // events — see monitoring/domain/services/event-rules.ts.
+  MONITORING_EVENT_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.5),
+  MONITORING_EVENT_START_FRAMES: Joi.number().integer().min(1).default(3),
+  MONITORING_EVENT_END_FRAMES: Joi.number().integer().min(1).default(3),
+  MONITORING_EVENT_COOLDOWN_MS: Joi.number().integer().min(0).default(30000),
+  MONITORING_EVENT_STALE_MS: Joi.number().integer().min(5000).default(15000),
+  MONITORING_EVENT_RETENTION_DAYS: Joi.number().integer().min(1).default(180),
 
   // Social login (Google/Facebook). Optional so the app still boots without
   // them configured — the /auth/google and /auth/facebook routes just fail

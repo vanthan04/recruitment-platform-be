@@ -31,7 +31,8 @@ export class RecordMonitoringConsentCommand extends Command<MonitoringConsentRes
  * session. Only the candidate — never the recruiter — can do this, only for an
  * interview held in the platform room, and only while a session is open. The
  * consent (time + notice version) is persisted on the session before any frame
- * is analysed; the first consent in a session is kept.
+ * is analysed. Re-starting under the same notice keeps the original consent;
+ * a different notice version is recorded as a new consent.
  */
 @Injectable()
 @CommandHandler(RecordMonitoringConsentCommand)
@@ -61,7 +62,7 @@ export class RecordMonitoringConsentHandler implements ICommandHandler<
       await this.sessionRepository.findOpenByInterviewId(interviewId);
     if (!session) throw new InterviewSessionNotOpenException();
 
-    if (!session.monitoringConsentAt) {
+    if (session.monitoringNoticeVersion !== noticeVersion) {
       session.recordMonitoringConsent(noticeVersion);
       await this.sessionRepository.update(session);
     }

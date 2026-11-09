@@ -17,6 +17,8 @@ import { DomainException } from '@/common/exceptions/domain.exception';
 import { IDetectionServicePort } from '@/modules/monitoring/application/ports/detection-service.port';
 import type { FrameDetectionResult } from '@/modules/monitoring/application/ports/detection-service.port';
 import { isJpeg } from '@/modules/monitoring/infrastructure/frame.util';
+import { MonitoringEventTracker } from '@/modules/monitoring/application/services/monitoring-event-tracker.service';
+import { CURRENT_MONITORING_NOTICE_VERSION } from '@/modules/monitoring/domain/monitoring-notice';
 import { MonitorStartWsDto } from '@/modules/monitoring/presentation/dtos/monitor-ws.dto';
 import {
   MonitoringConsentResult,
@@ -102,6 +104,7 @@ export class MonitoringGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly commandBus: CommandBus,
     private readonly detection: IDetectionServicePort,
+    private readonly tracker: MonitoringEventTracker,
     config: ConfigService,
   ) {
     this.maxFrameBytes = config.get<number>(
@@ -145,6 +148,9 @@ export class MonitoringGateway implements OnGatewayConnection {
       reason: 'session-ended',
     });
     this.server.in(room).socketsLeave(room);
+    this.background(
+      this.tracker.stopInterview(event.interviewId, 'session-ended'),
+    );
   }
 
   @SubscribeMessage('monitor:start')
@@ -157,6 +163,15 @@ export class MonitoringGateway implements OnGatewayConnection {
         MonitorStartWsDto,
         rawData,
       );
+      // A client still showing an older notice must not be monitored under
+      // terms the candidate wasn't shown (e.g. events now being stored).
+      if (noticeVersion !== CURRENT_MONITORING_NOTICE_VERSION) {
+        return {
+          ok: false,
+          code: 'NOTICE_OUTDATED',
+          message: 'The monitoring notice has changed — reload the page',
+        };
+      }
       if (!this.detection.isConfigured()) {
         return {
           ok: false,
@@ -174,7 +189,9 @@ export class MonitoringGateway implements OnGatewayConnection {
         ),
       );
 
-      this.leaveCurrent(client);
+      // Re-starting the same session (e.g. a repeated start) keeps its open
+      // events; switching to another session ends the previous one's.
+      this.leaveCurrent(client, client.data.sessionId !== consent.sessionId);
       client.data.interviewId = interviewId;
       client.data.sessionId = consent.sessionId;
       client.data.lastFrameAt = undefined;
@@ -229,6 +246,16 @@ export class MonitoringGateway implements OnGatewayConnection {
       const outcome = await this.detection.detectFrame(frame);
       switch (outcome.status) {
         case 'ok':
+          // Event rules + persistence run server-side, whether or not any
+          // dashboard is watching; they never delay or fail this frame.
+          this.background(
+            this.tracker.observe(
+              client.data.sessionId!,
+              interviewId,
+              outcome.result.detections,
+              new Date(now),
+            ),
+          );
           return { ok: true, data: outcome.result };
         case 'busy':
           return { ok: false, code: 'AI_BUSY' };
@@ -248,16 +275,28 @@ export class MonitoringGateway implements OnGatewayConnection {
 
   @SubscribeMessage('monitor:stop')
   onStop(@ConnectedSocket() client: MonitorSocket): { ok: true } {
-    this.leaveCurrent(client);
+    this.leaveCurrent(client, true);
     return { ok: true };
   }
 
-  private leaveCurrent(client: MonitorSocket): void {
+  private leaveCurrent(client: MonitorSocket, stopTracking: boolean): void {
     const interviewId = client.data?.interviewId;
+    const sessionId = client.data?.sessionId;
     if (interviewId) void client.leave(monitorRoom(interviewId));
+    if (stopTracking && sessionId) {
+      this.background(this.tracker.stop(sessionId, 'monitoring-stopped'));
+    }
     client.data.interviewId = undefined;
     client.data.sessionId = undefined;
     client.data.lastFrameAt = undefined;
     client.data.inFlight = false;
+  }
+
+  private background(work: Promise<unknown>): void {
+    work.catch((error: unknown) =>
+      this.logger.error(
+        `Monitoring event tracking failed: ${(error as Error).message}`,
+      ),
+    );
   }
 }

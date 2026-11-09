@@ -79,14 +79,25 @@ describe('RecordMonitoringConsentHandler', () => {
     );
   });
 
-  it('keeps the first consent when monitoring is started again in the same session', async () => {
+  it('keeps the original consent when monitoring is re-started under the same notice', async () => {
     const first = new Date('2026-11-09T10:00:00Z');
+    session.recordMonitoringConsent('v1', first);
+
+    const result = await run('candidate-1', 'v1');
+
+    expect(result).toMatchObject({ consentedAt: first, noticeVersion: 'v1' });
+    expect(sessionRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('records a new consent when the candidate agrees to a different notice version', async () => {
+    const first = new Date(Date.now() - 60_000);
     session.recordMonitoringConsent('v1', first);
 
     const result = await run('candidate-1', 'v2');
 
-    expect(result).toMatchObject({ consentedAt: first, noticeVersion: 'v1' });
-    expect(sessionRepository.update).not.toHaveBeenCalled();
+    expect(result.noticeVersion).toBe('v2');
+    expect(result.consentedAt.getTime()).toBeGreaterThan(first.getTime());
+    expect(sessionRepository.update).toHaveBeenCalledTimes(1);
   });
 
   it('refuses the recruiter — only candidates consent for their own camera', async () => {

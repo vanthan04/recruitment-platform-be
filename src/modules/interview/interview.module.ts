@@ -127,5 +127,7 @@ import { SendInterviewRemindersCron } from '@/modules/interview/application/jobs
     SendInterviewRemindersHandler,
     SendInterviewRemindersCron,
   ],
+  // Read access for the monitoring module's interview-access adapter.
+  exports: [IInterviewReadRepository, IInterviewSessionRepository],
 })
 export class InterviewModule {}

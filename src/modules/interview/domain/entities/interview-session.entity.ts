@@ -36,12 +36,18 @@ export class InterviewSession extends BaseEntity {
 
   /**
    * Records the candidate's opt-in to AI monitoring. Only while the session is
-   * open. The first consent is kept: re-starting monitoring later in the same
-   * session (e.g. after a reconnect) must not rewrite when/what was agreed to.
+   * open. Re-starting under the same notice (e.g. after a reconnect) keeps the
+   * original consent; agreeing to a different notice version is a new consent
+   * and replaces it, so the record always names the terms currently in force.
    */
   recordMonitoringConsent(noticeVersion: string, at: Date = new Date()): void {
     if (!this.isOpen()) throw new InterviewSessionNotOpenException();
-    if (this.monitoringConsentAt) return;
+    if (
+      this.monitoringConsentAt &&
+      this.monitoringNoticeVersion === noticeVersion
+    ) {
+      return;
+    }
     this.monitoringConsentAt = at;
     this.monitoringNoticeVersion = noticeVersion;
   }

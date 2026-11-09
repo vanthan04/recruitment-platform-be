@@ -128,6 +128,14 @@ enum InterviewStatus {
   NO_SHOW
 }
 
+// Observational labels from AI monitoring — never a finding of misconduct.
+enum MonitoringEventType {
+  PERSON_ABSENT
+  MULTIPLE_PERSONS
+  PHONE_DETECTED
+  LAPTOP_DETECTED
+}
+
 // ─────────────────────────────────────────────
 // RBAC Module (database-driven authorization)
 // ─────────────────────────────────────────────
@@ -208,6 +216,7 @@ model User {
   refreshTokens    RefreshToken[]
   scheduledInterviews InterviewSchedule[]
   startedInterviewSessions InterviewSession[] @relation("InterviewSessionStartedBy")
+  reviewedDetectionEvents  InterviewDetectionEvent[] @relation("DetectionEventReviewer")
   applicationStatusChanges ApplicationStatusHistory[]
   applicationNotes         ApplicationNote[]
   oauthLoginCodes     OauthLoginCode[]
@@ -648,8 +657,47 @@ model InterviewSession {
   monitoringConsentAt     DateTime?
   monitoringNoticeVersion String?
 
+  detectionEvents InterviewDetectionEvent[]
+
   @@index([interviewId, startedAt])
   @@map("interview_sessions")
+}
+
+// A monitoring event derived from several consecutive analysed frames (see
+// monitoring/domain/services/event-rules.ts) — not a raw inference result,
+// and never an image. Begins when a condition holds for N frames, ends when it
+// has not held for M frames. All times are server time (UTC).
+model InterviewDetectionEvent {
+  id          String              @id @default(uuid())
+  eventType   MonitoringEventType
+  // COCO class behind the event ('person', 'cell phone', 'laptop').
+  objectClass String
+  // Highest confidence seen while the event was open.
+  confidence  Float
+  detectedAt  DateTime
+  // Null while still open.
+  endedAt     DateTime?
+  // Analysed frames in which the condition held.
+  frameCount  Int                 @default(0)
+  // Supplementary only (e.g. peak person count, why it ended).
+  metadata    Json?
+  // Recruiter review — a person's acknowledgement, separate from the model's observation.
+  reviewedAt  DateTime?
+  reviewNote  String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  session            InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  interviewSessionId String
+  // Attribution only — kept but nulled if the reviewer is ever deleted.
+  reviewedBy         User?            @relation("DetectionEventReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedById       String?
+
+  @@index([interviewSessionId, detectedAt])
+  @@index([interviewSessionId, eventType])
+  // Retention purge scans by age.
+  @@index([detectedAt])
+  @@map("interview_detection_events")
 }
 
 // ─────────────────────────────────────────────
