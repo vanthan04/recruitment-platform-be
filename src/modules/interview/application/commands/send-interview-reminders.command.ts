@@ -121,6 +121,7 @@ export class SendInterviewRemindersHandler implements ICommandHandler<
       scheduledAt: interview.scheduledAt,
       location: interview.location,
       meetingLink: interview.meetingLink,
+      useRoom: interview.useRoom,
       note: interview.note,
       now,
       candidateName: candidate?.fullName ?? null,

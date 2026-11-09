@@ -29,6 +29,8 @@ export class InterviewSchedule extends BaseEntity {
   durationMinutes: number | null;
   location: string | null;
   meetingLink: string | null;
+  /** The interview is held in the platform's own video room. */
+  useRoom: boolean;
   note: string | null;
   status: InterviewStatus;
   /** Null once the recruiter who scheduled it has been deleted — attribution only, never used for ownership checks. */
@@ -41,6 +43,7 @@ export class InterviewSchedule extends BaseEntity {
     Object.assign(this, partial);
     this.status = partial.status ?? InterviewStatus.SCHEDULED;
     this.durationMinutes = partial.durationMinutes ?? null;
+    this.useRoom = partial.useRoom ?? false;
     this.reminderSentAt = partial.reminderSentAt ?? null;
     this.ensureLocationOrMeetingLink();
   }
@@ -51,6 +54,7 @@ export class InterviewSchedule extends BaseEntity {
     meetingLink?: string | null,
     note?: string | null,
     durationMinutes?: number | null,
+    useRoom?: boolean,
   ): void {
     if (this.status === InterviewStatus.CANCELLED) {
       throw new CannotRescheduleCancelledInterviewException();
@@ -67,6 +71,7 @@ export class InterviewSchedule extends BaseEntity {
     if (meetingLink !== undefined) this.meetingLink = meetingLink;
     if (note !== undefined) this.note = note;
     if (durationMinutes !== undefined) this.durationMinutes = durationMinutes;
+    if (useRoom !== undefined) this.useRoom = useRoom;
     this.ensureLocationOrMeetingLink();
     this.status = InterviewStatus.RESCHEDULED;
     // The reminder that went out (if any) was for the old time — the new one
@@ -134,7 +139,7 @@ export class InterviewSchedule extends BaseEntity {
   }
 
   private ensureLocationOrMeetingLink(): void {
-    if (!this.location && !this.meetingLink) {
+    if (!this.location && !this.meetingLink && !this.useRoom) {
       throw new InterviewLocationOrMeetingLinkRequiredException();
     }
   }

@@ -10,6 +10,7 @@ export class InterviewResponseMapper {
     dto.durationMinutes = interview.durationMinutes;
     dto.location = interview.location;
     dto.meetingLink = interview.meetingLink;
+    dto.useRoom = interview.useRoom;
     dto.note = interview.note;
     dto.status = interview.status;
     dto.createdById = interview.createdById;

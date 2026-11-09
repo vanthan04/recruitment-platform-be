@@ -586,6 +586,10 @@ model InterviewSchedule {
   durationMinutes Int?
   location        String?
   meetingLink     String?
+  // True = the interview takes place in the platform's own video room
+  // (/interviews/:id/room) instead of / in addition to an external link or a
+  // physical location. Counts as "where" for the location-or-link rule.
+  useRoom         Boolean          @default(false)
   note            String?
   status          InterviewStatus  @default(SCHEDULED)
   // When the pre-interview reminder email went out for the *current*

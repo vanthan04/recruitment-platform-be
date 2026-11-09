@@ -3,6 +3,8 @@ export interface InterviewMailParams {
   scheduledAt: Date;
   location?: string | null;
   meetingLink?: string | null;
+  /** Held in the platform's own video room. */
+  useRoom?: boolean;
   note?: string | null;
 }
 
@@ -26,7 +28,8 @@ export function buildInterviewEmail(
   action: 'scheduled' | 'rescheduled' | 'cancelled',
   params: InterviewMailParams,
 ): { subject: string; html: string } {
-  const { jobTitle, scheduledAt, location, meetingLink, note } = params;
+  const { jobTitle, scheduledAt, location, meetingLink, useRoom, note } =
+    params;
 
   if (action === 'cancelled') {
     return {
@@ -43,6 +46,11 @@ export function buildInterviewEmail(
   if (meetingLink) {
     lines.push(
       `<p>Link tham gia phỏng vấn online: <a href="${meetingLink}">${meetingLink}</a></p>`,
+    );
+  }
+  if (useRoom) {
+    lines.push(
+      '<p>Phỏng vấn online ngay trên nền tảng: đăng nhập, mở mục <b>Lịch phỏng vấn</b>, chọn buổi phỏng vấn này và vào phòng video.</p>',
     );
   }
   if (location) {
@@ -99,6 +107,7 @@ export function buildInterviewReminderEmail(params: InterviewReminderParams): {
     scheduledAt,
     location,
     meetingLink,
+    useRoom,
     note,
     now,
     audience,
@@ -122,6 +131,11 @@ export function buildInterviewReminderEmail(params: InterviewReminderParams): {
       /^https?:\/\//i.test(meetingLink)
         ? `<p>Link tham gia phỏng vấn online: <a href="${escapeHtml(meetingLink)}">${escapeHtml(meetingLink)}</a></p>`
         : `<p>Link tham gia phỏng vấn online: ${escapeHtml(meetingLink)}</p>`,
+    );
+  }
+  if (useRoom) {
+    lines.push(
+      '<p>Phỏng vấn online ngay trên nền tảng: đăng nhập, mở mục <b>Lịch phỏng vấn</b>, chọn buổi phỏng vấn này và vào phòng video.</p>',
     );
   }
   if (location) {

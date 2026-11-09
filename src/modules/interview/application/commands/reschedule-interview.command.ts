@@ -20,6 +20,7 @@ export interface RescheduleInterviewInput {
   scheduledAt?: string;
   location?: string;
   meetingLink?: string;
+  useRoom?: boolean;
   note?: string;
   durationMinutes?: number;
 }
@@ -83,6 +84,7 @@ export class RescheduleInterviewHandler implements ICommandHandler<
       input.meetingLink,
       input.note,
       input.durationMinutes,
+      input.useRoom,
     );
 
     const saved = await this.interviewRepository.update(interview);
@@ -95,6 +97,7 @@ export class RescheduleInterviewHandler implements ICommandHandler<
           scheduledAt: saved.scheduledAt,
           location: saved.location,
           meetingLink: saved.meetingLink,
+          useRoom: saved.useRoom,
           note: saved.note,
         });
         await this.mailPort.sendEmail({ to: candidate.email, subject, html });

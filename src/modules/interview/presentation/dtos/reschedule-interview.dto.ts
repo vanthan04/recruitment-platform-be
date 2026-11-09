@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsString,
   IsOptional,
   IsDateString,
@@ -25,6 +26,13 @@ export class RescheduleInterviewDto {
   @IsOptional()
   @MaxLength(500)
   meetingLink?: string;
+
+  @ApiPropertyOptional({
+    description: "Hold the interview in the platform's own video room",
+  })
+  @IsBoolean()
+  @IsOptional()
+  useRoom?: boolean;
 
   @ApiPropertyOptional({ example: 'Đổi sang phỏng vấn online' })
   @IsString()

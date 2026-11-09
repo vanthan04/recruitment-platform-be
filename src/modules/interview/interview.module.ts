@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { InterviewController } from '@/modules/interview/presentation/controllers/interview.controller';
 import { IInterviewScheduleRepository } from '@/modules/interview/domain/repositories/interview-schedule.repository';
 import { InterviewScheduleInfraRepository } from '@/modules/interview/infrastructure/repositories/interview-schedule.infra-repository';
@@ -15,6 +17,10 @@ import { EndInterviewSessionHandler } from '@/modules/interview/application/comm
 import { GetInterviewHandler } from '@/modules/interview/application/queries/get-interview.query';
 import { ListMyInterviewsHandler } from '@/modules/interview/application/queries/list-my-interviews.query';
 import { ListInterviewSessionsHandler } from '@/modules/interview/application/queries/list-interview-sessions.query';
+import { GetRoomJoinInfoHandler } from '@/modules/interview/application/queries/get-room-join-info.query';
+import { IInterviewRoomProvider } from '@/modules/interview/application/ports/interview-room-provider.port';
+import { P2pRoomProvider } from '@/modules/interview/infrastructure/adapters/p2p-room.provider';
+import { InterviewRoomGateway } from '@/modules/interview/infrastructure/gateways/interview-room.gateway';
 import { JobModule } from '@/modules/job/job.module';
 import { JobApplicationModule } from '@/modules/application/job-application.module';
 import { UserModule } from '@/modules/user/user.module';
@@ -45,6 +51,15 @@ import { SendInterviewRemindersCron } from '@/modules/interview/application/jobs
     JobApplicationModule,
     UserModule,
     MailModule,
+    // InterviewRoomGateway verifies the `access_token` cookie itself (same as
+    // ChatGateway); AuthModule's JwtModule isn't exported, so register one here.
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET'),
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [InterviewController],
   providers: [
@@ -79,6 +94,22 @@ import { SendInterviewRemindersCron } from '@/modules/interview/application/jobs
       provide: IInterviewReadRepository,
       useClass: InterviewReadInfraRepository,
     },
+    P2pRoomProvider,
+    {
+      // The video technology behind the room. Add a case (and an adapter) here
+      // to support a hosted provider; ROOM_PROVIDER is validated in env.validation.ts.
+      provide: IInterviewRoomProvider,
+      inject: [ConfigService, P2pRoomProvider],
+      useFactory: (config: ConfigService, p2p: P2pRoomProvider) => {
+        switch (config.get<string>('ROOM_PROVIDER', 'p2p')) {
+          case 'p2p':
+          default:
+            return p2p;
+        }
+      },
+    },
+    InterviewRoomGateway,
+    GetRoomJoinInfoHandler,
     StartInterviewSessionHandler,
     EndInterviewSessionHandler,
     GetInterviewHandler,

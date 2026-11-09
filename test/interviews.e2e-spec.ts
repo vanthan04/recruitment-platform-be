@@ -93,6 +93,7 @@ describe('Interviews & sessions (e2e)', () => {
   let candidateA: string;
   let candidateB: string;
   let interviewId: string;
+  let applicationId: string;
 
   it('sets up two recruiters, two candidates, and one scheduled interview', async () => {
     recruiterA = await registerAndLogin(
@@ -140,6 +141,8 @@ describe('Interviews & sessions (e2e)', () => {
     const application = await post('/job-applications', candidateA)
       .send({ jobId: job.body.data.id, cvId: cv.body.data.id })
       .expect(201);
+
+    applicationId = application.body.data.id;
 
     const interview = await post('/interviews', recruiterA)
       .send({
@@ -322,6 +325,79 @@ describe('Interviews & sessions (e2e)', () => {
       ).toBe(true);
 
       await post(`/interviews/${interviewId}/sessions`, candidateA).expect(400);
+    });
+  });
+
+  describe('video room', () => {
+    let roomInterviewId: string;
+
+    it('schedules an interview that uses the platform room (no link or location needed)', async () => {
+      const res = await post('/interviews', recruiterA)
+        .send({
+          jobApplicationId: applicationId,
+          scheduledAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+          useRoom: true,
+        })
+        .expect(201);
+      expect(res.body.data.useRoom).toBe(true);
+      roomInterviewId = res.body.data.id;
+    });
+
+    it('refuses room credentials for an interview that does not use the room', async () => {
+      const res = await post(
+        `/interviews/${interviewId}/room/join`,
+        candidateA,
+      ).expect(400);
+      expect(res.body.code).toBe('INTERVIEW_ROOM_NOT_ENABLED');
+    });
+
+    it('refuses room credentials before a session is started', async () => {
+      const res = await post(
+        `/interviews/${roomInterviewId}/room/join`,
+        candidateA,
+      ).expect(400);
+      expect(res.body.code).toBe('INTERVIEW_SESSION_NOT_OPEN');
+    });
+
+    it('refuses room credentials to non-participants', async () => {
+      await post(`/interviews/${roomInterviewId}/room/join`, candidateB).expect(
+        403,
+      );
+      await post(`/interviews/${roomInterviewId}/room/join`, recruiterB).expect(
+        403,
+      );
+    });
+
+    it('issues ICE servers to both participants once a session is open', async () => {
+      const session = await post(
+        `/interviews/${roomInterviewId}/sessions`,
+        candidateA,
+      ).expect(201);
+
+      for (const token of [candidateA, recruiterA]) {
+        const res = await post(
+          `/interviews/${roomInterviewId}/room/join`,
+          token,
+        ).expect(200);
+        expect(res.body.data.sessionId).toBe(session.body.data.id);
+        expect(res.body.data.join.provider).toBe('p2p');
+        expect(Array.isArray(res.body.data.join.iceServers)).toBe(true);
+      }
+    });
+
+    it('refuses room credentials again after the session ends', async () => {
+      const sessions = await get(
+        `/interviews/${roomInterviewId}/sessions`,
+        candidateA,
+      ).expect(200);
+      await patch(
+        `/interviews/${roomInterviewId}/sessions/${sessions.body.data[0].id}/end`,
+        candidateA,
+      ).expect(200);
+
+      await post(`/interviews/${roomInterviewId}/room/join`, candidateA).expect(
+        400,
+      );
     });
   });
 });

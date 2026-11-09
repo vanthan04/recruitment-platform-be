@@ -362,8 +362,8 @@ Recruiter đặt/dời/huỷ lịch phỏng vấn cho 1 `JobApplication`. Bắt 
 
 | Method & Path | Auth | Body / Ghi chú |
 |---|---|---|
-| `POST /interviews` | `RECRUITER` | `{ jobApplicationId, scheduledAt, location?, meetingLink?, note?, durationMinutes? }` — chỉ recruiter sở hữu job của application đó |
-| `PATCH /interviews/:id` | `RECRUITER` | Dời lịch — `{ scheduledAt?, location?, meetingLink?, note?, durationMinutes? }`, `scheduledAt` mới phải ở tương lai, chỉ áp dụng khi interview đang `SCHEDULED`/`RESCHEDULED` |
+| `POST /interviews` | `RECRUITER` | `{ jobApplicationId, scheduledAt, location?, meetingLink?, useRoom?, note?, durationMinutes? }` — chỉ recruiter sở hữu job của application đó. Cần ít nhất một trong `location` / `meetingLink` / `useRoom: true` (phòng video của nền tảng) |
+| `PATCH /interviews/:id` | `RECRUITER` | Dời lịch — `{ scheduledAt?, location?, meetingLink?, useRoom?, note?, durationMinutes? }`, `scheduledAt` mới phải ở tương lai, chỉ áp dụng khi interview đang `SCHEDULED`/`RESCHEDULED` |
 | `PATCH /interviews/:id/cancel` | `RECRUITER` | Chỉ owner, chỉ khi đang `SCHEDULED`/`RESCHEDULED` |
 | `PATCH /interviews/:id/complete` | `RECRUITER` | Đánh dấu đã hoàn thành phỏng vấn — chỉ khi đang `SCHEDULED`/`RESCHEDULED` |
 | `PATCH /interviews/:id/no-show` | `RECRUITER` | Đánh dấu ứng viên không đến — chỉ khi đang `SCHEDULED`/`RESCHEDULED` |
@@ -372,7 +372,10 @@ Recruiter đặt/dời/huỷ lịch phỏng vấn cho 1 `JobApplication`. Bắt 
 | `GET /interviews/:id` | `CANDIDATE`/`RECRUITER` | Cùng shape như 1 phần tử ở trên. Người không tham gia → `403 INTERVIEW_ACCESS_NOT_ALLOWED`, id không tồn tại → `404 INTERVIEW_NOT_FOUND` |
 | `GET /interviews/:id/sessions` | `CANDIDATE`/`RECRUITER` | Các phiên của interview, mới nhất trước: `{ id, interviewId, startedAt, endedAt, startedById, status: 'IN_PROGRESS'\|'ENDED' }` |
 | `POST /interviews/:id/sessions` | `CANDIDATE`/`RECRUITER` | Bắt đầu 1 phiên. Chỉ candidate chủ đơn hoặc recruiter chủ job; interview phải đang `SCHEDULED`/`RESCHEDULED`, đơn chưa ở trạng thái cuối; đã có phiên đang mở → `400 INTERVIEW_SESSION_ALREADY_OPEN` |
+| `POST /interviews/:id/room/join` | `CANDIDATE`/`RECRUITER` | Thông tin vào phòng video: `data: { sessionId, join }`, `join` = `{ provider: 'p2p', iceServers: [{ urls[], username?, credential? }] }`. Chỉ participant; interview phải có `useRoom` (`400 INTERVIEW_ROOM_NOT_ENABLED`) và đang có phiên mở (`400 INTERVIEW_SESSION_NOT_OPEN`) |
 | `PATCH /interviews/:id/sessions/:sessionId/end` | `CANDIDATE`/`RECRUITER` | Kết thúc phiên (cả 2 bên đều được). Phiên đã kết thúc → `400 INTERVIEW_SESSION_ALREADY_ENDED`; `sessionId` của interview khác → `404 INTERVIEW_SESSION_NOT_FOUND` |
+
+**Phòng video (`useRoom`)**: interview có `useRoom: true` diễn ra ngay trên nền tảng tại `/interviews/:id/room` (frontend). Luồng: vào phòng → frontend bắt đầu phiên nếu chưa có → `POST /interviews/:id/room/join` lấy ICE server → kết nối Socket.IO namespace **`/rtc`** (cùng cookie `access_token`) → WebRTC 1–1, video đi thẳng giữa hai trình duyệt. Server chỉ relay, không đụng tới media, không ghi hình. Sự kiện socket — client → server: `room:join {interviewId}`, `rtc:signal {description}` hoặc `{candidate}` (đúng một trong hai; SDP ≤ 20 KB; tối đa 200 tin / 10 giây / socket), `room:leave`; server → client: `room:joined {interviewId, sessionId, role, peers}`, `room:peer-joined`, `room:peer-left`, `rtc:signal {from, ...}`, `room:replaced` (cùng user vào từ nơi khác), `room:closed` (phiên kết thúc hoặc interview xong/huỷ/no-show), `room:error {message}`. Phòng không bao giờ có người thứ ba: chỉ candidate và recruiter chủ job qua được kiểm tra participant.
 
 **Phiên (session)**: "đang mở" = `endedAt IS NULL`. Mỗi interview tối đa **1** phiên đang mở — được chặn ở DB bằng partial unique index `interview_sessions_open_unique` (raw SQL trong migration `20261109090000_interview_session`), nên 2 request bắt đầu đồng thời chỉ 1 request thành công. Khi interview chuyển sang `COMPLETED`/`CANCELLED`/`NO_SHOW`, phiên đang mở được đóng **trong cùng transaction**. Các route session dùng permission `interview:read` (không thêm permission mới vì seed chỉ gán permission mặc định cho role ở lần chạy đầu — DB đã có sẵn sẽ thiếu); quyền thật sự là kiểm tra "participant" trong handler (candidate = `application.userId`, recruiter = `job.postedById`).
 

@@ -122,6 +122,16 @@ cấp được (xem `prisma.config.ts`). Không set thì migrate có thể lỗi
 thực sự dùng ở prod — thiếu bộ biến bắt buộc tương ứng cũng khiến
 container không boot được, y hệt lỗi thiếu `JWT_EXPIRATION`.
 
+### Phòng video phỏng vấn (WebRTC)
+
+Video đi thẳng giữa hai trình duyệt; backend chỉ relay tín hiệu kết nối qua Socket.IO namespace `/rtc` và cấp danh sách ICE server. Không cần thêm service nào để chạy thử, nhưng **muốn gọi ổn định qua mạng công ty / 4G thì cần TURN**.
+
+- `ROOM_PROVIDER` — hiện chỉ có `p2p` (mặc định).
+- `STUN_URLS` — danh sách cách nhau dấu phẩy, mặc định `stun:stun.l.google.com:19302`.
+- `TURN_URLS` + `TURN_SECRET` — tuỳ chọn. Trỏ tới một coturn (chế độ `use-auth-secret`, `static-auth-secret` = `TURN_SECRET`), ví dụ `turn:turn.example.com:3478,turns:turn.example.com:5349`. Backend cấp credential tạm thời cho từng người (mặc định sống 1 giờ — `TURN_CREDENTIAL_TTL_SECONDS`), secret không bao giờ gửi cho trình duyệt. Railway không phù hợp để chạy TURN (cần UDP + dải port relay), nên dùng VPS riêng hoặc dịch vụ TURN thuê ngoài hỗ trợ shared secret.
+- Cần HTTPS ở frontend (trình duyệt chỉ cho `getUserMedia` ở secure context; `localhost` thì được) và `CORS_ORIGIN` đã có origin của frontend — namespace `/rtc` dùng chung cookie `access_token` và cấu hình CORS với chat.
+- Dịch vụ video có sẵn (LiveKit, Daily, ...) cắm vào qua interface `IInterviewRoomProvider` (backend) và `RoomClient` (frontend); không cần đổi phần còn lại.
+
 ## 3. Build & deploy tự động
 
 Deploy đi qua `ci.yml`'s `deploy` job, **không** qua Railway's GitHub

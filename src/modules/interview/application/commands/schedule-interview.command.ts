@@ -23,6 +23,7 @@ export interface ScheduleInterviewInput {
   scheduledAt: string;
   location?: string;
   meetingLink?: string;
+  useRoom?: boolean;
   note?: string;
   durationMinutes?: number;
 }
@@ -93,6 +94,7 @@ export class ScheduleInterviewHandler implements ICommandHandler<
       scheduledAt,
       location: input.location ?? null,
       meetingLink: input.meetingLink ?? null,
+      useRoom: input.useRoom ?? false,
       note: input.note ?? null,
       durationMinutes: input.durationMinutes ?? null,
       createdById: recruiterId,
@@ -112,6 +114,7 @@ export class ScheduleInterviewHandler implements ICommandHandler<
           scheduledAt: saved.scheduledAt,
           location: saved.location,
           meetingLink: saved.meetingLink,
+          useRoom: saved.useRoom,
           note: saved.note,
         });
         await this.mailPort.sendEmail({ to: candidate.email, subject, html });

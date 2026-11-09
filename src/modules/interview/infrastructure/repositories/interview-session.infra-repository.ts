@@ -1,4 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  INTERVIEW_ROOM_CLOSED_EVENT,
+  InterviewRoomClosedEvent,
+} from '@/modules/interview/infrastructure/events/interview-room-closed.event';
 import { IInterviewSessionRepository } from '@/modules/interview/domain/repositories/interview-session.repository';
 import { InterviewSession } from '@/modules/interview/domain/entities/interview-session.entity';
 import { InterviewSessionAlreadyOpenException } from '@/modules/interview/domain/exceptions/interview.exceptions';
@@ -13,7 +18,10 @@ const OPEN_SESSION_INDEX = 'interview_sessions_open_unique';
 
 @Injectable()
 export class InterviewSessionInfraRepository implements IInterviewSessionRepository {
-  constructor(private readonly prisma: InterviewSessionPrismaRepository) {}
+  constructor(
+    private readonly prisma: InterviewSessionPrismaRepository,
+    private readonly events: EventEmitter2,
+  ) {}
 
   async findById(id: string): Promise<InterviewSession | null> {
     return InterviewSessionMapper.toDomain(await this.prisma.findById(id));
@@ -56,6 +64,12 @@ export class InterviewSessionInfraRepository implements IInterviewSessionReposit
     const raw = await this.prisma.update(session.id, {
       endedAt: session.endedAt,
     });
+    if (!session.isOpen()) {
+      this.events.emit(
+        INTERVIEW_ROOM_CLOSED_EVENT,
+        new InterviewRoomClosedEvent(session.interviewId),
+      );
+    }
     return InterviewSessionMapper.toDomain(raw)!;
   }
 }

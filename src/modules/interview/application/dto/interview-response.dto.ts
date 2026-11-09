@@ -5,6 +5,7 @@ export class InterviewResponseDto {
   durationMinutes: number | null;
   location: string | null;
   meetingLink: string | null;
+  useRoom: boolean;
   note: string | null;
   status: string;
   createdById: string | null;

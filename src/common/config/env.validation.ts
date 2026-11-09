@@ -60,6 +60,17 @@ export const envValidationSchema = Joi.object({
   // Where the OAuth callback redirects the browser back to after login.
   FRONTEND_URL: Joi.string().default('http://localhost:3000'),
 
+  // Interview video room. 'p2p' = self-hosted WebRTC (browser-to-browser;
+  // signaling over the /rtc socket namespace). STUN is public; TURN is
+  // optional but needed for participants behind strict NATs/firewalls — point
+  // TURN_URLS at a coturn (use-auth-secret mode) and set TURN_SECRET to its
+  // static-auth-secret. `.allow('')` so a blank template line doesn't crash boot.
+  ROOM_PROVIDER: Joi.string().valid('p2p').default('p2p'),
+  STUN_URLS: Joi.string().allow('').default('stun:stun.l.google.com:19302'),
+  TURN_URLS: Joi.string().allow('').optional(),
+  TURN_SECRET: Joi.string().allow('').optional(),
+  TURN_CREDENTIAL_TTL_SECONDS: Joi.number().integer().min(60).default(3600),
+
   // Social login (Google/Facebook). Optional so the app still boots without
   // them configured — the /auth/google and /auth/facebook routes just fail
   // until real credentials are set. `.allow('')` matters here: a `.env`

@@ -81,7 +81,7 @@ export class InterviewNotActionableException extends BusinessRuleViolationExcept
 export class InterviewLocationOrMeetingLinkRequiredException extends BusinessRuleViolationException {
   constructor() {
     super(
-      'Either location or meetingLink must be provided',
+      'Either location, meetingLink or the in-platform video room must be provided',
       'INTERVIEW_LOCATION_OR_LINK_REQUIRED',
     );
     this.name = 'InterviewLocationOrMeetingLinkRequiredException';
@@ -143,5 +143,25 @@ export class InterviewSessionAlreadyEndedException extends BusinessRuleViolation
       'INTERVIEW_SESSION_ALREADY_ENDED',
     );
     this.name = 'InterviewSessionAlreadyEndedException';
+  }
+}
+
+export class InterviewRoomNotEnabledException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'This interview does not use the platform video room',
+      'INTERVIEW_ROOM_NOT_ENABLED',
+    );
+    this.name = 'InterviewRoomNotEnabledException';
+  }
+}
+
+export class InterviewSessionNotOpenException extends BusinessRuleViolationException {
+  constructor() {
+    super(
+      'Start the interview session before joining the room',
+      'INTERVIEW_SESSION_NOT_OPEN',
+    );
+    this.name = 'InterviewSessionNotOpenException';
   }
 }

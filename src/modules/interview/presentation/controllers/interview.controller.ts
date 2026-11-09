@@ -4,6 +4,7 @@ import {
   Post,
   Patch,
   Body,
+  HttpCode,
   Param,
   Query,
   UseGuards,
@@ -26,6 +27,7 @@ import { ListInterviewsByApplicationQuery } from '@/modules/interview/applicatio
 
 import { StartInterviewSessionCommand } from '@/modules/interview/application/commands/start-interview-session.command';
 import { EndInterviewSessionCommand } from '@/modules/interview/application/commands/end-interview-session.command';
+import { GetRoomJoinInfoQuery } from '@/modules/interview/application/queries/get-room-join-info.query';
 import { GetInterviewQuery } from '@/modules/interview/application/queries/get-interview.query';
 import { ListMyInterviewsQuery } from '@/modules/interview/application/queries/list-my-interviews.query';
 import { ListInterviewSessionsQuery } from '@/modules/interview/application/queries/list-interview-sessions.query';
@@ -174,6 +176,20 @@ export class InterviewController {
       new StartInterviewSessionCommand(userId, id),
     );
     return ApiResponse.ok(result, 'Interview session started');
+  }
+
+  @Post(':id/room/join')
+  @HttpCode(200)
+  @RequirePermissions(Permission.INTERVIEW_READ)
+  @ApiOperation({
+    summary:
+      'Credentials for the interview video room (participants only, needs an open session)',
+  })
+  async joinRoom(@GetMe('id') userId: string, @Param('id') id: string) {
+    const result = await this.queryBus.execute(
+      new GetRoomJoinInfoQuery(userId, id),
+    );
+    return ApiResponse.ok(result, 'Room credentials issued');
   }
 
   @Patch(':id/sessions/:sessionId/end')
