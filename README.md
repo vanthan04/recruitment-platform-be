@@ -83,7 +83,8 @@ src/
 │   ├── file-upload/       # Upload file S3 chung
 │   ├── mail/             # Mail provider (Nodemailer)
 │   ├── chat/             # Hội thoại/tin nhắn realtime (Socket.IO gateway, presence)
-│   ├── interview/         # Lịch phỏng vấn (đặt/dời/huỷ/hoàn thành/no-show, email candidate)
+│   ├── interview/         # Lịch phỏng vấn (đặt/dời/huỷ/hoàn thành/no-show, email candidate), phiên phỏng vấn, phòng video WebRTC (signaling Socket.IO /rtc)
+│   ├── monitoring/        # Giám sát AI (tuỳ chọn, ứng viên đồng ý): khung hình webcam qua Socket.IO /monitor -> dịch vụ YOLO recruitment-platform-ai
 │   ├── ai/               # AI matching/screening/skill-suggestion/job-draft (LangGraph agent + tool)
 │   └── prisma/           # PrismaService dùng chung
 ├── bootstrap.ts      # Setup app Nest dùng chung (helmet, prefix, validation pipe, Swagger, pino logger,

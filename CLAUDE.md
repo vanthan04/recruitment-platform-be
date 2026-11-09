@@ -16,6 +16,7 @@ docker compose up -d          # local Postgres matching .env.example
 npx prisma generate
 npx prisma migrate deploy
 npm run db:seed               # seeds RBAC roles/permissions — required, auth depends on it
+npm run db:seed:demo          # optional local demo data; needs DEMO_SEED_PASSWORD, refuses NODE_ENV=production
 
 npm run start:dev             # watch mode, http://localhost:8080
 npm run build && npm run start:prod
@@ -59,6 +60,7 @@ Every module under `src/modules/<name>/` follows the same shape:
 - Shared code lives in `src/common/`: `domain/base.entity.ts` (base entity), `exceptions/domain.exception.ts` (base domain exception), `guards/` (`JwtAuthGuard`, `PermissionGuard`, OAuth guards), `decorators/` (`@RequirePermissions`, `@GetMe`), plus pagination, filters, and `config/` (env validation via Joi, pino logger config).
 - RBAC: every controller route declares required permissions via `@RequirePermissions`, enforced by `PermissionGuard` (DB-backed `roles`/`permissions`/`role_permissions`, cached — permission changes don't need a redeploy).
 - Cron jobs live at `application/jobs/` inside the owning module (e.g. `job/application/jobs/close-expired-jobs.cron.ts`, `job-alert/application/jobs/job-alert-digest.cron.ts`) and rely on the app running as a single long-lived process (no external scheduler needed) — this shapes the Railway (single always-on container) deployment choice over a serverless/per-request platform.
+- Realtime: three Socket.IO namespaces share the cookie-based `authenticateSocket` (chat/infrastructure/gateways/ws-auth.util.ts): `/ws` (chat), `/rtc` (interview video-room signaling, `interview` module) and `/monitor` (AI monitoring frames, `monitoring` module). The `monitoring` module calls the separate Python service `recruitment-platform-ai` (sibling repo) server-to-server via `AI_SERVICE_URL` + `AI_SERVICE_TOKEN`; browsers never reach it.
 - Logging: `nestjs-pino`, structured JSON, one `requestId` ties access log + app logs + error log for a request together; secrets (passwords, tokens, auth headers/cookies) are auto-redacted.
 
 See [README.md](README.md) for the full feature list and API resource map, [API_GUIDE.md](API_GUIDE.md) for per-resource request/response shapes, and [DEPLOY.md](DEPLOY.md) for the Railway/Docker deploy process. **[CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) is a self-maintained audit doc that lags behind the actual code** (e.g. its test counts and some "known gaps" are stale) — treat it as a starting pointer, not ground truth; verify anything load-bearing against the source or README before repeating it.
