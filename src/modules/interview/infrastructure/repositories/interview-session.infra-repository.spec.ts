@@ -71,6 +71,8 @@ describe('InterviewSessionInfraRepository', () => {
         startedAt: ended.startedAt,
         endedAt: ended.endedAt,
         startedById: null,
+        monitoringConsentAt: null,
+        monitoringNoticeVersion: null,
         createdAt: ended.createdAt,
       });
 
@@ -90,6 +92,8 @@ describe('InterviewSessionInfraRepository', () => {
         startedAt: open.startedAt,
         endedAt: null,
         startedById: null,
+        monitoringConsentAt: null,
+        monitoringNoticeVersion: null,
         createdAt: open.createdAt,
       });
 

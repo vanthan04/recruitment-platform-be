@@ -71,6 +71,16 @@ export const envValidationSchema = Joi.object({
   TURN_SECRET: Joi.string().allow('').optional(),
   TURN_CREDENTIAL_TTL_SECONDS: Joi.number().integer().min(60).default(3600),
 
+  // AI monitoring (Phase 3): the Python detection service. Optional — without
+  // AI_SERVICE_URL + AI_SERVICE_TOKEN, monitoring is reported as unavailable and
+  // interviews work as usual. The token must match the AI service's
+  // AI_SERVICE_TOKEN; it never leaves the backend.
+  AI_SERVICE_URL: Joi.string().uri().allow('').optional(),
+  AI_SERVICE_TOKEN: Joi.string().allow('').optional(),
+  AI_SERVICE_TIMEOUT_MS: Joi.number().integer().min(500).default(5000),
+  MONITORING_MAX_FRAME_BYTES: Joi.number().integer().min(10240).max(1000000).default(524288),
+  MONITORING_MIN_FRAME_INTERVAL_MS: Joi.number().integer().min(100).default(500),
+
   // Social login (Google/Facebook). Optional so the app still boots without
   // them configured — the /auth/google and /auth/facebook routes just fail
   // until real credentials are set. `.allow('')` matters here: a `.env`

@@ -13,6 +13,8 @@ export class InterviewSessionMapper {
       startedAt: raw.startedAt,
       endedAt: raw.endedAt,
       startedById: raw.startedById,
+      monitoringConsentAt: raw.monitoringConsentAt,
+      monitoringNoticeVersion: raw.monitoringNoticeVersion,
       createdAt: raw.createdAt,
     });
   }
@@ -26,6 +28,8 @@ export class InterviewSessionMapper {
       startedAt: session.startedAt,
       endedAt: session.endedAt,
       startedById: session.startedById,
+      monitoringConsentAt: session.monitoringConsentAt,
+      monitoringNoticeVersion: session.monitoringNoticeVersion,
     };
   }
 }

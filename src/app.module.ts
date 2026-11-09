@@ -30,6 +30,7 @@ import { JobAlertModule } from '@/modules/job-alert/job-alert.module';
 import { ChatModule } from '@/modules/chat/chat.module';
 import { InterviewModule } from '@/modules/interview/interview.module';
 import { AiModule } from '@/modules/ai/ai.module';
+import { MonitoringModule } from '@/modules/monitoring/monitoring.module';
 import { envValidationSchema } from '@/common/config/env.validation';
 
 // Prisma's own `log` option writes straight to stdout via its own
@@ -98,6 +99,7 @@ const PRISMA_LOG_LEVELS = isProduction
     JobAlertModule,
     ChatModule,
     InterviewModule,
+    MonitoringModule,
     AiModule,
   ],
   controllers: [AppController],

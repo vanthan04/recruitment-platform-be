@@ -165,3 +165,14 @@ export class InterviewSessionNotOpenException extends BusinessRuleViolationExcep
     this.name = 'InterviewSessionNotOpenException';
   }
 }
+
+/** Only the candidate can turn on monitoring of their own webcam. */
+export class InterviewMonitoringNotAllowedException extends UnauthorizedDomainException {
+  constructor() {
+    super(
+      'Only the candidate can start AI monitoring of their own camera',
+      'INTERVIEW_MONITORING_NOT_ALLOWED',
+    );
+    this.name = 'InterviewMonitoringNotAllowedException';
+  }
+}

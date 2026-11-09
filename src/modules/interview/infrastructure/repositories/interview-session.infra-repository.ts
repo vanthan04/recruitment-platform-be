@@ -63,6 +63,8 @@ export class InterviewSessionInfraRepository implements IInterviewSessionReposit
   async update(session: InterviewSession): Promise<InterviewSession> {
     const raw = await this.prisma.update(session.id, {
       endedAt: session.endedAt,
+      monitoringConsentAt: session.monitoringConsentAt,
+      monitoringNoticeVersion: session.monitoringNoticeVersion,
     });
     if (!session.isOpen()) {
       this.events.emit(

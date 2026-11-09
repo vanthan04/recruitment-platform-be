@@ -17,6 +17,7 @@ import { EndInterviewSessionHandler } from '@/modules/interview/application/comm
 import { GetInterviewHandler } from '@/modules/interview/application/queries/get-interview.query';
 import { ListMyInterviewsHandler } from '@/modules/interview/application/queries/list-my-interviews.query';
 import { ListInterviewSessionsHandler } from '@/modules/interview/application/queries/list-interview-sessions.query';
+import { RecordMonitoringConsentHandler } from '@/modules/interview/application/commands/record-monitoring-consent.command';
 import { GetRoomJoinInfoHandler } from '@/modules/interview/application/queries/get-room-join-info.query';
 import { IInterviewRoomProvider } from '@/modules/interview/application/ports/interview-room-provider.port';
 import { P2pRoomProvider } from '@/modules/interview/infrastructure/adapters/p2p-room.provider';
@@ -110,6 +111,8 @@ import { SendInterviewRemindersCron } from '@/modules/interview/application/jobs
     },
     InterviewRoomGateway,
     GetRoomJoinInfoHandler,
+    // Dispatched over the shared CommandBus by MonitoringGateway.
+    RecordMonitoringConsentHandler,
     StartInterviewSessionHandler,
     EndInterviewSessionHandler,
     GetInterviewHandler,

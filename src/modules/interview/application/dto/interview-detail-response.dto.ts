@@ -18,6 +18,8 @@ export class InterviewSessionResponseDto {
   startedAt: Date;
   endedAt: Date | null;
   startedById: string | null;
+  /** When the candidate opted in to AI monitoring in this session; null = not monitored. */
+  monitoringConsentAt: Date | null;
   /** IN_PROGRESS while endedAt is null, otherwise ENDED. */
   status: 'IN_PROGRESS' | 'ENDED';
 }

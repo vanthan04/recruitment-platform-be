@@ -641,6 +641,13 @@ model InterviewSession {
   startedBy   User?             @relation("InterviewSessionStartedBy", fields: [startedById], references: [id], onDelete: SetNull)
   startedById String?
 
+  // AI monitoring opt-in: when the candidate agreed, in this session, to have
+  // sampled webcam frames analysed, and which version of the notice they were
+  // shown. Null = no monitoring in this session. First consent wins; a later
+  // re-start in the same session does not overwrite it.
+  monitoringConsentAt     DateTime?
+  monitoringNoticeVersion String?
+
   @@index([interviewId, startedAt])
   @@map("interview_sessions")
 }

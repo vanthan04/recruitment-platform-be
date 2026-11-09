@@ -32,6 +32,7 @@ export class InterviewDetailResponseMapper {
     dto.startedAt = session.startedAt;
     dto.endedAt = session.endedAt;
     dto.startedById = session.startedById;
+    dto.monitoringConsentAt = session.monitoringConsentAt;
     dto.status = session.isOpen() ? 'IN_PROGRESS' : 'ENDED';
     return dto;
   }

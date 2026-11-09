@@ -130,6 +130,7 @@ Video đi thẳng giữa hai trình duyệt; backend chỉ relay tín hiệu k�
 - `STUN_URLS` — danh sách cách nhau dấu phẩy, mặc định `stun:stun.l.google.com:19302`.
 - `TURN_URLS` + `TURN_SECRET` — tuỳ chọn. Trỏ tới một coturn (chế độ `use-auth-secret`, `static-auth-secret` = `TURN_SECRET`), ví dụ `turn:turn.example.com:3478,turns:turn.example.com:5349`. Backend cấp credential tạm thời cho từng người (mặc định sống 1 giờ — `TURN_CREDENTIAL_TTL_SECONDS`), secret không bao giờ gửi cho trình duyệt. Railway không phù hợp để chạy TURN (cần UDP + dải port relay), nên dùng VPS riêng hoặc dịch vụ TURN thuê ngoài hỗ trợ shared secret.
 - Cần HTTPS ở frontend (trình duyệt chỉ cho `getUserMedia` ở secure context; `localhost` thì được) và `CORS_ORIGIN` đã có origin của frontend — namespace `/rtc` dùng chung cookie `access_token` và cấu hình CORS với chat.
+- Giám sát AI (Phase 3) cần dịch vụ `recruitment-platform-ai` chạy riêng (Docker, CPU): `AI_SERVICE_URL` (URL nội bộ, ví dụ private network của Railway — không public) và `AI_SERVICE_TOKEN` (trùng với `AI_SERVICE_TOKEN` của dịch vụ AI). Để trống thì giám sát báo "chưa sẵn sàng", phỏng vấn vẫn chạy bình thường. Tuỳ chọn: `AI_SERVICE_TIMEOUT_MS` (5000), `MONITORING_MAX_FRAME_BYTES` (512 KB), `MONITORING_MIN_FRAME_INTERVAL_MS` (500). Xem `docs/benchmark.md` của repo AI trước khi chọn cấu hình máy.
 - Dịch vụ video có sẵn (LiveKit, Daily, ...) cắm vào qua interface `IInterviewRoomProvider` (backend) và `RoomClient` (frontend); không cần đổi phần còn lại.
 
 ## 3. Build & deploy tự động
