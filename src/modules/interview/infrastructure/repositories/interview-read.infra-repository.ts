@@ -12,7 +12,7 @@ import { InterviewScheduleMapper } from '@/modules/interview/infrastructure/pers
 import { normalizePagination } from '@/common/utils/pagination.util';
 
 function toItem(raw: InterviewItemRaw): InterviewListItem {
-  const { jobApplication, ...schedule } = raw;
+  const { jobApplication, sessions, ...schedule } = raw;
   return {
     interview: InterviewScheduleMapper.toDomain(schedule)!,
     jobId: jobApplication.jobId,
@@ -21,6 +21,7 @@ function toItem(raw: InterviewItemRaw): InterviewListItem {
     candidateName: jobApplication.user.profile?.fullName ?? null,
     recruiterId: jobApplication.job.postedById,
     applicationStatus: jobApplication.status,
+    openSessionId: sessions[0]?.id ?? null,
   };
 }
 
@@ -41,6 +42,7 @@ export class InterviewReadInfraRepository implements IInterviewReadRepository {
       userId: filter.userId,
       status: filter.status,
       upcoming: filter.upcoming,
+      inProgress: filter.inProgress,
       skip,
       take: limit,
     });

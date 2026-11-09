@@ -20,4 +20,14 @@ export class ListInterviewsDto extends PageOptionsDto {
   )
   @IsBoolean()
   readonly upcoming?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Only interviews with a session currently open (in progress)',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
+  readonly inProgress?: boolean;
 }

@@ -131,6 +131,7 @@ export class InterviewController {
         query.limit ?? 10,
         query.status,
         query.upcoming,
+        query.inProgress,
       ),
     );
     return ApiResponse.ok(

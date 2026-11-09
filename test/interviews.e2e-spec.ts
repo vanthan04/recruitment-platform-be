@@ -255,6 +255,23 @@ describe('Interviews & sessions (e2e)', () => {
       sessionId = res.body.data.id;
     });
 
+    it('shows the interview as in progress while the session is open', async () => {
+      const detail = await get(`/interviews/${interviewId}`, recruiterA).expect(
+        200,
+      );
+      expect(detail.body.data.inProgress).toBe(true);
+      const list = await get('/interviews?inProgress=true', recruiterA).expect(
+        200,
+      );
+      expect(list.body.data.map((i: { id: string }) => i.id)).toEqual([
+        interviewId,
+      ]);
+      const none = await get('/interviews?inProgress=true', recruiterB).expect(
+        200,
+      );
+      expect(none.body.metadata.total).toBe(0);
+    });
+
     it('rejects a second start while one is open', async () => {
       const res = await post(
         `/interviews/${interviewId}/sessions`,
@@ -289,6 +306,17 @@ describe('Interviews & sessions (e2e)', () => {
         candidateA,
       ).expect(400);
       expect(again.body.code).toBe('INTERVIEW_SESSION_ALREADY_ENDED');
+    });
+
+    it('is no longer in progress once the session ends', async () => {
+      const detail = await get(`/interviews/${interviewId}`, candidateA).expect(
+        200,
+      );
+      expect(detail.body.data.inProgress).toBe(false);
+      const list = await get('/interviews?inProgress=true', candidateA).expect(
+        200,
+      );
+      expect(list.body.metadata.total).toBe(0);
     });
 
     it('allows only one of two simultaneous starts (DB partial unique index)', async () => {

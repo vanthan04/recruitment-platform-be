@@ -13,6 +13,7 @@ export class ListMyInterviewsQuery extends Query<ListMyInterviewsResult> {
     public readonly limit: number,
     public readonly status?: InterviewStatus,
     public readonly upcoming?: boolean,
+    public readonly inProgress?: boolean,
   ) {
     super();
   }
@@ -39,11 +40,13 @@ export class ListMyInterviewsHandler implements IQueryHandler<
     limit,
     status,
     upcoming,
+    inProgress,
   }: ListMyInterviewsQuery): Promise<ListMyInterviewsResult> {
     const { items, total } = await this.readRepository.findForParticipant({
       userId,
       status,
       upcoming,
+      inProgress,
       page,
       limit,
     });

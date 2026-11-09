@@ -10,6 +10,8 @@ export class InterviewDetailResponseDto extends InterviewResponseDto {
   candidateName: string | null;
   /** The requester's role in this interview. */
   viewerRole: InterviewViewerRole;
+  /** A session is open right now. */
+  inProgress: boolean;
 }
 
 export class InterviewSessionResponseDto {

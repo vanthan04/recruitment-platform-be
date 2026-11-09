@@ -21,6 +21,7 @@ export class InterviewDetailResponseMapper {
         candidateId: item.candidateId,
         candidateName: item.candidateName,
         viewerRole,
+        inProgress: Boolean(item.openSessionId),
       },
     );
   }

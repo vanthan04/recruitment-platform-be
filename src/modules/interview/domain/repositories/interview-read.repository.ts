@@ -14,6 +14,8 @@ export interface InterviewListItem {
   candidateName: string | null;
   recruiterId: string;
   applicationStatus: string;
+  /** The session currently open (interview in progress), or null. */
+  openSessionId?: string | null;
 }
 
 export interface ListInterviewsFilter {
@@ -21,6 +23,8 @@ export interface ListInterviewsFilter {
   status?: InterviewStatus;
   /** Active (SCHEDULED/RESCHEDULED) and not yet started, soonest first. */
   upcoming?: boolean;
+  /** Only interviews with a session currently open. */
+  inProgress?: boolean;
   page: number;
   limit: number;
 }

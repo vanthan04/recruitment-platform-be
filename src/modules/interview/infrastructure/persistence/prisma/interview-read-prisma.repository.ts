@@ -15,6 +15,8 @@ const itemInclude = {
       user: { select: { profile: { select: { fullName: true } } } },
     },
   },
+  // The open session, if any (at most one — partial unique index).
+  sessions: { where: { endedAt: null }, select: { id: true }, take: 1 },
 } satisfies Prisma.InterviewScheduleInclude;
 
 export type InterviewItemRaw = Prisma.InterviewScheduleGetPayload<{
@@ -36,6 +38,7 @@ export class InterviewReadPrismaRepository {
     userId: string;
     status?: InterviewStatus;
     upcoming?: boolean;
+    inProgress?: boolean;
     skip: number;
     take: number;
   }): Promise<{ items: InterviewItemRaw[]; total: number }> {
@@ -54,6 +57,7 @@ export class InterviewReadPrismaRepository {
       and.push({ status: { in: ACTIVE_STATUSES } });
       and.push({ scheduledAt: { gte: new Date() } });
     }
+    if (filter.inProgress) and.push({ sessions: { some: { endedAt: null } } });
     const where: Prisma.InterviewScheduleWhereInput = { AND: and };
     const direction = filter.upcoming ? 'asc' : 'desc';
 

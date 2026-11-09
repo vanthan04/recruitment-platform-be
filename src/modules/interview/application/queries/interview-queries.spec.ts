@@ -97,6 +97,47 @@ describe('interview read queries', () => {
     });
   });
 
+  describe('in progress', () => {
+    it('reports an interview with an open session as in progress', async () => {
+      readRepository.findItemById.mockResolvedValue({
+        ...makeItem(),
+        openSessionId: 'session-1',
+      });
+      const result = await new GetInterviewHandler(readRepository).execute(
+        new GetInterviewQuery('recruiter-1', 'interview-1'),
+      );
+      expect(result.inProgress).toBe(true);
+    });
+
+    it('reports an interview without an open session as not in progress', async () => {
+      readRepository.findItemById.mockResolvedValue(makeItem());
+      const result = await new GetInterviewHandler(readRepository).execute(
+        new GetInterviewQuery('recruiter-1', 'interview-1'),
+      );
+      expect(result.inProgress).toBe(false);
+    });
+
+    it('passes the inProgress filter to the repository', async () => {
+      readRepository.findForParticipant.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
+      await new ListMyInterviewsHandler(readRepository).execute(
+        new ListMyInterviewsQuery(
+          'recruiter-1',
+          1,
+          10,
+          undefined,
+          undefined,
+          true,
+        ),
+      );
+      expect(readRepository.findForParticipant).toHaveBeenCalledWith(
+        expect.objectContaining({ inProgress: true }),
+      );
+    });
+  });
+
   describe('ListMyInterviewsHandler', () => {
     it('passes filters through and maps role + pagination', async () => {
       readRepository.findForParticipant.mockResolvedValue({
