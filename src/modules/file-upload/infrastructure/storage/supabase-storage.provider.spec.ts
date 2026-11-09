@@ -47,7 +47,6 @@ describe('SupabaseStorageProvider', () => {
   });
 
   it('configures the client against the project-ref storage endpoint with forced path style', () => {
-    // eslint-disable-next-line no-new
     new SupabaseStorageProvider(makeConfigService());
 
     expect(S3Client).toHaveBeenCalledWith(
